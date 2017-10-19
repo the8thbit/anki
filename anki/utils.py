@@ -266,6 +266,7 @@ def joinFields(list):
     return "\x1f".join(list)
 
 def splitFields(string):
+    """Transform the fields as in the database in a list of field"""
     return string.split("\x1f")
 
 # Checksums
@@ -324,7 +325,20 @@ def noBundledLibs():
         os.environ["LD_LIBRARY_PATH"] = oldlpath
 
 def call(argv, wait=True, **kwargs):
-    "Execute a command. If WAIT, return exit code."
+    "Execute a command and return its return code.
+
+    If wait is set to False, don't wait and return immediatly 0
+    (i.e. correct exit number)
+    return -1 if executing the command raises OSErrors.
+
+    If the returned value is considered as a Boolean, it returns
+    whether the call returned an error.
+
+    Keyword arguments
+    argv -- the command to execute
+    wait -- whether to wait for the end of the call before returning
+    **kwargs -- arguments given to subprocess.Popen.
+    """
     # ensure we don't open a separate window for forking process on windows
     if isWin:
         si = subprocess.STARTUPINFO()

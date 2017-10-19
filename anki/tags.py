@@ -127,7 +127,8 @@ class TagManager:
         return [t for t in tags.replace('\u3000', ' ').split(" ") if t]
 
     def join(self, tags):
-        "Join tags into a single string, with leading and trailing spaces."
+        """Join tags into a single string, separated by whitespace, with leading
+and trailing spaces."""
         if not tags:
             return ""
         return " %s " % " ".join(tags)

@@ -313,6 +313,7 @@ def getSaveFile(parent, title, dir_description, key, ext, fname=None):
     return file
 
 def saveGeom(widget, key):
+    """Associate to the key the geometry of the widget"""
     key += "Geom"
     if isMac and widget.windowState() & Qt.WindowFullScreen:
         geom = None
@@ -321,6 +322,11 @@ def saveGeom(widget, key):
     aqt.mw.pm.profile[key] = geom
 
 def restoreGeom(widget, key, offset=None, adjustSize=False):
+    """Gets from the collection profil the geometry associated to the widget named key.
+
+    keywords parameter:
+    offset -- whether a mac window must be resized, assuming qtminor >6 ???
+    adjustSize -- Whether to call widget.adjustSize if the key does not belongs in the database """
     key += "Geom"
     if aqt.mw.pm.profile.get(key):
         widget.restoreGeometry(aqt.mw.pm.profile[key])
@@ -428,6 +434,8 @@ _tooltipTimer = None
 _tooltipLabel = None
 
 def tooltip(msg, period=3000, parent=None):
+    """Show a small yellow box for period milliseconds, containing the
+text msg."""
     global _tooltipTimer, _tooltipLabel
     class CustomLabel(QLabel):
         silentlyClose = True

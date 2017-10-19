@@ -10,7 +10,23 @@ from aqt.utils import saveGeom, restoreGeom
 import collections
 from anki.lang import _, ngettext
 
+
 class Models(QDialog):
+    """TODO
+
+    An object of class Models contains:
+    mw -- The main window (?)
+    parent -- the window which opened the current window. By default
+    the main window 
+    fromMain -- whether the window is opened from the main window. It
+    is used to check whether Fields... and Cards... buttons should be
+    added.
+    col -- the collection
+    mm -- the set of models of the colection
+    form -- TODO
+
+    """
+    
     def __init__(self, mw, parent=None, fromMain=False):
         self.mw = mw
         self.parent = parent or mw
@@ -142,6 +158,7 @@ class Models(QDialog):
         FieldDialog(self.mw, n, parent=self)
 
     def onCards(self):
+        """Open the card preview(layout) window."""
         from aqt.clayout import CardLayout
         n = self._tmpNote()
         CardLayout(self.mw, n, ord=0, parent=self, addMode=True)

@@ -998,6 +998,7 @@ Difference to correct time: %s.""") % diffText
     ##########################################################################
 
     def setupHooks(self):
+        """Adds onSchemadMod, onRemNotes and onOdueInvalid to their hooks"""
         addHook("modSchema", self.onSchemaMod)
         addHook("remNotes", self.onRemNotes)
         addHook("odueInvalid", self.onOdueInvalid)
@@ -1048,6 +1049,7 @@ and if the problem comes up again, please ask on the support site."""))
     ##########################################################################
 
     def onSchemaMod(self, arg):
+        """Ask the user whether they accept to do an action which will request a full reupload of the db"""
         return askUser(_("""\
 The requested change will require a full upload of the database when \
 you next synchronize your collection. If you have reviews or other changes \

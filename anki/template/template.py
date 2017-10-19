@@ -5,6 +5,11 @@ from anki.template import furigana; furigana.install()
 from anki.template import hint; hint.install()
 
 clozeReg = r"(?si)\{\{(c)%s::(.*?)(::(.*?))?\}\}"
+"""clozeReg % n is the regexp recognizing the occurrences of close number n.
+   clozeReg %.+? is the regexp recognizing any cloze occurrence.
+   group 0 is c. Group 1 is the cloze, group 2 is the hint with ::, group 3 is the hint.
+"""
+#(?si) means .dot match all strings, ignore case
 
 modifiers = {}
 def modifier(symbol):
@@ -35,6 +40,12 @@ def get_or_attr(obj, name, default=None):
 
 
 class Template:
+    """TODO
+
+    A template object contains:
+    template -- a template; see ../models.py
+    context -- TODD
+    """
     # The regular expression used to find a #section
     section_re = None
 
