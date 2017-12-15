@@ -382,6 +382,7 @@ class StatusDelegate(QItemDelegate):
 # fixme: respond to reset+edit hooks
 
 class Browser(QMainWindow):
+    """model: the data model (and not a card model !)"""
 
     def __init__(self, mw):
         QMainWindow.__init__(self, None, Qt.Window)
@@ -1985,7 +1986,10 @@ class ChangeModel(QDialog):
         self.modelChanged(self.browser.col.models.current())
 
     def modelChanged(self, model):
-        """Change the model changer GUI to model"""
+        """Change the model changer GUI to model
+
+        This should be used if the destination model has been changed.
+        """
         self.targetModel = model
         self.rebuildTemplateMap()
         self.rebuildFieldMap()
@@ -2049,8 +2053,8 @@ class ChangeModel(QDialog):
         indices[cb] = i
 
     def getTemplateMap(self, old=None, combos=None, new=None):
-        """A map from template's ord of the old model to template's ord of the new
-        model. Or None if no template
+        """Associating to each template's ord of the source model a template's
+        ord (or None) of the new model.
 
         Contrary to what this name indicates, the method may be used
         without templates. In getFieldMap it is used for fields
@@ -2077,15 +2081,15 @@ class ChangeModel(QDialog):
         return map
 
     def getFieldMap(self):
-        """A map from field's ord of the old model to field's ord of the new
-        model. Or None if no field"""
+        """Associating to each field's ord of the source model a field's
+        ord (or None) of the new model."""
         return self.getTemplateMap(
             old=self.oldModel['flds'],
             combos=self.fcombos,
             new=self.targetModel['flds'])
 
     def cleanup(self):
-        """Actions to end this gui.
+        """Close the GUI
 
         Remove hook related to this window, and potentially its model chooser. 
         Save the geometry of the current window in order to keep it for a new reordering
@@ -2101,9 +2105,13 @@ class ChangeModel(QDialog):
         return QDialog.reject(self)
 
     def accept(self):
+        """Procede to changing the model, according to the content of the GUI.
+        
+        TODO"""
         # check maps
         fmap = self.getFieldMap()
         cmap = self.getTemplateMap()
+        #If there are cards which are sent to nothing:
         if any(True for c in list(cmap.values()) if c is None):
             if not askUser(_("""\
 Any cards mapped to nothing will be deleted. \

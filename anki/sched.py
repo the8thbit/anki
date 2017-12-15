@@ -407,7 +407,11 @@ did = ? and queue = 0 limit ?)""", did, lim)
         return lim
 
     def _newForDeck(self, did, lim):
-        "New count for a single deck."
+        """The minimum between the number of new cards in this deck lim and self.reportLimit.
+
+        keyword arguments:
+        did -- id of a deck
+        lim -- an upper bound for the returned number (in practice, the number of new cards to see by day for the deck's option) """
         if not lim:
             return 0
         lim = min(lim, self.reportLimit)

@@ -336,6 +336,10 @@ Are you sure you want to continue?"""
     _configUpdatedActions = {}
 
     def addonConfigDefaults(self, dir):
+        """The (default) configuration of the addon whose
+name/directory is dir.
+
+        This file should be called config.json"""
         path = os.path.join(self.addonsFolder(dir), "config.json")
         try:
             with open(path, encoding="utf8") as f:
@@ -344,6 +348,7 @@ Are you sure you want to continue?"""
             return None
 
     def addonConfigHelp(self, dir):
+        """The configuration of this addon, obtained as configuration"""
         path = os.path.join(self.addonsFolder(dir), "config.md")
         if os.path.exists(path):
             with open(path, encoding="utf-8") as f:
@@ -352,6 +357,7 @@ Are you sure you want to continue?"""
             return ""
 
     def addonFromModule(self, module):
+        """Returns the string of module before the first dot"""
         return module.split(".")[0]
 
     def configAction(self, addon):

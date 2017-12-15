@@ -1033,6 +1033,11 @@ and if the problem comes up again, please ask on the support site."""))
     ##########################################################################
 
     def onRemNotes(self, col, nids):
+        """Append (id, model id and fields) to the end of deleted.txt
+
+        This is done for each id of nids.        
+        This method is added to the hook remNotes; and executed on note deletion.
+        """
         path = os.path.join(self.pm.profileFolder(), "deleted.txt")
         existed = os.path.exists(path)
         with open(path, "ab") as f:

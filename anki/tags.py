@@ -173,7 +173,7 @@ and trailing spaces."""
         return sorted(set(strippedTags))
 
     def inList(self, tag, tags):
-        "True if TAG is in TAGS. Ignore case."
+        """Whether tag is in tags. Ignore case."""
         return tag.lower() in [t.lower() for t in tags]
 
     # Sync handling

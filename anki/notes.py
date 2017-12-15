@@ -17,7 +17,7 @@ class Note:
     tags -- List of tags.
          -- In the database, it is a space-separated string of tags. 
          -- includes space at the beginning and end, for LIKE "% tag %" queries
-    fields -- the list of values of the fields in this note. 
+    fields -- the list of values of the fields in this note.  Starting at 0
           in the db, instead of fields, there is flds; which is the content of fields, in the order of the note type, concatenated using \x1f (\\x1f))
     sfld -- sort field: used for quick sorting and duplicate check
     csum -- field checksum used for duplicate check.
