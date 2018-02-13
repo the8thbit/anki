@@ -1155,6 +1155,8 @@ will be lost. Continue?"""))
             self.moveToState("overview")
 
     def onEmptyCards(self):
+        """Method called by Tools>Empty Cards..."""
+        
         self.progress.start(immediate=True)
         cids = self.col.emptyCids()
         if not cids:

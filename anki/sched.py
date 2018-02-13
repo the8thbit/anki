@@ -19,6 +19,9 @@ from anki.hooks import runHook
 # positive revlog intervals are in days (rev), negative in seconds (lrn)
 
 class Scheduler:
+    """
+    today -- difference between the last time scheduler is seen and creation of the collection.
+    """
     name = "std"
     haveCustomStudy = True
     _spreadRev = True
@@ -214,11 +217,14 @@ order by due""" % self._deckLimit(),
     ##########################################################################
 
     def deckDueList(self):
-        "Returns [deckname, did, rev, lrn, new]"
+        """
+        [deckname (with ::), 
+        did, rev, lrn, new (not counting subdeck)]"""
         self._checkDay()
         self.col.decks.checkIntegrity()
         decks = self.col.decks.all()
         decks.sort(key=itemgetter('name'))
+        #lims -- associating to each deck maximum number of new card and of review. Taking custom study into account
         lims = {}
         data = []
         def parent(name):
@@ -230,6 +236,7 @@ order by due""" % self._deckLimit(),
         for deck in decks:
             p = parent(deck['name'])
             # new
+            #nlim -- maximal number of new card, taking parent into account
             nlim = self._deckNewLimitSingle(deck)
             if p:
                 nlim = min(nlim, lims[p][0])
@@ -237,6 +244,7 @@ order by due""" % self._deckLimit(),
             # learning
             lrn = self._lrnForDeck(deck['id'])
             # reviews
+            #rlim -- maximal number of review, taking parent into account
             rlim = self._deckRevLimitSingle(deck)
             if p:
                 rlim = min(rlim, lims[p][1])
@@ -248,9 +256,20 @@ order by due""" % self._deckLimit(),
         return data
 
     def deckDueTree(self):
+        """[subdeck name without parent parts, 
+        did, rev, lrn, new (counting subdecks)
+        [recursively the same things for the children]]
+        """
         return self._groupChildren(self.deckDueList())
 
     def _groupChildren(self, grps):
+        """[subdeck name without parent parts, 
+        did, rev, lrn, new (counting subdecks)
+        [recursively the same things for the children]]
+        
+        Keyword arguments:
+        grps -- [deckname, did, rev, lrn, new]
+        """
         # first, split the group names into components
         for g in grps:
             g[0] = g[0].split("::")
@@ -260,6 +279,13 @@ order by due""" % self._deckLimit(),
         return self._groupChildrenMain(grps)
 
     def _groupChildrenMain(self, grps):
+        """
+        [subdeck name without parent parts, 
+        did, rev, lrn, new (counting subdecks)
+        [recursively the same things for the children]]
+
+        keyword arguments:
+        grps -- [[subdeck], did, rev, lrn, new] sorted according to the list subdeck. Number for the subdeck precisely"""
         tree = []
         # group and recurse
         def key(grp):
@@ -694,6 +720,7 @@ where queue in (1,3) and type = 2
             "select id from cards where queue in (1,3) %s" % extra))
 
     def _lrnForDeck(self, did):
+        """Number of cards in learning for deck did"""
         cnt = self.col.db.scalar(
             """
 select sum(left/1000) from
@@ -713,12 +740,18 @@ and due <= ? limit ?)""",
         return self._deckNewLimit(did, self._deckRevLimitSingle)
 
     def _deckRevLimitSingle(self, d):
+        """The number of cards remaining to review today. 
+
+        Custom study taken into account """
         if d['dyn']:
             return self.reportLimit
         c = self.col.decks.confForDid(d['id'])
         return max(0, c['rev']['perDay'] - d['revToday'][1])
 
     def _revForDeck(self, did, lim):
+        """number of cards to review today for deck did 
+
+        Minimum between this number, self report and limit. Not taking subdeck into account """
         lim = min(lim, self.reportLimit)
         return self.col.db.scalar(
             """

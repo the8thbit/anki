@@ -85,7 +85,13 @@ class TagManager:
     #############################################################
 
     def bulkAdd(self, ids, tags, add=True):
-        "Add tags in bulk. TAGS is space-separated."
+        """Add tags in bulk. TAGS is space-separated. 
+
+        keyword arguments
+        ids -- a list of id
+        tags -- a string of space-separated tag
+        add -- whether to add (True) or to remove (False)
+        """
         newTags = self.split(tags)
         if not newTags:
             return

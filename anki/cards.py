@@ -11,14 +11,6 @@ from anki.consts import *
 # Cards
 ##########################################################################
 
-# Type: 0=new, 1=learning, 2=due
-# Queue: same as above, and:
-#        -1=suspended, -2=user buried, -3=sched buried
-# Due is used differently for different queues.
-# - new queue: note id or random int
-# - rev queue: integer day
-# - lrn queue: integer timestamp
-
 class Card:
 
     """ 
@@ -32,15 +24,17 @@ class Card:
     valid values are from 0 to num templates - 1
     mod -- modificaton time as epoch seconds
     usn -- update sequence number : see README.synchronization
-    type -- 0=new, 1=learning, 2=due
-    queue -- Same as type, but -1=suspended, -2=user buried, -3=sched buried
+    type -- -- 0=new, 1=learning, 2=due, 3=filtered
+    queue -- -3=sched buried, -2=user buried, -1=suspended, 0=new, 1=learning, 2=due, 3=in learning, next rev in at least a day after last review
     due -- Due is used differently for different card types: 
-        --   new: note id or random int
-        --   due: integer day, relative to the collection's creation time
-        --   learning: integer timestamp
+        --   new: note id or random int. 
+                  Allow to select in which order new cards are seens.
+        --   due: integer day in which the card is due for the next time,
+                  relative to the collection's creation time
+        --   learning: integer timestamp of when the next review is due
     ivl -- interval (used in SRS algorithm). Negative = seconds, positive = days
     factor -- easyness factor (used in SRS algorithm)
-    reps -- number of reviews todo
+    reps -- number of reviews to do
     lapses -- the number of times the card went from a "was answered correctly" 
            --   to "was answered incorrectly" state
     left -- reviews left till graduation
