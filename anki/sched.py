@@ -996,6 +996,13 @@ select id from cards where did in %s and queue = 2 and due <= ? limit ?)"""
         return ids
 
     def emptyDyn(self, did, lim=None):
+        """Moves cram cards to their deck
+        Cards in learning mode move to their previous type.
+        
+        Keyword arguments:
+        lim -- the query which decides which cards are used
+        did -- assuming lim is not provided/false, the (filtered) deck concerned by this call
+        """
         if not lim:
             lim = "did = %s" % did
         self.col.log(self.col.db.list("select id from cards where %s" % lim))
