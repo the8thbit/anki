@@ -8,3 +8,6 @@ aqt/forms
 locale
 tools/runanki.system
 anki/buildhash.py
+/__main__.py
+/anki/ankiweb.certs
+/tests/test_sched.py
