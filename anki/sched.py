@@ -218,6 +218,8 @@ order by due""" % self._deckLimit(),
 
     def deckDueList(self):
         """
+        Similar to nodes, without the recursive counting, with the full deck name
+
         [deckname (with ::), 
         did, rev, lrn, new (not counting subdeck)]"""
         self._checkDay()
@@ -256,11 +258,13 @@ order by due""" % self._deckLimit(),
         return data
 
     def deckDueTree(self):
-        """[subdeck name without parent parts, 
-        did, rev, lrn, new (counting subdecks)
-        [recursively the same things for the children]]
+        """Generate the node of the main deck. See deckbroser introduction to see what a node is
         """
-        return self._groupChildren(self.deckDueList())
+        #something similar to nodes, but without the recursive part
+        nodes_=self.deckDueList()
+        #the actual nodes
+        nodes=self._groupChildren(nodes)
+        return nodes
 
     def _groupChildren(self, grps):
         """[subdeck name without parent parts, 
@@ -720,7 +724,7 @@ where queue in (1,3) and type = 2
             "select id from cards where queue in (1,3) %s" % extra))
 
     def _lrnForDeck(self, did):
-        """Number of cards in learning for deck did"""
+        """Number of review of cards in learing of deck did. """
         cnt = self.col.db.scalar(
             """
 select sum(left/1000) from
