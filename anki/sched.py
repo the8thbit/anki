@@ -183,6 +183,9 @@ order by due""" % self._deckLimit(),
             self.col.decks.save(g)
 
     def _walkingCount(self, limFn=None, cntFn=None):
+        """The sum of cntFn applied to each active deck.
+
+        Taking into account the limit computed by limFn"""
         tot = 0
         pcounts = {}
         # for each of the active decks
@@ -360,6 +363,7 @@ order by due""" % self._deckLimit(),
     ##########################################################################
 
     def _resetNewCount(self):
+        """Set newCount to the counter of new cards for the active decks"""
         cntFn = lambda did, lim: self.col.db.scalar("""
 select count() from (select 1 from cards where
 did = ? and queue = 0 limit ?)""", did, lim)
