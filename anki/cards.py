@@ -218,7 +218,7 @@ lapses=?, left=?, odue=?, odid=?, did=? where id = ?""",
         """The note object of the card.
 
         If the cards already knows its object, and reload is not true,
-        it is used.
+        this object is used.
         """
         if not self._note or reload:
             self._note = self.col.getNote(self.nid)

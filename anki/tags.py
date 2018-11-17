@@ -108,8 +108,8 @@ class TagManager:
         lim = " or ".join(
             [l+"like :_%d" % c for c, t in enumerate(newTags)])
         res = self.col.db.all(
-            "select id, tags from notes where id in %s and (%s)" % (
-                ids2str(ids), lim),
+            f"select id, tags from notes where id in 
+            {ids2str(ids)} and ({lim})" ,
             **dict([("_%d" % x, '%% %s %%' % y.replace('*', '%'))
                     for x, y in enumerate(newTags)]))
         # update tags

@@ -53,6 +53,7 @@ class Finder:
         return res
 
     def findNotes(self, query):
+        "Return a list of notes ids for QUERY."
         tokens = self._tokenize(query)
         preds, args = self._where(tokens)
         if preds is None:
