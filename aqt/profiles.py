@@ -251,15 +251,27 @@ and no other programs are accessing your profile folders, then try again."""))
     ######################################################################
 
     def profileFolder(self, create=True):
+        """The path to the folder of this profile.
+        
+        It is based on the base, and this profile name
+        This folder may not exists.
+        Create it only if does not exists and create is set to True"""
         path = os.path.join(self.base, self.name)
         if create:
             self._ensureExists(path)
         return path
 
     def addonFolder(self):
+        """The path to the add-on folder.
+
+        Guarenteed to exists. 
+        It is in base, not in profile"""
         return self._ensureExists(os.path.join(self.base, "addons21"))
 
     def backupFolder(self):
+        """The path to the backup folder.
+
+        Guarenteed to exists"""
         return self._ensureExists(
             os.path.join(self.profileFolder(), "backups"))
 
@@ -270,6 +282,7 @@ and no other programs are accessing your profile folders, then try again."""))
     ######################################################################
 
     def _ensureExists(self, path):
+        """Create the path if it does not exists. Return the path"""
         if not os.path.exists(path):
             os.makedirs(path)
         return path

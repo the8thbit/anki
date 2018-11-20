@@ -69,7 +69,7 @@ def showText(txt, parent=None, type="text", run=True, geomKey=None, \
     text.setOpenExternalLinks(True)
     if type == "text":
         text.setPlainText(txt)
-    else:
+o    else:
         text.setHtml(txt)
     layout.addWidget(text)
     box = QDialogButtonBox(QDialogButtonBox.Close)
@@ -100,7 +100,15 @@ def showText(txt, parent=None, type="text", run=True, geomKey=None, \
 
 def askUser(text, parent=None, help="", defaultno=False, msgfunc=None, \
         title="Anki"):
-    "Show a yes/no question. Return true if yes."
+    """Show a yes/no question. Return true if yes.
+    
+    Text -- the text displayed to the user
+    parent -- Add this window as parent to the question
+    help -- An help message, occuring if the user click on the help button
+    defaultno -- whether the default answer is no
+    msgfunc -- The kind of QMessageBox. By default, a question
+    title -- title of the question window
+    """
     if not parent:
         parent = aqt.mw.app.activeWindow()
     if not msgfunc:
@@ -215,6 +223,7 @@ def getText(prompt, parent=None, help=None, edit=None, default="",
     return (str(d.l.text()), ret)
 
 def getOnlyText(*args, **kwargs):
+    """A text asked to the user, or the empty string."""
     (s, r) = getText(*args, **kwargs)
     if r:
         return s
