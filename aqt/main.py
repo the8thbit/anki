@@ -30,6 +30,10 @@ from aqt.utils import saveGeom, restoreGeom, showInfo, showWarning, \
     openHelp, openLink, checkInvalidFilename, getFile
 import sip
 
+"""
+self.stateShortcuts -- the list of QShortcut elements due to the actual state of the main window (i.e. reviewer or overwiew).
+"""
+
 class AnkiQt(QMainWindow):
     def __init__(self, app, profileManager, opts, args):
         QMainWindow.__init__(self)
@@ -716,6 +720,11 @@ title="%s" %s>%s</button>''' % (
         self.stateShortcuts = []
 
     def applyShortcuts(self, shortcuts):
+        """A list of shortcuts.
+
+        Keyword arguments:
+        shortcuts -- a list of pair (shortcut key, function called by the shortcut)
+        """
         qshortcuts = []
         for key, fn in shortcuts:
             scut = QShortcut(QKeySequence(key), self, activated=fn)
@@ -724,10 +733,15 @@ title="%s" %s>%s</button>''' % (
         return qshortcuts
 
     def setStateShortcuts(self, shortcuts):
+        """set stateShortcuts to QShortcut from shortcuts
+        
+        run hook CURRENTSTATEStateShorcuts
+        """
         runHook(self.state+"StateShortcuts", shortcuts)
         self.stateShortcuts = self.applyShortcuts(shortcuts)
 
     def clearStateShortcuts(self):
+        """Delete the shortcut of current state, empty stateShortcuts"""
         for qs in self.stateShortcuts:
             sip.delete(qs)
         self.stateShortcuts = []
