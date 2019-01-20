@@ -28,6 +28,7 @@ def modifier(symbol):
 
 
 def get_or_attr(obj, name, default=None):
+    """If its a susbscriptable: obj[name]. Else obj.name. Else default"""
     try:
         return obj[name]
     except KeyError:
@@ -43,7 +44,7 @@ class Template:
     """TODO
 
     A template object contains:
-    template -- a template; see ../models.py
+    template -- does not seems to be used
     context -- TODD
     """
     # The regular expression used to find a #section

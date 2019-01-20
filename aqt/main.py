@@ -54,7 +54,7 @@ class AnkiQt(QMainWindow):
         # were we given a file to import?
         if args and args[0]:
             self.onAppMsg(args[0])
-        # Load profile in a timer so we can let the window finish init and not
+       # Load profile in a timer so we can let the window finish init and not
         # close on profile load error.
         self.progress.timer(10, self.setupProfile, False, requiresCollection=False)
 
