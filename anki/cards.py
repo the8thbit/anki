@@ -13,21 +13,21 @@ from anki.consts import *
 
 class Card:
 
-    """ 
-    Cards are what you review. 
+    """
+    Cards are what you review.
     There can be multiple cards for each note, as determined by the Template.
 
     id -- the epoch milliseconds of when the card was created
     nid -- The card's note's id
     did -- The card's deck id
-    ord -- ordinal : identifies which of the card templates it corresponds to 
+    ord -- ordinal : identifies which of the card templates it corresponds to
     valid values are from 0 to num templates - 1
     mod -- modificaton time as epoch seconds
     usn -- update sequence number : see README.synchronization
     type -- -- 0=new, 1=learning, 2=due, 3=filtered
     queue -- -3=sched buried, -2=user buried, -1=suspended, 0=new, 1=learning, 2=due, 3=in learning, next rev in at least a day after last review
-    due -- Due is used differently for different card types: 
-        --   new: note id or random int. 
+    due -- Due is used differently for different card types:
+        --   new: note id or random int.
                   Allow to select in which order new cards are seens.
         --   due: integer day in which the card is due for the next time,
                   relative to the collection's creation time
@@ -35,7 +35,7 @@ class Card:
     ivl -- interval (used in SRS algorithm). Negative = seconds, positive = days
     factor -- easyness factor (used in SRS algorithm)
     reps -- number of reviews to do
-    lapses -- the number of times the card went from a "was answered correctly" 
+    lapses -- the number of times the card went from a "was answered correctly"
            --   to "was answered incorrectly" state
     left -- reviews left till graduation
     odue -- original due: only used when the card is currently in filtered deck
@@ -49,7 +49,7 @@ class Card:
     _qa -- the dictionnary whose element q and a are questions and answers html
     _note -- the note object of the card
     """
-    
+
     def __init__(self, col, id=None):
         """
         This function returns a card object from the collection given in argument.
@@ -115,7 +115,7 @@ class Card:
     def flush(self):
         """Insert the card into the database.
 
-        If the cards is already in the database, it is replaced, 
+        If the cards is already in the database, it is replaced,
         otherwise it is created."""
         self.mod = intTime()
         self.usn = self.col.usn()
@@ -181,10 +181,12 @@ lapses=?, left=?, odue=?, odid=?, did=? where id = ?""",
     def q(self, reload=False, browser=False):
         """The card question with its css.
 
-        Keyword arguments:
-        reload -- whether the card should be reloaded even if it is already known
-        browser -- TODO
-"""
+        Keyword arguments: reload -- whether the card should be
+        reloaded even if it is already known browser -- whether its
+        called from the browser (in which case the format strings are
+        bqfmt and not qfmt)
+
+        """
         return self.css() + self._getQA(reload, browser)['q']
 
     def a(self):
@@ -204,7 +206,9 @@ lapses=?, left=?, odue=?, odid=?, did=? where id = ?""",
         browser -- ???TODO
         """
         if not self._qa or reload:
-            f = self.note(reload); m = self.model(); t = self.template()
+            f = self.note(reload)
+            m = self.model()
+            t = self.template()
             data = [self.id, f.id, m['id'], self.odid or self.did, self.ord,
                     f.stringTags(), f.joinedFields(), self.flags]
             if browser:

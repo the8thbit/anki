@@ -737,7 +737,7 @@ where c.nid = n.id and c.id in %s group by nid""" % ids2str(cids)):
         TODO comment better
 
         """
-        cid, nid, mid, did, ord, tags, flds, cardFlags = data
+         cid, nid, mid, did, ord, tags, flds, cardFlags = data
         flist = splitFields(flds)#the list of fields
         fields = {} #
         #name -> ord for each field, tags
