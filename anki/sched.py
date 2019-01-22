@@ -223,7 +223,7 @@ order by due""" % (self._deckLimit(), QUEUE_REV),
         """
         Similar to nodes, without the recursive counting, with the full deck name
 
-        [deckname (with ::), 
+        [deckname (with ::),
         did, rev, lrn, new (not counting subdeck)]"""
         self._checkDay()
         self.col.decks.checkIntegrity()
@@ -270,10 +270,10 @@ order by due""" % (self._deckLimit(), QUEUE_REV),
         return nodes
 
     def _groupChildren(self, grps):
-        """[subdeck name without parent parts, 
+        """[subdeck name without parent parts,
         did, rev, lrn, new (counting subdecks)
         [recursively the same things for the children]]
-        
+
         Keyword arguments:
         grps -- [deckname, did, rev, lrn, new]
         """
@@ -287,7 +287,7 @@ order by due""" % (self._deckLimit(), QUEUE_REV),
 
     def _groupChildrenMain(self, grps):
         """
-        [subdeck name without parent parts, 
+        [subdeck name without parent parts,
         did, rev, lrn, new (counting subdecks)
         [recursively the same things for the children]]
 
@@ -607,6 +607,11 @@ did = ? and queue = %d and due <= ? limit ?""" % QUEUE_DAY_LRN,
         self._logLrn(card, ease, conf, leaving, type, lastLeft)
 
     def _delayForGrade(self, conf, left):
+        """The number of second for the delay until the next time the card can
+        be reviewed. Assumng the number of left steps is left,
+        according to configuration conf
+
+        """
         left = left % 1000
         try:
             delay = conf['delays'][-left]
@@ -619,6 +624,8 @@ did = ? and queue = %d and due <= ? limit ?""" % QUEUE_DAY_LRN,
         return delay*60
 
     def _lrnConf(self, card):
+        """ lapse configuration if the card was due(i.e. review card
+        ?), otherwise new configuration.  I don't get the point"""
         if card.type == CARD_DUE:
             return self._lapseConf(card)
         else:
@@ -718,12 +725,12 @@ did = ? and queue = %d and due <= ? limit ?""" % QUEUE_DAY_LRN,
             # with the index than scan the table
             extra = " and did in "+ids2str(self.col.decks.allIds())
         # review cards in relearning
-        self.col.db.execute("""
+        self.col.db.execute(f"""
 update cards set
-due = odue, queue = %d, mod = %d, usn = %d, odue = 0
-where queue in (%d,%d) and type = %d
+due = odue, queue = {QUEUE_REV}, mod = %d, usn = %d, odue = 0
+where queue in (QUEUE_LRN,QUEUE_DAY_LRN) and type = CARD_DUE
 %s
-""" % (QUEUE_REV, intTime(), self.col.usn(), QUEUE_LRN, QUEUE_DAY_LRN, CARD_DUE, extra))
+""" % (intTime(), self.col.usn(), extra))
         # new cards in learning
         self.forgetCards(self.col.db.list(
             "select id from cards where queue in (%d, %d) %s" % (QUEUE_LRN, QUEUE_DAY_LRN, extra)))
@@ -749,7 +756,7 @@ and due <= ? limit ?)""" % QUEUE_DAY_LRN,
         return self._deckNewLimit(did, self._deckRevLimitSingle)
 
     def _deckRevLimitSingle(self, d):
-        """The number of cards remaining to review today. 
+        """The number of cards remaining to review today.
 
         Custom study taken into account """
         if d['dyn']:
@@ -758,7 +765,7 @@ and due <= ? limit ?)""" % QUEUE_DAY_LRN,
         return max(0, c['rev']['perDay'] - d['revToday'][1])
 
     def _revForDeck(self, did, lim):
-        """number of cards to review today for deck did 
+        """number of cards to review today for deck did
 
         Minimum between this number, self report and limit. Not taking subdeck into account """
         lim = min(lim, self.reportLimit)
@@ -1007,7 +1014,7 @@ select id from cards where did in %s and queue = %d and due <= ? limit ?)"""
     def emptyDyn(self, did, lim=None):
         """Moves cram cards to their deck
         Cards in learning mode move to their previous type.
-        
+
         Keyword arguments:
         lim -- the query which decides which cards are used
         did -- assuming lim is not provided/false, the (filtered) deck concerned by this call
@@ -1111,9 +1118,15 @@ did = ?, queue = %s, due = ?, usn = ? where id = ?""" % queue, data)
     ##########################################################################
 
     def _cardConf(self, card):
+        """The configuration of this card's deck. See decks.py
+        documentation to read more about them."""
         return self.col.decks.confForDid(card.did)
 
     def _newConf(self, card):
+        """The configuration for "new" of this card's deck.See decks.py
+        documentation to read more about them.
+
+        """
         conf = self._cardConf(card)
         # normal deck
         if not card.odid:
@@ -1134,6 +1147,10 @@ did = ?, queue = %s, due = ?, usn = ? where id = ?""" % queue, data)
         )
 
     def _lapseConf(self, card):
+        """The configuration for "lapse" of this card's deck.See decks.py
+        documentation to read more about them.
+
+        """
         conf = self._cardConf(card)
         # normal deck
         if not card.odid:
@@ -1153,6 +1170,10 @@ did = ?, queue = %s, due = ?, usn = ? where id = ?""" % queue, data)
         )
 
     def _revConf(self, card):
+        """The configuration for "review" of this card's deck.See decks.py
+        documentation to read more about them.
+
+        """
         conf = self._cardConf(card)
         # normal deck
         if not card.odid:
@@ -1161,9 +1182,13 @@ did = ?, queue = %s, due = ?, usn = ? where id = ?""" % queue, data)
         return self.col.decks.confForDid(card.odid)['rev']
 
     def _deckLimit(self):
+        """The list of active decks, as comma separated parenthesized
+        string"""
         return ids2str(self.col.decks.active())
 
     def _resched(self, card):
+        """Whether this review must be taken into account when this
+        card to reschedule the card"""
         conf = self._cardConf(card)
         if not conf['dyn']:
             return True

@@ -19,6 +19,8 @@ complicated for power user.
 
 ## The rules
 
+### Non cloze models
+
 Anki generate the html content of some cards in some cases. It checks
 this content to choose what kind of rules should be applied
 

@@ -50,10 +50,8 @@ want to require from the 'flds' array"]"""
 
 """tmpls (a template): a dict with
 afmt -- "answer template string",
-bafmt -- "browser answer format:
-used for displaying answer in browser",
-bqfmt -- "browser question format:
-used for displaying question in browser",
+bafmt -- "browser answer format: used for displaying answer in browser",
+bqfmt -- "browser question format: used for displaying question in browser",
 did -- "deck override (null by default)",
 name -- "template name",
 ord -- "template number, see flds",
