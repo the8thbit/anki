@@ -101,7 +101,8 @@ The content of the main window when a deck is selected but review did
 not start yet.
 
 ## pinnedModules
-Unknown. Does not seems to be used anywhere.
+Allow to keep some python packages that are commonly used by add-ons,
+but no longer used by Anki itself, available in the official builds.
 
 ## preferences
 The preference for the whole collection. Obtained from the main window
