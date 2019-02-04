@@ -8,13 +8,13 @@ to search for informations.
 
 # Folders
 
-## anki
+## [anki](anki/FILES.md)
 This folder contains most of the back-end. That is it contains
 everything related to the database and its content. It allows to
 manipulate decks, decks' option, cards, notes, note type, templates,
 tags, and so on. It also deals with synchronization.
 
-## aqt
+## [aqt](aqt/FILES.md)
 This folder contains most of the controller. It contains methods for
 each possible actions in anki. It also contains the values associated
 to each windows. It does not contains the actual code used to create

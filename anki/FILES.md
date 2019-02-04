@@ -1,5 +1,6 @@
-As (../FILES.md), this document contains a succint description of the
-content of each file from this folder.
+As the file with [same name in parent directory](../FILES.md), this
+document contains a succint description of the content of each file
+from this folder.
 
 
 
