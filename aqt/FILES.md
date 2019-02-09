@@ -88,8 +88,10 @@ TODO
 
 ## ModelChooser
 The window which allow to choose a note's type (a.k.a. a model in
-anki's code). It can be opened in the addCard's window, and when
-changing a note's type.
+anki's code).
+It also deals with the button used to open this window.
+It can be opened in the addCard's window, note importer,
+and when changing a note's type.
 
 ## Model
 The window allowing to change a notes type (a.k.a. a model in anki's

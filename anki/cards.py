@@ -25,7 +25,15 @@ class Card:
     mod -- modificaton time as epoch seconds
     usn -- update sequence number : see README.synchronization
     type -- -- 0=new, 1=learning, 2=due, 3=filtered
-    queue -- -3=sched buried, -2=user buried, -1=suspended, 0=new, 1=learning, 2=due, 3=in learning, next rev in at least a day after last review
+    queue --
+         -- QUEUE_SCHED_BURIED: card buried by scheduler, -3
+         -- QUEUE_USER_BURIED: card buried by user, -2
+         -- QUEUE_SUSPENDED: Card suspended, -1
+         -- QUEUE_NEW_CRAM: new card,  0
+         -- QUEUE_LRN: cards in learning, which should be seen again today, 1
+         -- QUEUE_REV: cards already learned, 2
+         -- QUEUE_DAY_LRN: cards in learning but won't be seen today again, 3
+         -- QUEUE_PREVIEW: cards for the preview mode, sched 2 :4
     due -- Due is used differently for different card types:
         --   new: note id or random int.
                   Allow to select in which order new cards are seens.
@@ -37,7 +45,10 @@ class Card:
     reps -- number of reviews to do
     lapses -- the number of times the card went from a "was answered correctly"
            --   to "was answered incorrectly" state
-    left -- reviews left till graduation
+    left
+      -- of the form a*1000+b, with:
+      -- b the number of reps left till graduation
+      -- a the number of reps left today
     odue -- original due: only used when the card is currently in filtered deck
     odid -- original did: only used when the card is currently in filtered deck
     flags -- currently unused

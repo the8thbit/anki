@@ -11,3 +11,5 @@ anki/buildhash.py
 /__main__.py
 /anki/ankiweb.certs
 /tests/test_sched.py
+aqt/buildhash.py
+/__main__.py

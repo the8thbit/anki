@@ -33,6 +33,12 @@ from anki.sound import clearAudioQueue, allSounds, play
 
 class DataModel(QAbstractTableModel):
 
+    """
+    sortKey -- never used
+    activeCols -- the list of columns to display in the browser
+    cards -- the set of cards corresponding to current browser's search
+    cardObjs -- dictionnady from card's id to the card object.
+    """
     def __init__(self, browser):
         QAbstractTableModel.__init__(self)
         self.browser = browser
@@ -622,6 +628,7 @@ class Browser(QMainWindow):
         return selected
 
     def onReset(self):
+        """Remove the note from the browser. Redo the search"""
         self.editor.setNote(None)
         self.search()
 
@@ -1245,14 +1252,14 @@ where id in %s""" % ids2str(sf))
     ######################################################################
 
     def onChangeModel(self):
-        """Starts a GUI letting the user change the model of notes. 
+        """Starts a GUI letting the user change the model of notes.
 
-        Assuming a single note model is selected. 
+        Assuming a single note model is selected.
         Save before using it."""
         self.editor.saveNow(self._onChangeModel)
 
     def _onChangeModel(self):
-        """Starts a GUI letting the user change the model of notes. 
+        """Starts a GUI letting the user change the model of notes.
 
         onChangeModel should be used instead of this function
         Assuming a single note model is selected. """
@@ -1982,7 +1989,7 @@ class ChangeModel(QDialog):
         self.pauseUpdate = False
 
     def onReset(self):
-        """Change the model changer GUI to the current note type"""
+        """Change the model changer GUI to the current note type."""
         self.modelChanged(self.browser.col.models.current())
 
     def modelChanged(self, model):
@@ -2091,7 +2098,7 @@ class ChangeModel(QDialog):
     def cleanup(self):
         """Close the GUI
 
-        Remove hook related to this window, and potentially its model chooser. 
+        Remove hook related to this window, and potentially its model chooser.
         Save the geometry of the current window in order to keep it for a new reordering
         """
         remHook("reset", self.onReset)
@@ -2106,7 +2113,7 @@ class ChangeModel(QDialog):
 
     def accept(self):
         """Procede to changing the model, according to the content of the GUI.
-        
+
         TODO"""
         # check maps
         fmap = self.getFieldMap()
@@ -2134,4 +2141,3 @@ Are you sure you want to continue?""")):
 
     def onHelp(self):
         openHelp("browsermisc")
-

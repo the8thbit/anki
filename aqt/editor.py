@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 # Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
-"""The part of the window used to edit notes. It is used for adding note, editing existing note, and as the lower part of the browser.
+"""
+The part of the window used to edit notes. It is used for adding
+note, editing existing note, and as the lower part of the browser.
+
 """
 
 import re
@@ -44,6 +47,9 @@ html { background: %s; }
 # caller is responsible for resetting note on reset
 class Editor:
     def __init__(self, mw, widget, parentWindow, addMode=False):
+        """TODO
+
+        addMode -- Whether editor is called from addcard.py"""
         self.mw = mw
         self.widget = widget
         self.parentWindow = parentWindow
@@ -131,7 +137,7 @@ class Editor:
             return 'data:%s;base64,%s' % (mime, data64.decode('ascii'))
 
 
-    def addButton(self, icon, cmd, func, tip="", label="", 
+    def addButton(self, icon, cmd, func, tip="", label="",
                   id=None, toggleable=False, keys=None, disables=True):
         """Assign func to bridge cmd, register shortcut, return button"""
         if cmd not in self._links:
@@ -301,7 +307,17 @@ class Editor:
     ######################################################################
 
     def setNote(self, note, hide=True, focusTo=None):
-        "Make NOTE the current note."
+        """Make NOTE the current note.
+
+        if note is Falsy:
+        Remove tags's line.
+
+
+        keyword arguments:
+        note -- the new note in the editor
+        hide -- whether to hide the current widget
+        focusTo -- in which field should the focus appear
+        """
         self.note = note
         self.currentField = None
         if self.note:
@@ -315,6 +331,9 @@ class Editor:
         self.loadNote(self.currentField)
 
     def loadNote(self, focusTo=None):
+        """Todo
+
+        focusTo -- Whether focus should be set to some field."""
         if not self.note:
             return
 
@@ -451,6 +470,7 @@ class Editor:
         runHook("tagsUpdated", self.note)
 
     def saveAddModeVars(self):
+        """During creation of new notes, save tags to the note's model"""
         if self.addMode:
             # save tags to model
             m = self.note.model()
@@ -458,6 +478,7 @@ class Editor:
             self.mw.col.models.save(m)
 
     def hideCompleters(self):
+        "Remove tags's line"
         self.tags.hideCompleter()
 
     def onFocusTags(self):
