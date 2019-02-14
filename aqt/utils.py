@@ -101,7 +101,7 @@ o    else:
 def askUser(text, parent=None, help="", defaultno=False, msgfunc=None, \
         title="Anki"):
     """Show a yes/no question. Return true if yes.
-    
+
     Text -- the text displayed to the user
     parent -- Add this window as parent to the question
     help -- An help message, occuring if the user click on the help button
@@ -414,11 +414,13 @@ def openFolder(path):
             QDesktopServices.openUrl(QUrl("file://" + path))
 
 def shortcut(key):
+    """On mac: ctrl is replaced by command. Otherwise identity"""
     if isMac:
         return re.sub("(?i)ctrl", "Command", key)
     return key
 
 def maybeHideClose(bbox):
+    """On mac only, remove the bbox's close buton."""
     if isMac:
         b = bbox.button(QDialogButtonBox.Close)
         if b:

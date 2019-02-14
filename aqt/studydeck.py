@@ -114,7 +114,8 @@ class StudyDeck(QDialog):
         return True
 
     def onReset(self):
-        """Recompute the set of decks, show the new deck with same filter, same focus, but new name"""
+        """Recompute the set of decks, show the new deck with same
+        filter, same focus, but new name"""
         # model updated?
         if self.nameFunc:
             self.origNames = self.nameFunc()

@@ -24,7 +24,7 @@ class Card:
     valid values are from 0 to num templates - 1
     mod -- modificaton time as epoch seconds
     usn -- update sequence number : see README.synchronization
-    type -- -- 0=new, 1=learning, 2=due, 3=filtered
+    type -- -- 0=new, 1=learning, 2=due, 3=filtered. Only for cards
     queue --
          -- QUEUE_SCHED_BURIED: card buried by scheduler, -3
          -- QUEUE_USER_BURIED: card buried by user, -2
@@ -59,6 +59,7 @@ class Card:
     timerStarted -- The time at which the timer started
     _qa -- the dictionnary whose element q and a are questions and answers html
     _note -- the note object of the card
+    wasNew --
     """
 
     def __init__(self, col, id=None):

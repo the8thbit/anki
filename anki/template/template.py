@@ -135,7 +135,7 @@ class Template:
 
     def render_tags(self, template, context):
         """Renders all the tags in a template for a context. Normally
-        {{# and {{^ are removed"""
+        {{# and {{^ are already removed."""
         repCount = 0
         while 1:
             if repCount > 100:
