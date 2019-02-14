@@ -174,6 +174,9 @@ class allow to compute and show statistics of review of a single card
 or of the whole collection. Note that the first class should have been
 in the previous section and not in this one.
 
+#### Statsbg
+The stat bacground image, encoded in base64.
+
 #### Stdmodels
 This class contains function to create the basic models. It is used to
 initiate the collection. It is also used to import notes which were
