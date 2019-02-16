@@ -63,7 +63,12 @@ Called in aqt.editor.Editor.fonts, when the list of filters is generated.
 
 ##### showDeckOptions
 Called from aqt.deckbrowser.DeckBrowser._showOptions. Allow to add
-actions to do to list of decks, after Rename, options, export, and delete.
+actions to do to list of decks, after Rename, options, export, and
+delete.
+
+For example, add-on [Change option
+recursively](https://ankiweb.net/shared/info/751420631) uses it to add
+the way to change option of deck and subdecks.
 
 ##### AddCards.onHistory
 Called from aqt.addcards.AddCards.onHistory, i.e. when you click on
@@ -201,6 +206,9 @@ because I don't know graphical user interface.
 ##### profileLoaded
 Called in anki.main.AnkiQt.loadProfile, after the end of the loading,
 before calling the onsuccess function given in argument.
+
+An add-on used this to ensure that some event is executed after
+profile is loaded, and not at start-up as is the default.
 
 ##### unloadProfile
 Called anki.main.AnkiQt.unloadProfile, i.e. when anki exits, when
@@ -358,6 +366,10 @@ by ```{{foo:```, i.e. it is ```{{foo:bar}}```, the filter fmod_foo is
 called on the content of the field bar. This may occur multiple time,
 since multiple modifier may begin a mustache.
 
+For example, the add-on [Edit Field During
+Review](https://ankiweb.net/shared/info/1549412677) add a hook
+fmod_edit, so that you can use ```{{edit:``` in card type.
+
 ##### fmod_kanji
 ##### fmod_kana
 ##### fmod_furigana
@@ -369,6 +381,8 @@ transformation which I don't understand. It's supposed to be for Japan language.
 Contains anki.template.hint.hint. A method which generate html for
 hints link in questions. And the js code which replace the hint
 link by the hint.
+
+
 
 #### Hooks called, but from methods which are never called themselves.
 ##### colLoading
