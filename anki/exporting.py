@@ -10,6 +10,10 @@ from anki.hooks import runHook
 from anki import Collection
 
 class Exporter:
+    """An abstract class. Inherited by class actually doing some kind of export.
+
+    count -- the number of cards to export.
+    """
     def __init__(self, col, did=None):
         #Currently, did is never set during initialisation.
         self.col = col
