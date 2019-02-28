@@ -205,7 +205,8 @@ because I don't know graphical user interface.
 
 ##### profileLoaded
 Called in anki.main.AnkiQt.loadProfile, after the end of the loading,
-before calling the onsuccess function given in argument.
+before calling the onsuccess function given in argument. Note that the
+collection is not yet accessible from the main window.
 
 An add-on used this to ensure that some event is executed after
 profile is loaded, and not at start-up as is the default.
