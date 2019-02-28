@@ -240,8 +240,8 @@ crt=?, mod=?, scm=?, dty=?, usn=?, ls=?, conf=?""",
             return True
 
     def lock(self):
-        # make sure we don't accidentally bump mod time
-        mod = self.db.mod
+        """TODO. """
+        mod = self.db.mod# make sure we don't accidentally bump mod time
         self.db.execute("update col set mod=mod")
         self.db.mod = mod
 
@@ -868,7 +868,17 @@ where c.nid == f.id
     ##########################################################################
 
     def basicCheck(self):
-        "Basic integrity check for syncing. True if ok."
+        """True if basic integrity is meet.
+
+        Used before and after sync, or before a full upload.
+
+        Tests:
+        * whether each card belong to a note
+        * each note has a model
+        * each note has a card
+        * each card's ord is valid according to the note model.
+ooo
+        """
         # cards without notes
         if self.db.scalar("""
 select 1 from cards where nid not in (select id from notes) limit 1"""):
@@ -896,8 +906,11 @@ select id from notes where mid = ?) limit 1""" %
         problems = []
         self.save()
         oldSize = os.stat(self.path)[stat.ST_SIZE]
+
+        # whether sqlite find a problem in its database
         if self.db.scalar("pragma integrity_check") != "ok":
             return (_("Collection is corrupt. Please see the manual."), False)
+
         # note types with a missing model
         ids = self.db.list("""
 select id from notes where mid not in """ + ids2str(self.models.ids()))
@@ -907,6 +920,7 @@ select id from notes where mid not in """ + ids2str(self.models.ids()))
                          "Deleted %d notes with missing note type.", len(ids))
                          % len(ids))
             self.remNotes(ids)
+
         # for each model
         for m in self.models.all():
             for t in m['tmpls']:
@@ -1025,6 +1039,7 @@ and type = 0""", intTime(), self.usn())
         return ("\n".join(problems), ok)
 
     def optimize(self):
+        """Tell sqlite to optimize the db"""
         self.db.setAutocommit(True)
         self.db.execute("vacuum")
         self.db.execute("analyze")

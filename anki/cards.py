@@ -71,7 +71,7 @@ class Card:
 
         Keyword arguments:
         col -- a collection
-        id -- an identifier of a card
+        id -- an identifier of a card. Int.
         """
         self.col = col
         self.timerStarted = None
