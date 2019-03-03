@@ -489,7 +489,7 @@ insert into cards values (?,?,?,?,?,?,0,0,?,0,0,0,0,0,0,0,0,"")""",
                             data)
         return rem
 
-    def previewCards(self, note, type=0):
+    def previewCards(self, note, type=0, did=None):
         """Returns a list of new cards, one by template. Those cards are not flushed, and their due is always 1.
 
         type 0 - when previewing in add dialog, only non-empty. Seems to be used only in tests.
@@ -507,10 +507,10 @@ insert into cards values (?,?,?,?,?,?,0,0,?,0,0,0,0,0,0,0,0,"")""",
             return []
         cards = []
         for template in cms:
-            cards.append(self._newCard(note, template, 1, flush=False))
+            cards.append(self._newCard(note, template, 1, flush=False, did=did))
         return cards
 
-    def _newCard(self, note, template, due, flush=True):
+    def _newCard(self, note, template, due, flush=True, did=None):
         """A new card object belonging to this collection.
         Its nid according to note,
         ord according to template
@@ -526,11 +526,15 @@ insert into cards values (?,?,?,?,?,?,0,0,?,0,0,0,0,0,0,0,0,"")""",
         card = anki.cards.Card(self)
         card.nid = note.id
         card.ord = template['ord']
-        # Use template did (deck override) if valid, otherwise model did
-        if template['did'] and str(template['did']) in self.decks.decks:
-            card.did = template['did']
-        else:
-            card.did = note.model()['did']
+        card.did = self.db.scalar("select did from cards where nid = ? and ord = ?", card.nid, card.ord)
+        # Use template did (deck override) if valid, otherwise did in argument, otherwise model did
+        if not card.did:
+            if template['did'] and str(template['did']) in self.decks.decks:
+                card.did = template['did']
+            elif did:
+                card.did = did
+            else:
+                card.did = note.model()['did']
         # if invalid did, use default instead
         deck = self.decks.get(card.did)
         if deck['dyn']:

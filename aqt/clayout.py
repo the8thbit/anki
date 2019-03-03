@@ -82,9 +82,11 @@ class CardLayout(QDialog):
         """TODO
         update the list of card
         """
-        self.cards = self.col.previewCards(self.note, 2)
-        #the list of cards of this note, with all templates
-        idx = self.ord#useless variable ?
+        did = None
+        if hasattr(self.parent,"deckChooser"):
+                did = self.parent.deckChooser.selectedId()
+        self.cards = self.col.previewCards(self.note, 2, did=did)
+        idx = self.ord
         if idx >= len(self.cards):
             self.ord = len(self.cards) - 1
 

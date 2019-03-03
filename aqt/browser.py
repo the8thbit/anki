@@ -1270,6 +1270,7 @@ where id in %s""" % ids2str(sf))
 
     _previewTimer = None
     _lastPreviewRender = 0
+    _lastPreviewState = None
 
     def onTogglePreview(self):
         if self._previewWindow:
@@ -1402,15 +1403,22 @@ where id in %s""" % ids2str(sf))
             txt = _("(please select 1 card)")
             bodyclass = ""
         else:
+            if self._previewBothSides:
+                self._previewState = "answer"
+            elif cardChanged:
+                self._previewState = "question"
+
+            currentState = self._previewStateAndMod()
+            if currentState == self._lastPreviewState:
+                # nothing has changed, avoid refreshing
+                return
+
             # need to force reload even if answer
             txt = c.q(reload=True)
 
             questionAudio = []
             if self._previewBothSides:
-                self._previewState = "answer"
                 questionAudio = allSounds(txt)
-            elif cardChanged:
-                self._previewState = "question"
             if self._previewState == "answer":
                 func = "_showAnswer"
                 txt = c.a()
@@ -1431,7 +1439,7 @@ where id in %s""" % ids2str(sf))
             txt = mungeQA(self.col, txt)
             txt = runFilter("prepareQA", txt, c,
                             "preview"+self._previewState.capitalize())
-
+        self._lastPreviewState = self._previewStateAndMod()
         self._updatePreviewButtons()
         self._previewWeb.eval(
             "{}({},'{}');".format(func, json.dumps(txt), bodyclass))
@@ -1443,6 +1451,10 @@ where id in %s""" % ids2str(sf))
         if self._previewState == "answer" and not toggle:
             self._previewState = "question"
         self._renderPreview()
+
+    def _previewStateAndMod(self):
+        n = self.card.note()
+        return (self._previewState, n.id, n.mod)
 
     # Card deletion
     ######################################################################
