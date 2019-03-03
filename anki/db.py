@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 import os
 import time
 
-from sqlite3 import dbapi2 as sqlite
+from sqlite3 import dbapi2 as sqlite, Cursor
 
 DBError = sqlite.Error
 
 class DB:
-    def __init__(self, path, timeout=5):
+    def __init__(self, path, timeout=0):
         self._db = sqlite.connect(path, timeout=timeout)
         self._db.text_factory = self._textFactory
         self._path = path
@@ -130,3 +130,6 @@ class DB:
     # strip out invalid utf-8 when reading from db
     def _textFactory(self, data):
         return str(data, errors="ignore")
+
+    def cursor(self, factory=Cursor):
+        return self._db.cursor(factory)

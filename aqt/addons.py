@@ -1,6 +1,15 @@
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # -*- coding: utf-8 -*-
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
+"""Module for managing add-ons.
+
+An add-on here is defined as a subfolder in the add-on folder containing a file __init__.py
+A managed add-on is an add-on whose folder's name contains only
+digits.
+
+dir -- the name of the subdirectory of the add-on in the add-on manager
+"""
+
 import io
 import json
 import re
@@ -29,6 +38,11 @@ class AddonManager:
         sys.path.insert(0, self.addonsFolder())
 
     def allAddons(self):
+        """List of installed add-ons.
+
+        In alphabetical order of folder name. I.e. add-on number for downloaded add-ons.
+        Reverse order if the environment variable  ANKIREVADDONS is set.
+        """
         l = []
         for d in os.listdir(self.addonsFolder()):
             path = self.addonsFolder(d)
@@ -41,10 +55,24 @@ class AddonManager:
         return l
 
     def managedAddons(self):
+        """List of managed add-ons.
+
+        In alphabetical order of folder name. I.e. add-on number for downloaded add-ons.
+        Reverse order if the environment variable  ANKIREVADDONS is set.
+        """
         return [d for d in self.allAddons()
                 if re.match(r"^\d+$", d)]
 
     def addonsFolder(self, dir=None):
+        """Path to a folder.
+
+        To the add-on folder by default, guaranteed to exists.
+        If dir is set, then the path to the add-on dir, not guaranteed
+        to exists
+
+        dir -- TODO
+        """
+
         root = self.mw.pm.addonFolder()
         if not dir:
             return root
@@ -74,6 +102,7 @@ When loading '%(name)s':
     ######################################################################
 
     def _addonMetaPath(self, dir):
+        """Path of the configuration of the addon dir"""
         return os.path.join(self.addonsFolder(dir), "meta.json")
 
     def addonMeta(self, dir):
@@ -95,6 +124,11 @@ When loading '%(name)s':
         self.writeAddonMeta(dir, meta)
 
     def addonName(self, dir):
+        """The name of the addon.
+
+        It is found either in "name" parameter of the configuration in
+        directory dir of the add-on directory.
+        Otherwise dir is used."""
         return self.addonMeta(dir).get("name", dir)
 
     # Installing and deleting add-ons
@@ -163,6 +197,7 @@ When loading '%(name)s':
     ######################################################################
 
     def checkForUpdates(self):
+        """The list of add-ons not up to date. Compared to the server's information."""
         client = AnkiRequestsClient()
 
         # get mod times
@@ -185,6 +220,10 @@ When loading '%(name)s':
             self.mw.progress.finish()
 
     def _getModTimes(self, client, chunk):
+        """The list of (id,mod time) for add-ons whose id is in chunk.
+
+        client -- an ankiRequestsclient
+        chunck -- a list of add-on number"""
         resp = client.get(
             aqt.appShared + "updates/" + ",".join(chunk))
         if resp.status_code == 200:
@@ -193,6 +232,8 @@ When loading '%(name)s':
             raise Exception("Unexpected response code from AnkiWeb: {}".format(resp.status_code))
 
     def _updatedIds(self, mods):
+        """Given a list of (id,last mod on server), returns the sublist of
+        add-ons not up to date."""
         updated = []
         for dir, ts in mods:
             sid = str(dir)
@@ -203,12 +244,17 @@ When loading '%(name)s':
     # Add-on Config
     ######################################################################
 
+    """Dictionnary from modules to function to apply when add-on
+    manager is called on this config."""
     _configButtonActions = {}
+    """Dictionnary from modules to function to apply when add-on
+    manager ends an update. Those functions takes the configuration,
+    parsed as json, in argument."""
     _configUpdatedActions = {}
 
     def addonConfigDefaults(self, dir):
         """The (default) configuration of the addon whose
-name/directory is dir.
+        name/directory is dir.
 
         This file should be called config.json"""
         path = os.path.join(self.addonsFolder(dir), "config.json")
@@ -232,9 +278,15 @@ name/directory is dir.
         return module.split(".")[0]
 
     def configAction(self, addon):
+        """The function to call for addon when add-on manager ask for
+        edition of its configuration."""
         return self._configButtonActions.get(addon)
 
     def configUpdatedAction(self, addon):
+        """The function to call for addon when add-on edition has been done
+        using add-on manager.
+
+        """
         return self._configUpdatedActions.get(addon)
 
     # Add-on Config API
@@ -289,6 +341,14 @@ name/directory is dir.
         Keyword arguments:
         module -- the module/addon considered
         fn -- a function taking as argument a configuration.
+=======
+        """From now on, function fn will be called when the edition of
+        module's configuration was done using add-on manager.
+
+        module -- __name__ from module's code
+        fn -- A function taking the configuration, parsed as json, in
+        argument.
+>>>>>>> 441d152cf3877ea28822360dfdd2a21a5640cf09
         """
         addon = self.addonFromModule(module)
         self._configUpdatedActions[addon] = fn
@@ -353,6 +413,8 @@ class AddonsDialog(QDialog):
         self.form.addonList.addItems([r[0] for r in self.addons])
         if self.addons:
             self.form.addonList.setCurrentRow(0)
+
+        self.form.addonList.repaint()
 
     def _onAddonItemSelected(self, row_int):
         try:
@@ -535,7 +597,8 @@ class ConfigEditor(QDialog):
 
     def updateText(self, conf):
         self.form.editor.setPlainText(
-            json.dumps(conf,sort_keys=True,indent=4, separators=(',', ': ')))
+            json.dumps(conf, ensure_ascii=False, sort_keys=True,
+                       indent=4, separators=(',', ': ')))
 
     def accept(self):
         """
@@ -553,6 +616,10 @@ class ConfigEditor(QDialog):
             new_conf = json.loads(txt)
         except Exception as e:
             showInfo(_("Invalid configuration: ") + repr(e))
+            return
+
+        if not isinstance(new_conf, dict):
+            showInfo(_("Invalid configuration: top level object must be a map"))
             return
 
         if new_conf != self.conf:

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 """\
@@ -29,7 +29,11 @@ def runHook(hook, *args):
     hook = _hooks.get(hook, None)
     if hook:
         for func in hook:
-            func(*args)
+            try:
+                func(*args)
+            except:
+                hook.remove(func)
+                raise
 
 def runFilter(hook, arg, *args):
     "Apply each function on hook to the result of the last function
@@ -43,7 +47,11 @@ def runFilter(hook, arg, *args):
     hook = _hooks.get(hook, None)
     if hook:
         for func in hook:
-            arg = func(arg, *args)
+            try:
+                arg = func(arg, *args)
+            except:
+                hook.remove(func)
+                raise
     return arg
 
 def addHook(hook, func):

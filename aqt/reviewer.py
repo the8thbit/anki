@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 import difflib
@@ -14,7 +14,7 @@ from anki.utils import stripHTML, json, bodyClass
 from anki.hooks import addHook, runHook, runFilter
 from anki.sound import playFromText, clearAudioQueue, play
 from aqt.utils import mungeQA, tooltip, askUserDialog, \
-    downArrow
+    downArrow, qtMenuShortcutWorkaround
 from aqt.sound import getAudio
 import aqt
 
@@ -253,7 +253,6 @@ The front of this card is empty. Please run Tools>Empty Cards.""")
             ("Ctrl+2", lambda: self.setFlag(2)),
             ("Ctrl+3", lambda: self.setFlag(3)),
             ("Ctrl+4", lambda: self.setFlag(4)),
-            ("Ctrl+0", lambda: self.setFlag(0)),
             ("*", self.onMark),
             ("=", self.onBuryNote),
             ("-", self.onBuryCard),
@@ -583,14 +582,17 @@ time = %(time)d;
 
     # note the shortcuts listed here also need to be defined above
     def _contextMenu(self):
+        currentFlag = self.card and self.card.userFlag()
         opts = [
             [_("Flag Card"), [
-                [_("Red Flag"), "Ctrl+1", lambda: self.setFlag(1)],
-                [_("Purple Flag"), "Ctrl+2", lambda: self.setFlag(2)],
-                [_("Green Flag"), "Ctrl+3", lambda: self.setFlag(3)],
-                [_("Blue Flag"), "Ctrl+4", lambda: self.setFlag(4)],
-                None,
-                [_("Clear Flag"), "Ctrl+0", lambda: self.setFlag(0)],
+                [_("Red Flag"), "Ctrl+1", lambda: self.setFlag(1),
+                 dict(checked=currentFlag == 1)],
+                [_("Orange Flag"), "Ctrl+2", lambda: self.setFlag(2),
+                 dict(checked=currentFlag == 2)],
+                [_("Green Flag"), "Ctrl+3", lambda: self.setFlag(3),
+                 dict(checked=currentFlag == 3)],
+                [_("Blue Flag"), "Ctrl+4", lambda: self.setFlag(4),
+                 dict(checked=currentFlag == 4)],
             ]],
             [_("Mark Note"), "*", self.onMark],
             [_("Bury Card"), "-", self.onBuryCard],
@@ -612,6 +614,7 @@ time = %(time)d;
         self._addMenuItems(m, opts)
 
         runHook("Reviewer.contextMenuEvent", self, m)
+        qtMenuShortcutWorkaround(m)
         m.exec_(QCursor.pos())
 
     def _addMenuItems(self, m, rows):
@@ -622,19 +625,29 @@ time = %(time)d;
             if len(row) == 2:
                 subm = m.addMenu(row[0])
                 self._addMenuItems(subm, row[1])
+                qtMenuShortcutWorkaround(subm)
                 continue
-            label, scut, func = row
+            if len(row) == 4:
+                label, scut, func, opts = row
+            else:
+                label, scut, func = row
+                opts = {}
             a = m.addAction(label)
             if scut:
                 a.setShortcut(QKeySequence(scut))
+            if opts.get("checked"):
+                a.setCheckable(True)
+                a.setChecked(True)
             a.triggered.connect(func)
-
 
     def onOptions(self):
         self.mw.onDeckConf(self.mw.col.decks.get(
             self.card.odid or self.card.did))
 
     def setFlag(self, flag):
+        # need to toggle off?
+        if self.card.userFlag() == flag:
+            flag = 0
         self.card.setUserFlag(flag)
         self.card.flush()
         self._drawFlag()

@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 import sre_constants
 import html
 import time
 import re
+import unicodedata
 from operator import  itemgetter
 from anki.lang import ngettext
 import json
@@ -17,9 +18,9 @@ from anki.utils import fmtTimeSpan, ids2str, stripHTMLMedia, htmlToTextLine, \
     isWin, intTime, \
     isMac, isLin, bodyClass
 from aqt.utils import saveGeom, restoreGeom, saveSplitter, restoreSplitter, \
-    saveHeader, restoreHeader, saveState, restoreState, applyStyles, getTag, \
+    saveHeader, restoreHeader, saveState, restoreState, getTag, \
     showInfo, askUser, tooltip, openHelp, showWarning, shortcut, mungeQA, \
-    getOnlyText, MenuList, SubMenu
+    getOnlyText, MenuList, SubMenu, qtMenuShortcutWorkaround
 from anki.hooks import runHook, addHook, remHook, runFilter
 from aqt.webview import AnkiWebView
 from anki.consts import *
@@ -31,6 +32,12 @@ from anki.sound import playFromText, clearAudioQueue, allSounds, play
 
 class DataModel(QAbstractTableModel):
 
+    """
+    sortKey -- never used
+    activeCols -- the list of columns to display in the browser
+    cards -- the set of cards corresponding to current browser's search
+    cardObjs -- dictionnady from card's id to the card object.
+    """
     def __init__(self, browser):
         QAbstractTableModel.__init__(self)
         self.browser = browser
@@ -207,11 +214,13 @@ class DataModel(QAbstractTableModel):
         tv = self.browser.form.tableView
         if idx:
             tv.selectRow(idx.row())
-            # we save and then restore the horizontal scroll position because
-            # scrollTo() also scrolls horizontally which is confusing
-            h = tv.horizontalScrollBar().value()
-            tv.scrollTo(idx, tv.PositionAtCenter)
-            tv.horizontalScrollBar().setValue(h)
+            # scroll if the selection count has changed
+            if count != len(self.selectedCards):
+                # we save and then restore the horizontal scroll position because
+                # scrollTo() also scrolls horizontally which is confusing
+                h = tv.horizontalScrollBar().value()
+                tv.scrollTo(idx, tv.PositionAtCenter)
+                tv.horizontalScrollBar().setValue(h)
             if count < 500:
                 # discard large selections; they're too slow
                 sm.select(items, QItemSelectionModel.SelectCurrent |
@@ -330,8 +339,8 @@ COLOUR_SUSPENDED = "#FFFFB2"
 COLOUR_MARKED = "#ccc"
 
 flagColours = {
-    1: "#F5B7B1",
-    2: "#BB8FCE",
+    1: "#ffaaaa",
+    2: "#ffb347",
     3: "#82E0AA",
     4: "#85C1E9",
 }
@@ -382,7 +391,6 @@ class Browser(QMainWindow):
 
     def __init__(self, mw):
         QMainWindow.__init__(self, None, Qt.Window)
-        applyStyles(self)
         self.mw = mw
         self.col = self.mw.col
         self.lastFilter = ""
@@ -442,10 +450,9 @@ class Browser(QMainWindow):
         f.actionReschedule.triggered.connect(self.reschedule)
         f.actionToggle_Suspend.triggered.connect(self.onSuspend)
         f.actionRed_Flag.triggered.connect(lambda: self.onSetFlag(1))
-        f.actionPurple_Flag.triggered.connect(lambda: self.onSetFlag(2))
+        f.actionOrange_Flag.triggered.connect(lambda: self.onSetFlag(2))
         f.actionGreen_Flag.triggered.connect(lambda: self.onSetFlag(3))
         f.actionBlue_Flag.triggered.connect(lambda: self.onSetFlag(4))
-        f.actionClear_Flag.triggered.connect(lambda: self.onSetFlag(0))
         # jumps
         f.actionPreviousCard.triggered.connect(self.onPreviousCard)
         f.actionNextCard.triggered.connect(self.onNextCard)
@@ -479,6 +486,8 @@ class Browser(QMainWindow):
         for act in self.form.menu_Notes.actions():
             m.addAction(act)
         runHook("browser.onContextMenu", self, m)
+
+        qtMenuShortcutWorkaround(m)
         m.exec_(QCursor.pos())
 
     def updateFont(self):
@@ -573,8 +582,11 @@ class Browser(QMainWindow):
         if self.form.searchEdit.lineEdit().text() == self._searchPrompt:
             self.form.searchEdit.lineEdit().setText("deck:current ")
 
+        # grab search text and normalize
+        txt = self.form.searchEdit.lineEdit().text()
+        txt = unicodedata.normalize("NFC", txt)
+
         # update history
-        txt = str(self.form.searchEdit.lineEdit().text())
         sh = self.mw.pm.profile['searchHistory']
         if txt in sh:
             sh.remove(txt)
@@ -616,6 +628,7 @@ class Browser(QMainWindow):
         return selected
 
     def onReset(self):
+        """Remove the note from the browser. Redo the search"""
         self.editor.setNote(None)
         self.search()
 
@@ -629,6 +642,7 @@ class Browser(QMainWindow):
         self.form.tableView.selectionModel()
         self.form.tableView.setItemDelegate(StatusDelegate(self, self.model))
         self.form.tableView.selectionModel().selectionChanged.connect(self.onRowChanged)
+        self.form.tableView.setStyleSheet("QTableView{ selection-background-color: rgba(127, 127, 127, 50);  }")
         self.singleCard = False
 
     def setupEditor(self):
@@ -655,12 +669,16 @@ class Browser(QMainWindow):
             self.focusTo = None
             self.editor.card = self.card
             self.singleCard = True
+        self._updateFlagsMenu()
         runHook("browser.rowChanged", self)
         self._renderPreview(True)
 
     def refreshCurrentCard(self, note):
         self.model.refreshNote(note)
         self._renderPreview(False)
+
+    def onLoadNote(self, editor):
+        self.refreshCurrentCard(editor.note)
 
     def refreshCurrentCardFilter(self, flag, note, fidx):
         self.refreshCurrentCard(note)
@@ -827,7 +845,6 @@ by clicking on one on the left."""))
         p = QPalette()
         p.setColor(QPalette.Base, p.window().color())
         self.sidebarTree.setPalette(p)
-        self.sidebarDockWidget.setVisible(False)
         self.sidebarDockWidget.setFloating(False)
         self.sidebarDockWidget.visibilityChanged.connect(self.onSidebarVisChanged)
         self.sidebarDockWidget.setTitleBarWidget(QWidget())
@@ -988,7 +1005,7 @@ by clicking on one on the left."""))
             (_("Buried"), "is:buried"),
             None,
             (_("Red Flag"), "flag:1"),
-            (_("Purple Flag"), "flag:2"),
+            (_("Orange Flag"), "flag:2"),
             (_("Green Flag"), "flag:3"),
             (_("Blue Flag"), "flag:4"),
             (_("No Flag"), "flag:0"),
@@ -1164,13 +1181,13 @@ border: 1px solid #000; padding: 3px; '>%s</div>""" % rep
                     _("Resched")][type]
             import anki.stats as st
             fmt = "<span style='color:%s'>%s</span>"
-            if type == 0:
+            if type == CARD_NEW:
                 tstr = fmt % (st.colLearn, tstr)
-            elif type == 1:
+            elif type == CARD_REV:
                 tstr = fmt % (st.colMature, tstr)
-            elif type == 2:
+            elif type == CARD_RELRN:
                 tstr = fmt % (st.colRelearn, tstr)
-            elif type == 3:
+            elif type == CARD_CRAM:
                 tstr = fmt % (st.colCram, tstr)
             else:
                 tstr = fmt % ("#000", tstr)
@@ -1233,14 +1250,14 @@ where id in %s""" % ids2str(sf))
     ######################################################################
 
     def onChangeModel(self):
-        """Starts a GUI letting the user change the model of notes. 
+        """Starts a GUI letting the user change the model of notes.
 
-        Assuming a single note model is selected. 
+        Assuming a single note model is selected.
         Save before using it."""
         self.editor.saveNow(self._onChangeModel)
 
     def _onChangeModel(self):
-        """Starts a GUI letting the user change the model of notes. 
+        """Starts a GUI letting the user change the model of notes.
 
         onChangeModel should be used instead of this function
         Assuming a single note model is selected. """
@@ -1566,8 +1583,26 @@ update cards set usn=?, mod=?, did=? where id in """ + scids,
     ######################################################################
 
     def onSetFlag(self, n):
+        # flag needs toggling off?
+        if n == self.card.userFlag():
+            n = 0
         self.col.setUserFlag(n, self.selectedCards())
         self.model.reset()
+
+    def _updateFlagsMenu(self):
+        flag = self.card and self.card.userFlag()
+        flag = flag or 0
+
+        f = self.form
+        flagActions = [f.actionRed_Flag,
+                       f.actionOrange_Flag,
+                       f.actionGreen_Flag,
+                       f.actionBlue_Flag]
+
+        for c, act in enumerate(flagActions):
+            act.setChecked(flag == c+1)
+
+        qtMenuShortcutWorkaround(self.form.menuFlag)
 
     def onMark(self, mark=None):
         if mark is None:
@@ -1671,6 +1706,7 @@ update cards set usn=?, mod=?, did=? where id in """ + scids,
         addHook("undoState", self.onUndoState)
         addHook("reset", self.onReset)
         addHook("editTimer", self.refreshCurrentCard)
+        addHook("loadNote", self.onLoadNote)
         addHook("editFocusLost", self.refreshCurrentCardFilter)
         for t in "newTag", "newModel", "newDeck":
             addHook(t, self.maybeRefreshSidebar)
@@ -1678,6 +1714,7 @@ update cards set usn=?, mod=?, did=? where id in """ + scids,
     def teardownHooks(self):
         remHook("reset", self.onReset)
         remHook("editTimer", self.refreshCurrentCard)
+        remHook("loadNote", self.onLoadNote)
         remHook("editFocusLost", self.refreshCurrentCardFilter)
         remHook("undoState", self.onUndoState)
         for t in "newTag", "newModel", "newDeck":
@@ -1699,7 +1736,7 @@ update cards set usn=?, mod=?, did=? where id in """ + scids,
         if not sf:
             return
         import anki.find
-        fields = sorted(anki.find.fieldNames(self.col, downcase=False))
+        fields = anki.find.fieldNamesForNotes(self.mw.col, sf)
         d = QDialog(self)
         frm = aqt.forms.findreplace.Ui_Dialog()
         frm.setupUi(d)
@@ -1756,7 +1793,8 @@ update cards set usn=?, mod=?, did=? where id in """ + scids,
         frm = aqt.forms.finddupes.Ui_Dialog()
         frm.setupUi(d)
         restoreGeom(d, "findDupes")
-        fields = sorted(anki.find.fieldNames(self.col, downcase=False))
+        fields = sorted(anki.find.fieldNames(self.col, downcase=False),
+                        key=lambda x: x.lower())
         frm.fields.addItems(fields)
         self._dupesButton = None
         # links
@@ -1934,7 +1972,7 @@ class ChangeModel(QDialog):
         self.pauseUpdate = False
 
     def onReset(self):
-        """Change the model changer GUI to the current note type"""
+        """Change the model changer GUI to the current note type."""
         self.modelChanged(self.browser.col.models.current())
 
     def modelChanged(self, model):
@@ -2043,7 +2081,7 @@ class ChangeModel(QDialog):
     def cleanup(self):
         """Close the GUI
 
-        Remove hook related to this window, and potentially its model chooser. 
+        Remove hook related to this window, and potentially its model chooser.
         Save the geometry of the current window in order to keep it for a new reordering
         """
         remHook("reset", self.onReset)
@@ -2058,7 +2096,7 @@ class ChangeModel(QDialog):
 
     def accept(self):
         """Procede to changing the model, according to the content of the GUI.
-        
+
         TODO"""
         # check maps
         fmap = self.getFieldMap()
@@ -2070,7 +2108,6 @@ Any cards mapped to nothing will be deleted. \
 If a note has no remaining cards, it will be lost. \
 Are you sure you want to continue?""")):
                 return
-        QDialog.accept(self)
         self.browser.mw.checkpoint(_("Change Note Type"))
         b = self.browser
         b.mw.col.modSchema(check=True)
@@ -2083,7 +2120,7 @@ Are you sure you want to continue?""")):
         b.mw.progress.finish()
         b.mw.reset()
         self.cleanup()
+        QDialog.accept(self)
 
     def onHelp(self):
         openHelp("browsermisc")
-

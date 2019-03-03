@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
-"""The window used to preview the different cards of a note."""
+"""The window used to:
+* edit a note type
+* preview the different cards of a note."""
 import collections
 import re
 
@@ -20,7 +22,7 @@ from anki.hooks import runFilter
 
 
 class CardLayout(QDialog):
-    """TODO 
+    """TODO
 
     An object of class CardLayout contains:
     nw -- the main window
@@ -31,11 +33,11 @@ class CardLayout(QDialog):
     mm -- The model manager
     model -- the model of the note
     addMode -- if the card layout is called for a new card (in this case, it is temporary added to the db). True if its called from models.py, false if its called from edit.py
-    emptyFields -- the list of fields which are empty. Used only if addMode is true 
+    emptyFields -- the list of fields which are empty. Used only if addMode is true
     redrawing -- is it currently redrawing (forbid savecard and onCardSeleceted)
     cards -- the list of cards of the current note, each with their template.
     """
-    
+
     def __init__(self, mw, note, ord=0, parent=None, addMode=False):
         QDialog.__init__(self, parent or mw, Qt.Window)
         mw.setupDialogGC(self)
@@ -128,12 +130,19 @@ class CardLayout(QDialog):
         self.redrawing = False
 
     def _summarizedName(self, tmpl):
+        """Compute the text appearing in the list of templates, on top of the window
+
+        tmpl -- a template object
+        """
         return "{}: {} -> {}".format(
             tmpl['name'],
             self._fieldsOnTemplate(tmpl['qfmt']),
             self._fieldsOnTemplate(tmpl['afmt']))
 
     def _fieldsOnTemplate(self, fmt):
+        """List of tags found in fmt, separated by +, limited to 30 characters
+        (not counting the +), in lexicographic order, with +... if some are
+        missings."""
         matches = re.findall("{{[^#/}]+?}}", fmt)
         charsAllowed = 30
         result = collections.OrderedDict()

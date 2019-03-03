@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 import re
 import sre_constants
+import unicodedata
 
 from anki.utils import ids2str, splitFields, joinFields, intTime, fieldChecksum, stripHTMLMedia
 from anki.consts import *
@@ -52,6 +53,7 @@ class Finder:
         return res
 
     def findNotes(self, query):
+        "Return a list of notes ids for QUERY."
         tokens = self._tokenize(query)
         preds, args = self._where(tokens)
         if preds is None:
@@ -368,7 +370,7 @@ select distinct(n.id) from cards c, notes n where c.nid=n.id and """+preds
         ids = []
         val = val.lower()
         for m in self.col.models.all():
-            if m['name'].lower() == val:
+            if unicodedata.normalize("NFC", m['name'].lower()) == val:
                 ids.append(m['id'])
         return "n.mid in %s" % ids2str(ids)
 
@@ -396,7 +398,7 @@ select distinct(n.id) from cards c, notes n where c.nid=n.id and """+preds
             ids = set()
             val = re.escape(val).replace(r"\*", ".*")
             for d in self.col.decks.all():
-                if re.match("(?i)"+val, d['name']):
+                if re.match("(?i)"+val, unicodedata.normalize("NFC", d['name'])):
                     ids.update(dids(d['id']))
         if not ids:
             return
@@ -416,7 +418,7 @@ select distinct(n.id) from cards c, notes n where c.nid=n.id and """+preds
         lims = []
         for m in self.col.models.all():
             for t in m['tmpls']:
-                if t['name'].lower() == val.lower():
+                if unicodedata.normalize("NFC", t['name'].lower()) == val.lower():
                     if m['type'] == MODEL_CLOZE:
                         # if the user has asked for a cloze card, we want
                         # to give all ordinals, so we just limit to the
@@ -434,13 +436,13 @@ select distinct(n.id) from cards c, notes n where c.nid=n.id and """+preds
         mods = {}
         for m in self.col.models.all():
             for f in m['flds']:
-                if f['name'].lower() == field:
+                if unicodedata.normalize("NFC", f['name'].lower()) == field:
                     mods[str(m['id'])] = (m, f['ord'])
         if not mods:
             # nothing has that field
             return
         # gather nids
-        regex = re.escape(val).replace("_", ".").replace("\\%", ".*")
+        regex = re.escape(val).replace("_", ".").replace(re.escape("%"), ".*")
         nids = []
         for (id,mid,flds) in self.col.db.execute("""
 select id, mid, flds from notes
@@ -484,7 +486,7 @@ def findReplace(col, nids, src, dst, regex=False, field=None, fold=True):
     if field:
         for m in col.models.all():
             for f in m['flds']:
-                if f['name'] == field:
+                if f['name'].lower() == field.lower():
                     mmap[str(m['id'])] = f['ord']
         if not mmap:
             return 0
@@ -538,6 +540,19 @@ def fieldNames(col, downcase=True):
     if downcase:
         return list(fields)
     return names
+
+def fieldNamesForNotes(col, nids):
+    downcasedNames = set()
+    origNames = []
+    mids = col.db.list("select distinct mid from notes where id in %s" % ids2str(nids))
+    for mid in mids:
+        model = col.models.get(mid)
+        for field in col.models.fieldNames(model):
+            if field.lower() not in downcasedNames:
+                downcasedNames.add(field.lower())
+                origNames.append(field)
+
+    return sorted(origNames, key=lambda x: x.lower())
 
 # Find duplicates
 ##########################################################################

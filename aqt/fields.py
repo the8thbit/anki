@@ -1,4 +1,4 @@
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 from aqt.qt import *
@@ -32,6 +32,7 @@ class FieldDialog(QDialog):
     ##########################################################################
 
     def fillFields(self):
+        """Write "ord:name" in each line"""
         self.currentIdx = None
         self.form.fieldList.clear()
         for c, f in enumerate(self.model['flds']):
@@ -54,6 +55,9 @@ class FieldDialog(QDialog):
         self.loadField(idx)
 
     def _uniqueName(self, prompt, ignoreOrd=None, old=""):
+        """Ask for a new name using prompt, and default value old. Return it.
+
+        Unles this name is already used elsewhere, in this case, return None and show a warning. """
         txt = getOnlyText(prompt, default=old)
         if not txt:
             return
@@ -66,6 +70,10 @@ class FieldDialog(QDialog):
         return txt
 
     def onRename(self):
+        """Ask for a new name. If required, save in in the model, and reload the content.
+
+        Templates are edited to use the new name. requirements are also recomputed.
+        """
         idx = self.currentIdx
         f = self.model['flds'][idx]
         name = self._uniqueName(_("New name:"), self.currentIdx, f['name'])
@@ -138,6 +146,7 @@ class FieldDialog(QDialog):
         f.rtl.setChecked(fld['rtl'])
 
     def saveField(self):
+        """Save all options in current field"""
         # not initialized yet?
         if self.currentIdx is None:
             return

@@ -1,6 +1,21 @@
 # -*- coding: utf-8 -*-
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
+"""
+self.dir media's directory
+self.col the collection
+self.db the database for media (note that it's different from the collection database)
+
+Table media:
+fname -- the name of the file in media directory
+csum -- checksum of the content of the file last time it was checked. Null indicate deleted file
+mtime -- time of last modification
+dirty -- 0 if the data is not dirty, 1 if it is dirty
+
+table meta: a single entry, with:
+dirMod -- date of the last modification of the media directory according to the os
+lastUsn -- int synchronisation number of the last synchronisation
+"""
 import io
 import re
 import traceback
@@ -8,6 +23,7 @@ import urllib.request, urllib.parse, urllib.error
 import unicodedata
 import sys
 import zipfile
+import pathlib
 from io import StringIO
 
 from anki.utils import checksum, isWin, isMac, json
@@ -17,7 +33,9 @@ from anki.latex import mungeQA
 
 class MediaManager:
 
+    """Captures the argument foo of [sound:foo]"""
     soundRegexps = ["(?i)(\[sound:(?P<fname>[^]]+)\])"]
+    """Captures the argument foo of <img src=foo bar>, ignoring quotes around foo."""
     imgRegexps = [
         # src element quoted case
         "(?i)(<img[^>]* src=(?P<str>[\"'])(?P<fname>[^>]+?)(?P=str)[^>]*>)",
@@ -48,6 +66,7 @@ class MediaManager:
         self.connect()
 
     def connect(self):
+        """Ensure the existence of a database in current format, connected in self.db."""
         if self.col.server:
             return
         path = self.dir()+".db2"
@@ -73,6 +92,7 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
 """)
 
     def maybeUpgrade(self):
+        """Upgrade database in old format to current format."""
         oldpath = self.dir()+".db"
         if os.path.exists(oldpath):
             self.db.execute('attach "../collection.media.db" as old')
@@ -100,6 +120,10 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
             os.rename("../collection.media.db", npath)
 
     def close(self):
+        """Close database connection. 
+        
+        don't do anything if server is truthy.
+        change dir back to old working dir"""
         if self.col.server:
             return
         self.db.close()
@@ -113,6 +137,7 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
                 pass
 
     def _deleteDB(self):
+        """Delete connected DB, connect to a new one"""
         path = self.db._path
         self.close()
         os.unlink(path)
@@ -138,10 +163,21 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
     # opath must be in unicode
 
     def addFile(self, opath):
+        """Copy the file at path opath to collection.media, 
+
+        Name may be changed to ensure unicity.
+        """
         with open(opath, "rb") as f:
             return self.writeData(opath, f.read())
 
     def writeData(self, opath, data, typeHint=None):
+        """Add data in the file of name opath in media dir.
+
+        Only file name of opath is keep.
+        If file as no extension, and it is jpg or png according to typeHint, then add extension
+        Add a number extension if this name already exists
+
+        """
         # if fname is a full path, use only the basename
         fname = os.path.basename(opath)
 
@@ -159,8 +195,8 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
         # make sure we write it in NFC form (pre-APFS Macs will autoconvert to NFD),
         # and return an NFC-encoded reference
         fname = unicodedata.normalize("NFC", fname)
-        # remove any dangerous characters
-        base = self.stripIllegal(fname)
+        # ensure it's a valid filename
+        base = self.cleanFilename(fname)
         (root, ext) = os.path.splitext(base)
         def repl(match):
             n = int(match.group(1))
@@ -258,11 +294,13 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
         return strings
 
     def transformNames(self, txt, func):
+        """Apply func to all subtext matching the regexps txt."""
         for reg in self.regexps:
             txt = re.sub(reg, func, txt)
         return txt
 
     def strip(self, txt):
+        """Delete all text matching the regexps txt"""
         for reg in self.regexps:
             txt = re.sub(reg, "", txt)
         return txt
@@ -371,17 +409,22 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
     ##########################################################################
 
     def have(self, fname):
+        """Whether a fil with name fname exists in the media directory"""
         return os.path.exists(os.path.join(self.dir(), fname))
 
-    # Illegal characters
+    # Illegal characters and paths
     ##########################################################################
 
     _illegalCharReg = re.compile(r'[][><:"/?*^\\|\0\r\n]')
 
     def stripIllegal(self, str):
+        """str, without its illegal characters"""
         return re.sub(self._illegalCharReg, "", str)
 
     def hasIllegal(self, str):
+        """Whether str contains a illegal character.
+
+        Either according to _illegalCharReg, or because it can't be encoded if file system encoding"""
         if re.search(self._illegalCharReg, str):
             return True
         try:
@@ -389,6 +432,53 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
         except UnicodeEncodeError:
             return True
         return False
+
+    def cleanFilename(self, fname):
+        fname = self.stripIllegal(fname)
+        fname = self._cleanWin32Filename(fname)
+        fname = self._cleanLongFilename(fname)
+        if not fname:
+            fname = "renamed"
+
+        return fname
+
+    def _cleanWin32Filename(self, fname):
+        if not isWin:
+            return fname
+
+        # deal with things like con/prn/etc
+        p = pathlib.WindowsPath(fname)
+        if p.is_reserved():
+            fname = "renamed" + fname
+            assert not pathlib.WindowsPath(fname).is_reserved()
+
+        return fname
+
+    def _cleanLongFilename(self, fname):
+        # a fairly safe limit that should work on typical windows
+        # paths and on eCryptfs partitions, even with a duplicate
+        # suffix appended
+        namemax = 136
+
+        if isWin:
+            pathmax = 240
+        else:
+            pathmax = 1024
+
+        # cap namemax based on absolute path
+        dirlen = len(os.path.dirname(os.path.abspath(fname)))
+        remaining = pathmax - dirlen
+        namemax = min(remaining, namemax)
+        assert namemax > 0
+
+        if len(fname) > namemax:
+            head, ext = os.path.splitext(fname)
+            headmax = namemax - len(ext)
+            head = head[0:headmax]
+            fname = head + ext
+            assert(len(fname) <= namemax)
+
+        return fname
 
     # Tracking changes
     ##########################################################################
@@ -399,12 +489,17 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
             self._logChanges()
 
     def haveDirty(self):
+        """Whether the database has at least one dirty element"""
         return self.db.scalar("select 1 from media where dirty=1 limit 1")
 
     def _mtime(self, path):
+        """Time of most recent content modification of file at path.
+
+        Expressed in seconds."""
         return int(os.stat(path).st_mtime)
 
     def _checksum(self, path):
+        """Checksum of file at path"""
         with open(path, "rb") as f:
             return checksum(f.read())
 
@@ -500,6 +595,7 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
         self.db.commit()
 
     def syncInfo(self, fname):
+        """(Checkusm, dirty number) from media with name fname"""
         ret = self.db.first(
             "select csum, dirty from media where fname=?", fname)
         return ret or (None, 0)
@@ -510,15 +606,20 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
                 "update media set dirty=0 where fname=?", fname)
 
     def syncDelete(self, fname):
+        """Delete the file fname if it is not in media directory."""
         if os.path.exists(fname):
             os.unlink(fname)
         self.db.execute("delete from media where fname=?", fname)
 
     def mediaCount(self):
+        """Number of media according to database"""
         return self.db.scalar(
             "select count() from media where csum is not null")
 
     def dirtyCount(self):
+        """Number of dirty media according to database.
+
+        (couting the one potentially deleted)"""
         return self.db.scalar(
             "select count() from media where dirty=1")
 

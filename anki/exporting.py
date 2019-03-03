@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 import re, os, zipfile, shutil, unicodedata
@@ -10,12 +10,23 @@ from anki.hooks import runHook
 from anki import Collection
 
 class Exporter:
+    """An abstract class. Inherited by class actually doing some kind of export.
+
+    count -- the number of cards to export.
+    """
     def __init__(self, col, did=None):
+        #Currently, did is never set during initialisation.
         self.col = col
         self.did = did
 
     def exportInto(self, path):
-        self._escapeCount = 0
+        """Export into path.
+
+        This is the method called from the GUI to actually export things.
+
+        Keyword arguments:
+        path -- a path of file in which to export"""
+        self._escapeCount = 0# not used ANYWHERE in the code as of 25 november 2018
         file = open(path, "wb")
         self.doExport(file)
         file.close()
@@ -32,6 +43,7 @@ class Exporter:
         return text
 
     def cardIds(self):
+        """card ids of cards in deck self.did if it is set, all ids otherwise."""
         if not self.did:
             cids = self.col.db.list("select id from cards")
         else:
@@ -125,10 +137,7 @@ class AnkiExporter(Exporter):
         self.dst = Collection(path)
         self.src = self.col
         # find cards
-        if not self.did:
-            cids = self.src.db.list("select id from cards")
-        else:
-            cids = self.src.decks.cids(self.did, children=True)
+        cids = self.cardIds()
         # copy cards, noting used nids
         nids = {}
         data = []
@@ -233,7 +242,7 @@ class AnkiExporter(Exporter):
         # overwrite to apply customizations to the deck before it's closed,
         # such as update the deck description
         pass
-    
+
     def removeSystemTags(self, tags):
         return self.src.tags.remFromStr("marked leech", tags)
 
@@ -362,6 +371,7 @@ class AnkiCollectionPackageExporter(AnkiPackageExporter):
 ##########################################################################
 
 def exporters():
+    """A list of pairs (description of an exporter class, the class)"""
     def id(obj):
         return ("%s (*%s)" % (obj.key, obj.ext), obj)
     exps = [

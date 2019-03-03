@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 import io
@@ -446,11 +446,7 @@ from notes where %s""" % d)
 class AnkiRequestsClient:
     """session"""
     verify = True
-<<<<<<< HEAD
-=======
     timeout = 60
-
->>>>>>> b4f4e65c556142be2d673380cb4beee07b1b7378
     def __init__(self):
         self.session = requests.Session()
 
@@ -476,6 +472,7 @@ class AnkiRequestsClient:
         return buf.getvalue()
 
     def _agentName(self):
+        """Anki versionNumber"""
         from anki import version
         return "Anki {}".format(version)
 
@@ -496,17 +493,12 @@ class _MonitoringFile(io.BufferedReader):
 ##########################################################################
 
 class HttpSyncer:
-<<<<<<< HEAD
     """
     hkey -- TODO
-    skey: a random  8 hexadecimal value
-    
+    skey -- a random  8 hexadecimal value
+    hostNum -- TODO
     """
-    def __init__(self, hkey=None, client=None):
-=======
-
     def __init__(self, hkey=None, client=None, hostNum=None):
->>>>>>> b4f4e65c556142be2d673380cb4beee07b1b7378
         self.hkey = hkey
         self.skey = checksum(str(random.random()))[:8]
         self.client = client or AnkiRequestsClient()

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 import os
@@ -336,7 +336,10 @@ def importFile(mw, file):
                 return
         mw.progress.start(immediate=True)
         try:
-            importer.run()
+            try:
+                importer.run()
+            finally:
+                mw.progress.finish()
         except zipfile.BadZipfile:
             showWarning(invalidZipMsg())
         except Exception as e:
@@ -360,8 +363,6 @@ Unable to import from a read-only file."""))
                 tooltip(log)
             else:
                 showText(log)
-        finally:
-            mw.progress.finish()
         mw.reset()
 
 def invalidZipMsg():

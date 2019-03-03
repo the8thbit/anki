@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 import re
@@ -18,6 +18,7 @@ from hashlib import sha1
 import platform
 import traceback
 import json
+from contextlib import contextmanager
 
 from anki.lang import _, ngettext
 
@@ -315,6 +316,13 @@ def namedtmp(name, rm=True):
 # Cmd invocation
 ##############################################################################
 
+@contextmanager
+def noBundledLibs():
+    oldlpath = os.environ.pop("LD_LIBRARY_PATH", None)
+    yield
+    if oldlpath is not None:
+        os.environ["LD_LIBRARY_PATH"] = oldlpath
+
 def call(argv, wait=True, **kwargs):
     "Execute a command and return its return code.
 
@@ -341,7 +349,8 @@ def call(argv, wait=True, **kwargs):
         si = None
     # run
     try:
-        o = subprocess.Popen(argv, startupinfo=si, **kwargs)
+        with noBundledLibs():
+            o = subprocess.Popen(argv, startupinfo=si, **kwargs)
     except OSError:
         # command not found
         return -1

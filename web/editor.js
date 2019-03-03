@@ -1,3 +1,6 @@
+/* Copyright: Ankitects Pty Ltd and contributors
+ * License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html */
+
 var currentField = null;
 var changeTimer = null;
 var dropTarget = null;
@@ -24,6 +27,7 @@ function saveNow(keepFocus) {
     if (keepFocus) {
         saveField("key");
     } else {
+        // triggers onBlur, which saves
         currentField.blur();
     }
 }
@@ -87,11 +91,6 @@ function inPreEnvironment() {
 }
 
 function onInput() {
-    // empty field?
-    if (currentField.innerHTML === "") {
-        currentField.innerHTML = "<br>";
-    }
-
     // make sure IME changes get saved
     triggerKeyTimer();
 }
@@ -212,26 +211,28 @@ function caretToEnd() {
 }
 
 function onBlur() {
-    if (document.activeElement === currentField) {
-        // anki window defocused; current field unchanged
+    if (!currentField) {
         return;
     }
-    if (currentField) {
+
+    if (document.activeElement === currentField) {
+        // other widget or window focused; current field unchanged
+        saveField("key");
+    } else {
         saveField("blur");
         currentField = null;
+        disableButtons();
     }
-    clearChangeTimer();
-    disableButtons();
 }
 
 function saveField(type) {
+    clearChangeTimer();
     if (!currentField) {
         // no field has been focused yet
         return;
     }
     // type is either 'blur' or 'key'
     pycmd(type + ":" + currentFieldOrdinal() + ":" + currentNoteId + ":" + currentField.innerHTML);
-    clearChangeTimer();
 }
 
 function currentFieldOrdinal() {
@@ -292,12 +293,9 @@ function setFields(fields) {
     for (var i = 0; i < fields.length; i++) {
         var n = fields[i][0];
         var f = fields[i][1];
-        if (!f) {
-            f = "<br>";
-        }
         txt += "<tr><td class=fname>{0}</td></tr><tr><td width=100%>".format(n);
         txt += "<div id=f{0} onkeydown='onKey();' oninput='onInput()' onmouseup='onKey();'".format(i);
-        txt += " onfocus='onFocus(this);' onblur='onBlur();' class=field ";
+        txt += " onfocus='onFocus(this);' onblur='onBlur();' class='field clearfix' ";
         txt += "ondragover='onDragOver(this);' onpaste='onPaste(this);' ";
         txt += "oncopy='onCutOrCopy(this);' oncut='onCutOrCopy(this);' ";
         txt += "contentEditable=true class=field>{0}</div>".format(f);
@@ -386,7 +384,7 @@ Object.assign(allowedTagsExtended, allowedTagsBasic);
 
 // filtering from another field
 var filterInternalNode = function (node) {
-    if (node.tagName === "SPAN") {
+    if (node.style) {
         node.style.removeProperty("background-color");
         node.style.removeProperty("font-size");
         node.style.removeProperty("font-family");
@@ -448,6 +446,12 @@ var filterNode = function (node, extendedMode) {
     }
 };
 
+var adjustFieldsTopMargin = function() {
+    var topHeight = $("#topbuts").height();
+    var margin = topHeight + 8;
+    document.getElementById("fields").style.marginTop = margin + "px";
+};
+
 var mouseDown = 0;
 
 $(function () {
@@ -477,4 +481,10 @@ $(function () {
     $("button.linkb").on("mousedown", function (e) {
         e.preventDefault();
     });
+
+    window.onresize = function() {
+        adjustFieldsTopMargin();
+    };
+
+    adjustFieldsTopMargin();
 });

@@ -1,10 +1,10 @@
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # -*- coding: utf-8 -*-
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 from aqt.qt import *
 import aqt.forms
-from aqt import appVersion
+from aqt.utils import versionWithBuild
 
 class ClosableQDialog(QDialog):
     def reject(self):
@@ -29,7 +29,7 @@ def show(mw):
 system. It's free and open source.")
     abouttext += "<p>"+_("Anki is licensed under the AGPL3 license. Please see "
     "the license file in the source distribution for more information.")
-    abouttext += '<p>' + _("Version %s") % appVersion + '<br>'
+    abouttext += '<p>' + _("Version %s") % versionWithBuild() + '<br>'
     abouttext += ("Qt %s PyQt %s<br>") % (QT_VERSION_STR, PYQT_VERSION_STR)
     abouttext += (_("<a href='%s'>Visit website</a>") % aqt.appWebsite) + \
 "</span>"

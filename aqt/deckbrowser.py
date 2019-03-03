@@ -1,7 +1,15 @@
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # -*- coding: utf-8 -*-
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
+
+# A node is composed of
+#                  (name of the deck,
+#                  its id,
+#                  its number of due cards,
+#                  number of reviews of cards in learning which will occur today,
+#                  its number of new cards to see today,
+#                  its list of children)
 from aqt.qt import *
 from aqt.utils import askUser, getOnlyText, openLink, showWarning, shortcut, \
     openHelp, downArrow
@@ -82,7 +90,7 @@ class DeckBrowser:
 """
 
     def _renderPage(self, reuse=False):
-        """The HTML of the deck browser."""
+        """Write the HTML of the deck browser. Move to the last vertical position."""
         if not reuse:
             self._dueTree = self.mw.col.sched.deckDueTree()
         self.web.evalWithCallback("window.pageYOffset", self.__renderPage)
@@ -129,7 +137,7 @@ where id > ?""", (self.mw.col.sched.dayCutoff-86400)*1000)
 
         keyword arguments
         depth -- the number of ancestors, excluding itself
-        nodes -- A list of nodes, to render, with the same parent"""
+        nodes -- A list of nodes, to render, with the same parent. See top of this file for detail"""
         if not nodes:
             return ""
         if depth == 0:
@@ -152,12 +160,7 @@ where id > ?""", (self.mw.col.sched.dayCutoff-86400)*1000)
         """The HTML for a single deck (and its descendant)
 
         Keyword arguments:
-        node -- (name of the deck,
-                 its id,
-                 its number of due cards,
-                 number of cards in learning,
-                 its number of new cards,
-                 its list of children)
+        node -- see in the introduction of the file for a node description
         depth -- indentation argument (number of ancestors)
         cnt --  the number of sibling, counting itself
         nameMap -- dictionnary, associating to a deck id its node

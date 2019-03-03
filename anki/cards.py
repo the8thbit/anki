@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 import pprint
 
@@ -13,21 +13,29 @@ from anki.consts import *
 
 class Card:
 
-    """ 
-    Cards are what you review. 
+    """
+    Cards are what you review.
     There can be multiple cards for each note, as determined by the Template.
 
     id -- the epoch milliseconds of when the card was created
     nid -- The card's note's id
     did -- The card's deck id
-    ord -- ordinal : identifies which of the card templates it corresponds to 
+    ord -- ordinal : identifies which of the card templates it corresponds to
     valid values are from 0 to num templates - 1
     mod -- modificaton time as epoch seconds
     usn -- update sequence number : see README.synchronization
-    type -- -- 0=new, 1=learning, 2=due, 3=filtered
-    queue -- -3=sched buried, -2=user buried, -1=suspended, 0=new, 1=learning, 2=due, 3=in learning, next rev in at least a day after last review
-    due -- Due is used differently for different card types: 
-        --   new: note id or random int. 
+    type -- -- 0=new, 1=learning, 2=due, 3=filtered. Only for cards
+    queue --
+         -- QUEUE_SCHED_BURIED: card buried by scheduler, -3
+         -- QUEUE_USER_BURIED: card buried by user, -2
+         -- QUEUE_SUSPENDED: Card suspended, -1
+         -- QUEUE_NEW_CRAM: new card,  0
+         -- QUEUE_LRN: cards in learning, which should be seen again today, 1
+         -- QUEUE_REV: cards already learned, 2
+         -- QUEUE_DAY_LRN: cards in learning but won't be seen today again, 3
+         -- QUEUE_PREVIEW: cards for the preview mode, sched 2 :4
+    due -- Due is used differently for different card types:
+        --   new: note id or random int.
                   Allow to select in which order new cards are seens.
         --   due: integer day in which the card is due for the next time,
                   relative to the collection's creation time
@@ -35,9 +43,12 @@ class Card:
     ivl -- interval (used in SRS algorithm). Negative = seconds, positive = days
     factor -- easyness factor (used in SRS algorithm)
     reps -- number of reviews to do
-    lapses -- the number of times the card went from a "was answered correctly" 
+    lapses -- the number of times the card went from a "was answered correctly"
            --   to "was answered incorrectly" state
-    left -- reviews left till graduation
+    left
+      -- of the form a*1000+b, with:
+      -- b the number of reps left till graduation
+      -- a the number of reps left today
     odue -- original due: only used when the card is currently in filtered deck
     odid -- original did: only used when the card is currently in filtered deck
     flags -- currently unused
@@ -48,8 +59,9 @@ class Card:
     timerStarted -- The time at which the timer started
     _qa -- the dictionnary whose element q and a are questions and answers html
     _note -- the note object of the card
+    wasNew --
     """
-    
+
     def __init__(self, col, id=None):
         """
         This function returns a card object from the collection given in argument.
@@ -59,7 +71,7 @@ class Card:
 
         Keyword arguments:
         col -- a collection
-        id -- an identifier of a card
+        id -- an identifier of a card. Int.
         """
         self.col = col
         self.timerStarted = None
@@ -73,8 +85,8 @@ class Card:
             self.id = timestampID(col.db, "cards")
             self.did = 1
             self.crt = intTime()
-            self.type = 0
-            self.queue = 0
+            self.type = CARD_NEW
+            self.queue = QUEUE_NEW_CRAM
             self.ivl = 0
             self.factor = 0
             self.reps = 0
@@ -115,12 +127,12 @@ class Card:
     def flush(self):
         """Insert the card into the database.
 
-        If the cards is already in the database, it is replaced, 
+        If the cards is already in the database, it is replaced,
         otherwise it is created."""
         self.mod = intTime()
         self.usn = self.col.usn()
         # bug check
-        if self.queue == 2 and self.odue and not self.col.decks.isDyn(self.did):
+        if self.queue == QUEUE_REV and self.odue and not self.col.decks.isDyn(self.did):
             runHook("odueInvalid")
         assert self.due < 4294967296
         self.col.db.execute(
@@ -155,7 +167,7 @@ insert or replace into cards values
         self.mod = intTime()
         self.usn = self.col.usn()
         # bug checks
-        if self.queue == 2 and self.odue and not self.col.decks.isDyn(self.did):
+        if self.queue == QUEUE_REV and self.odue and not self.col.decks.isDyn(self.did):
             runHook("odueInvalid")
         assert self.due < 4294967296
         self.col.db.execute(
@@ -181,10 +193,12 @@ lapses=?, left=?, odue=?, odid=?, did=? where id = ?""",
     def q(self, reload=False, browser=False):
         """The card question with its css.
 
-        Keyword arguments:
-        reload -- whether the card should be reloaded even if it is already known
-        browser -- TODO
-"""
+        Keyword arguments: reload -- whether the card should be
+        reloaded even if it is already known browser -- whether its
+        called from the browser (in which case the format strings are
+        bqfmt and not qfmt)
+
+        """
         return self.css() + self._getQA(reload, browser)['q']
 
     def a(self):
@@ -204,9 +218,11 @@ lapses=?, left=?, odue=?, odid=?, did=? where id = ?""",
         browser -- ???TODO
         """
         if not self._qa or reload:
-            f = self.note(reload); m = self.model(); t = self.template()
+            f = self.note(reload)
+            m = self.model()
+            t = self.template()
             data = [self.id, f.id, m['id'], self.odid or self.did, self.ord,
-                    f.stringTags(), f.joinedFields()]
+                    f.stringTags(), f.joinedFields(), self.flags]
             if browser:
                 args = (t.get('bqfmt'), t.get('bafmt'))
             else:
@@ -218,7 +234,7 @@ lapses=?, left=?, odue=?, odid=?, did=? where id = ?""",
         """The note object of the card.
 
         If the cards already knows its object, and reload is not true,
-        it is used.
+        this object is used.
         """
         if not self._note or reload:
             self._note = self.col.getNote(self.nid)

@@ -1,10 +1,11 @@
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
+"""The window used to select a model. Either directly from note type manager in main. Or through a model chooser window."""
 from aqt.qt import *
 from operator import itemgetter
 from aqt.utils import showInfo, askUser, getText, maybeHideClose, openHelp
-import aqt.modelchooser, aqt.clayout
+import aqt.clayout
 from anki import stdmodels
 from aqt.utils import saveGeom, restoreGeom
 import collections
@@ -16,16 +17,16 @@ class Models(QDialog):
     An object of class Models contains:
     mw -- The main window (?)
     parent -- the window which opened the current window. By default
-    the main window 
+    the main window
     fromMain -- whether the window is opened from the main window. It
     is used to check whether Fields... and Cards... buttons should be
     added.
     col -- the collection
     mm -- the set of models of the colection
     form -- TODO
-
+    models -- all models of the collection
     """
-    
+
     def __init__(self, mw, parent=None, fromMain=False):
         self.mw = mw
         self.parent = parent or mw

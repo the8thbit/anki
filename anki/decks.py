@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 
@@ -7,26 +7,25 @@
 
 
 A deck is an array composed of:
-newToday -- two number array. 
+newToday -- two number array.
             First one is currently unused
             The second one is equal to the negation (* (-1)) of the increase of the number of new cards to see today.
-revToday -- two number array. 
+revToday -- two number array.
             First one is currently unused
             The second one is equal to the negation (* (-1)) of the increase of the number of review cards to see today.
 lrnToday -- two number array used somehow for custom study, Seems to be unused in the current code.
 timeToday -- two number array used somehow for custom study,  seems to be currently unused
-conf -- (string) id of option group from dconf
+conf -- (string) id of option group from dconf, or absent in dynamic decks
 usn -- Update sequence number: used in same way as other usn vales in db
 desc -- deck description, it is shown when cards are learned or reviewd
-dyn -- 1 if dynamic (AKA filtered) deck, 
-collapsed -- true when deck is collapsed, 
-extendNew -- extended new card limit (for custom study), 
-extendRev -- extended review card limit (for custom study), 
-name -- name of deck, 
-browserCollapsed -- true when deck collapsed in browser, 
-id -- deck ID (automatically generated long), 
-mod -- last modification time, 
-mid -- the model of the deck
+dyn -- 1 if dynamic (AKA filtered) deck,
+collapsed -- true when deck is collapsed,
+extendNew -- extended new card limit (for custom study). Potentially absent, only used in aqt/customstudy.py. By default 10
+extendRev -- extended review card limit (for custom study), Potentially absent, only used in aqt/customstudy.py. By default 10.
+name -- name of deck,
+browserCollapsed -- true when deck collapsed in browser,
+id -- deck ID (automatically generated long),
+mod -- last modification time,
 """
 
 
@@ -38,32 +37,25 @@ lapse -- The configuration for lapse cards, see below.
 rev -- The configuration for review cards, see below.
 maxTaken -- The number of seconds after which to stop the timer
 timer -- whether timer should be shown (1) or not (0)
-autoplay -- whether the audio associated to a question should be
-played when the question is shown
-replayq -- whether the audio associated to a question should be
-played when the answer is shown
+autoplay -- whether the audio associated to a question should be played when the question is shown
+replayq -- whether the audio associated to a question should be played when the answer is shown
 mod -- Last modification time
 usn -- see USN documentation
 dyn -- Whether this deck is dynamic. Not present in the default configurations
 id -- configuration ID (automatically generated long). Not present in the default configurations.
 
 The configuration related to new card is composed of:
-delays -- The list of successive delay between the learning steps of
-the new cards, as explained in the manual.
-ints -- The delays according to the button pressed while leaving the
-learning mode.
+delays -- The list of successive delay between the learning steps of the new cards, as explained in the manual.
+ints -- The delay to wait for the next review. In position 1, if the review is easy. In position 0 otherwise.
 initial factor -- The initial ease factor
 separate -- delay between answering Good on a card with no steps left, and seeing the card again. Seems to be unused in the code
-order -- In which order new cards must be shown. NEW_CARDS_RANDOM = 0
-and NEW_CARDS_DUE = 1
+order -- In which order new cards must be shown. NEW_CARDS_RANDOM = 0 and NEW_CARDS_DUE = 1
 perDay -- Maximal number of new cards shown per day
 bury -- Whether to bury cards related to new cards answered
 
 The configuration related to lapses card is composed of:
-delays -- The delays between each relearning while the card is lapsed,
-as in the manual
-mult -- percent by which to multiply the current interval when a card
-goes has lapsed
+delays -- The delays between each relearning while the card is lapsed, as in the manual
+mult -- percent by which to multiply the current interval when a card goes has lapsed
 minInt -- a lower limit to the new interval after a leech
 leechFails -- the number of lapses authorized before doing leechAction
 leechAction -- What to do to leech cards. 0 for suspend, 1 for
@@ -73,18 +65,16 @@ aqt/dconf.ui
 
 The configuration related to review card is composed of:
 perDay -- Numbers of cards to review per day
-ease4 -- the number to add to the easyness when the easy button is
-pressed
-fuzz -- The new interval is multiplied by a random number between
--fuzz and fuzz
+ease4 -- the number to add to the easyness when the easy button is pressed
+fuzz -- The new interval is multiplied by a random number between-fuzz and fuzz
 minSpace -- not currently used
-ivlFct -- multiplication factor applied to the intervals Anki
-generates
+ivlFct -- multiplication factor applied to the intervals Anki generates
 maxIvl -- the maximal interval for review
-bury -- If True, when a review card is answered, the related cards of
-its notes are buried
+bury -- If True, when a review card is answered, the related cards of its notes are buried
 """
 import copy, operator
+import unicodedata
+
 from anki.utils import intTime, ids2str, json
 from anki.hooks import runHook
 from anki.consts import *
@@ -234,14 +224,15 @@ class DeckManager:
         """Returns a deck's id with a given name. Potentially creates it.
 
         Keyword arguments:
-        name -- the name of the new deck. " are removed. 
+        name -- the name of the new deck. " are removed.
         create -- States whether the deck must be created if it does
         not exists. Default true, otherwise return None
         type -- A deck to copy in order to create this deck
         """
         name = name.replace('"', '')
+        name = unicodedata.normalize("NFC", name)
         for id, g in list(self.decks.items()):
-            if g['name'].lower() == name.lower():
+            if unicodedata.normalize("NFC", g['name'].lower()) == name.lower():
                 return int(id)
         if not create:
             return None
@@ -360,11 +351,11 @@ class DeckManager:
         return len(self.decks)
 
     def get(self, did, default=True):
-        """Returns the deck objects whose id is did. 
+        """Returns the deck objects whose id is did.
 
         If Default is set to false, does not return if the deck does
         not exists.
-        """ 
+        """
         id = str(did)
         if id in self.decks:
             return self.decks[id]
@@ -393,7 +384,7 @@ class DeckManager:
         # make sure target node doesn't already exist
         if newName in self.allNames():
             raise DeckRenameError(_("That deck already exists."))
-        # ensure we have parents. 
+        # ensure we have parents.
         newName = self._ensureParents(newName)
         # make sure we're not nesting under a filtered deck
         for p in self.parentsByName(newName):
@@ -441,7 +432,7 @@ class DeckManager:
         ontoDeckName.
 
         draggedDeckName should not be dragged onto a descendant of
-        itself (nor itself). 
+        itself (nor itself).
         It should not either be dragged to its parent because the
         action would be useless.
         """
@@ -560,7 +551,7 @@ same id."""
 
     def setConf(self, grp, id):
         """Takes a deck objects, switch his id to id and save it as
-        edited. 
+        edited.
 
         Currently used in tests only."""
         grp['conf'] = id
@@ -594,7 +585,7 @@ same id."""
     #############################################################
 
     def name(self, did, default=False):
-        """The name of the deck whose id is did. 
+        """The name of the deck whose id is did.
 
         If no such deck exists: if default is set to true, then return
         default deck's name. Otherwise return "[no deck]".
@@ -633,7 +624,7 @@ same id."""
         self.select(c['id'])
 
     def cids(self, did, children=False):
-        """Return the list of id of cards whose deck's id is did. 
+        """Return the list of id of cards whose deck's id is did.
 
         If Children is set to true, returns also the list of the cards
         of the descendant."""
@@ -645,7 +636,7 @@ same id."""
         return self.col.db.list("select id from cards where did in "+
                                 ids2str(dids))
 
-    def recoverOrphans(self):
+    def _recoverOrphans(self):
         """Move the cards whose deck does not exists to the default
         deck, without changing the mod date."""
         dids = list(self.decks.keys())
@@ -653,6 +644,38 @@ same id."""
         self.col.db.execute("update cards set did = 1 where did not in "+
                             ids2str(dids))
         self.col.db.mod = mod
+
+    def _checkDeckTree(self):
+        decks = self.col.decks.all()
+        decks.sort(key=operator.itemgetter('name'))
+        names = set()
+
+        for deck in decks:
+            # two decks with the same name?
+            if deck['name'] in names:
+                print("fix duplicate deck name", deck['name'].encode("utf8"))
+                deck['name'] += "%d" % intTime(1000)
+                self.save(deck)
+
+            # ensure no sections are blank
+            if not all(deck['name'].split("::")):
+                print("fix deck with missing sections", deck['name'].encode("utf8"))
+                deck['name'] = "recovered%d" % intTime(1000)
+                self.save(deck)
+
+            # immediate parent must exist
+            if "::" in deck['name']:
+                immediateParent = "::".join(deck['name'].split("::")[:-1])
+                if immediateParent not in names:
+                    print("fix deck with missing parent", deck['name'].encode("utf8"))
+                    self._ensureParents(deck['name'])
+                    names.add(immediateParent)
+
+            names.add(deck['name'])
+
+    def checkIntegrity(self):
+        self._recoverOrphans()
+        self._checkDeckTree()
 
     # Deck selection
     #############################################################
@@ -671,7 +694,7 @@ same id."""
 
     def select(self, did):
         """Change activeDecks to the list containing did and the did
-        of its children.  
+        of its children.
 
         Also mark the manager as changed."""
         # make sure arg is an int

@@ -1,4 +1,4 @@
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # -*- coding: utf-8 -*-
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
@@ -6,15 +6,7 @@ from aqt.qt import *
 import re, os, sys, urllib.request, urllib.parse, urllib.error, subprocess
 import aqt
 from anki.sound import stripSounds
-from anki.utils import isWin, isMac, invalidFilename
-from contextlib import contextmanager
-
-@contextmanager
-def noBundledLibs():
-    oldlpath = os.environ.pop("LD_LIBRARY_PATH", None)
-    yield
-    if oldlpath is not None:
-        os.environ["LD_LIBRARY_PATH"] = oldlpath
+from anki.utils import isWin, isMac, invalidFilename, noBundledLibs
 
 def openHelp(section):
     link = aqt.appHelpSite
@@ -48,7 +40,6 @@ def showInfo(text, parent=False, help="", type="info", title="Anki"):
     mb = QMessageBox(parent)
     mb.setText(text)
     mb.setIcon(icon)
-    mb.setWindowModality(Qt.WindowModal)
     mb.setWindowTitle(title)
     b = mb.addButton(QMessageBox.Ok)
     b.setDefault(True)
@@ -70,7 +61,7 @@ def showText(txt, parent=None, type="text", run=True, geomKey=None, \
     text.setOpenExternalLinks(True)
     if type == "text":
         text.setPlainText(txt)
-    else:
+o    else:
         text.setHtml(txt)
     layout.addWidget(text)
     box = QDialogButtonBox(QDialogButtonBox.Close)
@@ -95,7 +86,15 @@ def showText(txt, parent=None, type="text", run=True, geomKey=None, \
 
 def askUser(text, parent=None, help="", defaultno=False, msgfunc=None, \
         title="Anki"):
-    "Show a yes/no question. Return true if yes."
+    """Show a yes/no question. Return true if yes.
+
+    Text -- the text displayed to the user
+    parent -- Add this window as parent to the question
+    help -- An help message, occuring if the user click on the help button
+    defaultno -- whether the default answer is no
+    msgfunc -- The kind of QMessageBox. By default, a question
+    title -- title of the question window
+    """
     if not parent:
         parent = aqt.mw.app.activeWindow()
     if not msgfunc:
@@ -210,6 +209,7 @@ def getText(prompt, parent=None, help=None, edit=None, default="",
     return (str(d.l.text()), ret)
 
 def getOnlyText(*args, **kwargs):
+    """A text asked to the user, or the empty string."""
     (s, r) = getText(*args, **kwargs)
     if r:
         return s
@@ -328,9 +328,26 @@ def restoreGeom(widget, key, offset=None, adjustSize=False):
                 # bug in osx toolkit
                 s = widget.size()
                 widget.resize(s.width(), s.height()+offset*2)
+        ensureWidgetInScreenBoundaries(widget)
     else:
         if adjustSize:
             widget.adjustSize()
+
+def ensureWidgetInScreenBoundaries(widget):
+    handle = widget.window().windowHandle()
+    if not handle:
+        # window has not yet been shown, retry later
+        aqt.mw.progress.timer(50, lambda: ensureWidgetInScreenBoundaries(widget), False)
+        return
+
+    # ensure qt has restored the window within the screen's bounds,
+    # and at least 50px from bottom right
+    geom = handle.screen().availableGeometry()
+    pos = widget.pos()
+    x = min(max(geom.x(), pos.x()), geom.width()+geom.x()-50)
+    y = min(max(geom.y(), pos.y()), geom.height()+geom.y()-50)
+    if pos.x() != x or pos.y() != y:
+        widget.move(x, y)
 
 def saveState(widget, key):
     key += "State"
@@ -364,11 +381,6 @@ def mungeQA(col, txt):
     txt = stripSounds(txt)
     return txt
 
-def applyStyles(widget):
-    p = os.path.join(aqt.mw.pm.base, "style.css")
-    if os.path.exists(p):
-        widget.setStyleSheet(open(p).read())
-
 def openFolder(path):
     if isWin:
         subprocess.Popen(["explorer", "file://"+path])
@@ -377,11 +389,13 @@ def openFolder(path):
             QDesktopServices.openUrl(QUrl("file://" + path))
 
 def shortcut(key):
+    """On mac: ctrl is replaced by command. Otherwise identity"""
     if isMac:
         return re.sub("(?i)ctrl", "Command", key)
     return key
 
 def maybeHideClose(bbox):
+    """On mac only, remove the bbox's close buton."""
     if isMac:
         b = bbox.button(QDialogButtonBox.Close)
         if b:
@@ -433,7 +447,7 @@ text msg."""
         aw.mapToGlobal(QPoint(0, -100 + aw.height())))
     lab.show()
     _tooltipTimer = aqt.mw.progress.timer(
-        period, closeTooltip, False)
+        period, closeTooltip, False, requiresCollection=False)
     _tooltipLabel = lab
 
 def closeTooltip():
@@ -539,3 +553,63 @@ class MenuItem:
         a = qmenu.addAction(self.title)
         a.triggered.connect(self.func)
 
+def qtMenuShortcutWorkaround(qmenu):
+    if qtminor < 10:
+        return
+    for act in qmenu.actions():
+        act.setShortcutVisibleInContextMenu(True)
+
+######################################################################
+
+def versionWithBuild():
+    from aqt import appVersion
+    try:
+        from aqt.buildhash import build
+    except:
+        build = "dev"
+    return "%s (%s)" % (appVersion, build)
+
+######################################################################
+
+# adapted from version detection in qutebrowser
+def opengl_vendor():
+    old_context = QOpenGLContext.currentContext()
+    old_surface = None if old_context is None else old_context.surface()
+
+    surface = QOffscreenSurface()
+    surface.create()
+
+    ctx = QOpenGLContext()
+    ok = ctx.create()
+    if not ok:
+        return None
+
+    ok = ctx.makeCurrent(surface)
+    if not ok:
+        return None
+
+    try:
+        if ctx.isOpenGLES():
+            # Can't use versionFunctions there
+            return None
+
+        vp = QOpenGLVersionProfile()
+        vp.setVersion(2, 0)
+
+        try:
+            vf = ctx.versionFunctions(vp)
+        except ImportError as e:
+            return None
+
+        if vf is None:
+            return None
+
+        return vf.glGetString(vf.GL_VENDOR)
+    finally:
+        ctx.doneCurrent()
+        if old_context and old_surface:
+            old_context.makeCurrent(old_surface)
+
+def gfxDriverIsBroken():
+    driver = opengl_vendor()
+    return driver == "nouveau"

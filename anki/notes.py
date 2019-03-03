@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 from anki.utils import fieldChecksum, intTime, \
@@ -9,13 +9,13 @@ class Note:
 
     """A note is composed of:
 
-    id -- epoch seconds of when the note was created
+    id -- epoch seconds of when the note was created. A unique id
     guid -- globally unique id, almost certainly used for syncing
     mid -- model id
     mod -- modification timestamp, epoch seconds
     usn -- update sequence number: see readme.synchronization for more info
     tags -- List of tags.
-         -- In the database, it is a space-separated string of tags. 
+         -- In the database, it is a space-separated string of tags.
          -- includes space at the beginning and end, for LIKE "% tag %" queries
     fields -- the list of values of the fields in this note.  Starting at 0
           in the db, instead of fields, there is flds; which is the content of fields, in the order of the note type, concatenated using \x1f (\\x1f))
@@ -33,6 +33,15 @@ class Note:
     newlyAdded -- used by flush, to see whether a note is new or not.
     """
     def __init__(self, col, model=None, id=None):
+        """A note.
+
+        Exactly one of model and id should be set. Not both.
+
+        keyword arguments:
+        id -- a note id. In this case, current note is the note with this id
+        model -- A model object. In which case the note the note use this model.
+
+        """
         assert not (model and id)
         self.col = col
         if id:
@@ -72,7 +81,7 @@ from notes where id = ?""", self.id)
     def flush(self, mod=None):
         """If fields or tags have changed, write changes to disk.
 
-        
+
         If there exists a note with same id, tags and fields, and mod is not set, do nothing.
         Change the mod to given argument or current time
         Change the USNk
@@ -160,7 +169,7 @@ insert or replace into notes values (?,?,?,?,?,?,?,?,?,?,?)""",
 
     def stringTags(self):
         """A string containing the tags, canonified, separated with white
-space, with an initial and a final white space.""" 
+space, with an initial and a final white space."""
         return self.col.tags.join(self.col.tags.canonify(self.tags))
 
     def setTagsFromStr(self, str):
@@ -213,7 +222,7 @@ the db."""
             "select 1 from cards where nid = ?", self.id)
 
     def _postFlush(self):
-        """Generate cards for non-empty template of this note. 
+        """Generate cards for non-empty template of this note.
 
         Not executed if this note is newlyAdded."""
         if not self.newlyAdded:
