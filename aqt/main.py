@@ -718,7 +718,9 @@ title="%s" %s>%s</button>''' % (
     def applyShortcuts(self, shortcuts):
         qshortcuts = []
         for key, fn in shortcuts:
-            qshortcuts.append(QShortcut(QKeySequence(key), self, activated=fn))
+            scut = QShortcut(QKeySequence(key), self, activated=fn)
+            scut.setAutoRepeat(False)
+            qshortcuts.append(scut)
         return qshortcuts
 
     def setStateShortcuts(self, shortcuts):
@@ -874,8 +876,6 @@ title="%s" %s>%s</button>''' % (
             # user cancelled first config
             self.col.decks.rem(did)
             self.col.decks.select(deck['id'])
-        else:
-            self.moveToState("overview")
 
     # Menu, title bar & status
     ##########################################################################
@@ -890,6 +890,8 @@ title="%s" %s>%s</button>''' % (
         m.actionPreferences.triggered.connect(self.onPrefs)
         m.actionAbout.triggered.connect(self.onAbout)
         m.actionUndo.triggered.connect(self.onUndo)
+        if qtminor < 11:
+            m.actionUndo.setShortcut(QKeySequence(_("Ctrl+Alt+Z")))
         m.actionFullDatabaseCheck.triggered.connect(self.onCheckDB)
         m.actionCheckMediaDatabase.triggered.connect(self.onCheckMediaDB)
         m.actionDocumentation.triggered.connect(self.onDocumentation)
@@ -971,13 +973,19 @@ Difference to correct time: %s.""") % diffText
 Invalid property found on card. Please use Tools>Check Database, \
 and if the problem comes up again, please ask on the support site."""))
 
-    def onMpvWillPlay(self):
-        if not self._activeWindowOnPlay:
-            self._activeWindowOnPlay = self.app.activeWindow()
+    def _isVideo(self, file):
+        head, ext = os.path.splitext(file.lower())
+        return ext in (".mp4", ".mov", ".mpg", ".mpeg", ".mkv", ".avi")
+
+    def onMpvWillPlay(self, file):
+        if not self._isVideo(file):
+            return
+
+        self._activeWindowOnPlay = self.app.activeWindow() or self._activeWindowOnPlay
 
     def onMpvIdle(self):
         w = self._activeWindowOnPlay
-        if w and not sip.isdeleted(w) and w.isVisible():
+        if not self.app.activeWindow() and w and not sip.isdeleted(w) and w.isVisible():
             w.activateWindow()
             w.raise_()
         self._activeWindowOnPlay = None

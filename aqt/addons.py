@@ -204,6 +204,7 @@ When loading '%(name)s':
     ######################################################################
 
     _configButtonActions = {}
+    _configUpdatedActions = {}
 
     def addonConfigDefaults(self, dir):
         """The (default) configuration of the addon whose
@@ -233,10 +234,26 @@ name/directory is dir.
     def configAction(self, addon):
         return self._configButtonActions.get(addon)
 
+    def configUpdatedAction(self, addon):
+        return self._configUpdatedActions.get(addon)
+
     # Add-on Config API
     ######################################################################
 
     def getConfig(self, module):
+        """The current configuration. 
+
+        More precisely:
+        -None if the module has no file config.json
+        -otherwise the union of:
+        --default config from config.json
+        --the last version of the config, as saved in meta
+
+        Note that if you edited the dictionary obtained from the
+        configuration file without calling self.writeConfig(module,
+        config), then getConfig will not return current config
+
+        """
         addon = self.addonFromModule(module)
         # get default config
         config = self.addonConfigDefaults(addon)
@@ -249,10 +266,35 @@ name/directory is dir.
         return config
 
     def setConfigAction(self, module, fn):
+        """Change the action of add-on manager for the edition of the
+        current add-ons config.
+
+        Each time the user click in the add-on manager on the button
+        "config" button, fn is called. Unless fn is falsy, in which
+        case the standard procedure is used
+
+        Keyword arguments:
+        module -- the module/addon considered
+        fn -- a function taking no argument, or a falsy value
+        """
         addon = self.addonFromModule(module)
         self._configButtonActions[addon] = fn
 
+    def setConfigUpdatedAction(self, module, fn):
+        """Allow a function to add on new configurations.
+
+        Each time the configuration of module is modified in the
+        add-on manager, fn is called on the new configuration.
+
+        Keyword arguments:
+        module -- the module/addon considered
+        fn -- a function taking as argument a configuration.
+        """
+        addon = self.addonFromModule(module)
+        self._configUpdatedActions[addon] = fn
+
     def writeConfig(self, module, conf):
+        """The config for the module whose name is module  is now conf"""
         addon = self.addonFromModule(module)
         meta = self.addonMeta(addon)
         meta['config'] = conf
@@ -300,6 +342,7 @@ class AddonsDialog(QDialog):
         f.viewFiles.clicked.connect(self.onViewFiles)
         f.delete_2.clicked.connect(self.onDelete)
         f.config.clicked.connect(self.onConfig)
+        self.form.addonList.currentRowChanged.connect(self._onAddonItemSelected)
         self.redrawAddons()
         self.show()
 
@@ -310,6 +353,13 @@ class AddonsDialog(QDialog):
         self.form.addonList.addItems([r[0] for r in self.addons])
         if self.addons:
             self.form.addonList.setCurrentRow(0)
+
+    def _onAddonItemSelected(self, row_int):
+        try:
+            addon = self.addons[row_int][1]
+        except IndexError:
+            addon = ''
+        self.form.viewPage.setEnabled(bool (re.match(r"^\d+$", addon)))
 
     def annotatedName(self, dir):
         meta = self.mgr.addonMeta(dir)
@@ -325,7 +375,7 @@ class AddonsDialog(QDialog):
     def onlyOneSelected(self):
         dirs = self.selectedAddons()
         if len(dirs) != 1:
-            showInfo("Please select a single add-on first.")
+            showInfo(_("Please select a single add-on first."))
             return
         return dirs[0]
 
@@ -390,6 +440,12 @@ class AddonsDialog(QDialog):
                 self.redrawAddons()
 
     def onConfig(self):
+        """Assuming a single addon is selected, either:
+        -if this add-on as a special config, set using setConfigAction, with a
+        truthy value, call this config.
+        -otherwise, call the config editor on the current config of
+        this add-on"""
+        
         addon = self.onlyOneSelected()
         if not addon:
             return
@@ -463,12 +519,12 @@ class ConfigEditor(QDialog):
         restore = self.form.buttonBox.button(QDialogButtonBox.RestoreDefaults)
         restore.clicked.connect(self.onRestoreDefaults)
         self.updateHelp()
-        self.updateText()
+        self.updateText(self.conf)
         self.show()
 
     def onRestoreDefaults(self):
-        self.conf = self.mgr.addonConfigDefaults(self.addon)
-        self.updateText()
+        default_conf = self.mgr.addonConfigDefaults(self.addon)
+        self.updateText(default_conf)
 
     def updateHelp(self):
         txt = self.mgr.addonConfigHelp(self.addon)
@@ -477,17 +533,33 @@ class ConfigEditor(QDialog):
         else:
             self.form.scrollArea.setVisible(False)
 
-    def updateText(self):
+    def updateText(self, conf):
         self.form.editor.setPlainText(
-            json.dumps(self.conf,sort_keys=True,indent=4, separators=(',', ': ')))
+            json.dumps(conf,sort_keys=True,indent=4, separators=(',', ': ')))
 
     def accept(self):
+        """
+        Transform the new config into json, and either:
+        -pass it to the special config function, set using
+        setConfigUpdatedAction if it exists, 
+        -or save it as configuration otherwise.
+
+        If the config is not proper json, show an error message and do
+        nothing.
+        -if the special config is falsy, just save the value
+        """
         txt = self.form.editor.toPlainText()
         try:
-            self.conf = json.loads(txt)
+            new_conf = json.loads(txt)
         except Exception as e:
             showInfo(_("Invalid configuration: ") + repr(e))
             return
 
-        self.mgr.writeConfig(self.addon, self.conf)
+        if new_conf != self.conf:
+            self.mgr.writeConfig(self.addon, new_conf)
+            # does the add-on define an action to be fired?
+            act = self.mgr.configUpdatedAction(self.addon)
+            if act:
+                act(new_conf)
+
         super().accept()

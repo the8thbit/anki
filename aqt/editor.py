@@ -28,9 +28,10 @@ from aqt.utils import shortcut, showInfo, showWarning, getFile, \
 import aqt
 from bs4 import BeautifulSoup
 import requests
+from anki.sync import AnkiRequestsClient
 
 pics = ("jpg", "jpeg", "png", "tif", "tiff", "gif", "svg", "webp")
-audio =  ("wav", "mp3", "ogg", "flac", "mp4", "swf", "mov", "mpeg", "mkv", "m4a", "3gp", "spx", "oga")
+audio =  ("wav", "mp3", "ogg", "flac", "mp4", "swf", "mov", "mpeg", "mkv", "m4a", "3gp", "spx", "oga", "webm")
 
 _html = """
 <style>
@@ -196,6 +197,7 @@ class Editor:
             ("Ctrl+T, M", self.insertLatexMathEnv),
             ("Ctrl+M, M", self.insertMathjaxInline),
             ("Ctrl+M, E", self.insertMathjaxBlock),
+            ("Ctrl+M, C", self.insertMathjaxChemistry),
             ("Ctrl+Shift+X", self.onHtmlEdit),
             ("Ctrl+Shift+T", self.onFocusTags, True)
         ]
@@ -564,8 +566,7 @@ to a cloze type first, via Edit>Change Note Type."""))
         return self.fnameToLink(fname)
 
     def _addMediaFromData(self, fname, data):
-        fname = self.mw.col.media.writeData(fname, data)
-        return self.fnameToLink(fname)
+        return self.mw.col.media.writeData(fname, data)
 
     def onRecSound(self):
         try:
@@ -584,7 +585,7 @@ to a cloze type first, via Edit>Change Note Type."""))
     def urlToLink(self, url):
         fname = self.urlToFile(url)
         if not fname:
-            return url
+            return None
         return self.fnameToLink(fname)
 
     def fnameToLink(self, fname):
@@ -612,17 +613,24 @@ to a cloze type first, via Edit>Change Note Type."""))
             or s.startswith("ftp://")
             or s.startswith("file://"))
 
-    def inlinedImageToLink(self, txt):
+    def inlinedImageToFilename(self, txt):
         prefix = "data:image/"
         suffix = ";base64,"
-        for ext in ("jpeg", "png", "gif"):
+        for ext in ("jpg", "jpeg", "png", "gif"):
             fullPrefix = prefix + ext + suffix
             if txt.startswith(fullPrefix):
-                b64data = txt[len(fullPrefix):]
+                b64data = txt[len(fullPrefix):].strip()
                 data = base64.b64decode(b64data, validate=True)
                 if ext == "jpeg":
                     ext = "jpg"
                 return self._addPastedImage(data, "."+ext)
+
+        return ""
+
+    def inlinedImageToLink(self, src):
+        fname = self.inlinedImageToFilename(src)
+        if fname:
+            return self.fnameToLink(fname)
 
         return ""
 
@@ -654,7 +662,9 @@ to a cloze type first, via Edit>Change Note Type."""))
                     'User-Agent': 'Mozilla/5.0 (compatible; Anki)'})
                 filecontents = urllib.request.urlopen(req).read()
             else:
-                r = requests.get(url, timeout=30)
+                reqs = AnkiRequestsClient()
+                reqs.timeout = 30
+                r = reqs.get(url)
                 if r.status_code != 200:
                     showWarning(_("Unexpected response code: %s") % r.status_code)
                     return
@@ -711,6 +721,9 @@ to a cloze type first, via Edit>Change Note Type."""))
                     fname = self._retrieveURL(src)
                     if fname:
                         tag['src'] = fname
+                elif src.startswith("data:image/"):
+                    # and convert inlined data
+                    tag['src'] = self.inlinedImageToFilename(src)
 
         html = str(doc)
         return html
@@ -745,6 +758,9 @@ to a cloze type first, via Edit>Change Note Type."""))
         a = m.addAction(_("MathJax block"))
         a.triggered.connect(self.insertMathjaxBlock)
         a.setShortcut(QKeySequence("Ctrl+M, E"))
+        a = m.addAction(_("MathJax chemistry"))
+        a.triggered.connect(self.insertMathjaxChemistry)
+        a.setShortcut(QKeySequence("Ctrl+M, C"))
         a = m.addAction(_("LaTeX"))
         a.triggered.connect(self.insertLatex)
         a.setShortcut(QKeySequence("Ctrl+T, T"))
@@ -776,6 +792,9 @@ to a cloze type first, via Edit>Change Note Type."""))
 
     def insertMathjaxBlock(self):
         self.web.eval("wrap('\\\\[', '\\\\]');")
+
+    def insertMathjaxChemistry(self):
+        self.web.eval("wrap('\\\\(\\\\ce{', '}\\\\)');")
 
     # Links from HTML
     ######################################################################
@@ -865,7 +884,14 @@ class EditorWebView(AnkiWebView):
         html, internal = self._processHtml(mime)
         if html:
             return html, internal
-        for fn in (self._processImage, self._processUrls, self._processText):
+
+        # favour url if it's a local link
+        if mime.hasUrls() and mime.urls()[0].toString().startswith("file://"):
+            types = (self._processUrls, self._processImage, self._processText)
+        else:
+            types = (self._processImage, self._processUrls, self._processText)
+
+        for fn in types:
             html = fn(mime)
             if html:
                 return html, False
@@ -892,8 +918,10 @@ class EditorWebView(AnkiWebView):
 
         # if the user is pasting an image or sound link, convert it to local
         if self.editor.isURL(txt):
-            txt = txt.split("\r\n")[0]
-            return self.editor.urlToLink(txt)
+            url = txt.split("\r\n")[0]
+            link = self.editor.urlToLink(url)
+            if link:
+                return link
 
         # normal text; convert it to HTML
         txt = html.escape(txt)
@@ -929,7 +957,9 @@ class EditorWebView(AnkiWebView):
             return
 
         data = open(path, "rb").read()
-        return self.editor._addPastedImage(data, ext)
+        fname = self.editor._addPastedImage(data, ext)
+        if fname:
+            return self.editor.fnameToLink(fname)
 
     def flagAnkiText(self):
         # be ready to adjust when clipboard event fires

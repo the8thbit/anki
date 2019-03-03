@@ -234,20 +234,27 @@ order by due""" % self._deckLimit(),
             parts = parts[:-1]
             return "::".join(parts)
         for deck in decks:
-            # if we've already seen the exact same deck name, remove the
+            # if we've already seen the exact same deck name, rename the
             # invalid duplicate and reload
             if deck['name'] in lims:
-                self.col.decks.rem(deck['id'], cardsToo=False, childrenToo=True)
+                deck['name'] += "1"
+                self.col.decks.save(deck)
                 return self.deckDueList()
+            # ensure no sections are blank
+            if not all(deck['name'].split("::")):
+                deck['name'] = "recovered"
+                self.col.decks.save(deck)
+                return self.deckDueList()
+
             p = parent(deck['name'])
             # new
             #nlim -- maximal number of new card, taking parent into account
             nlim = self._deckNewLimitSingle(deck)
             if p:
                 if p not in lims:
-                    # if parent was missing, this deck is invalid, and we
-                    # need to reload the deck list
-                    self.col.decks.rem(deck['id'], cardsToo=False, childrenToo=True)
+                    # if parent was missing, this deck is invalid
+                    deck['name'] = "recovered"
+                    self.col.decks.save(deck)
                     return self.deckDueList()
                 nlim = min(nlim, lims[p][0])
             new = self._newForDeck(deck['id'], nlim)
@@ -994,7 +1001,7 @@ select id from cards where did in %s and queue = 2 and due <= ? limit ?)"""
         orderlimit = self._dynOrder(order, limit)
         if search.strip():
             search = "(%s)" % search
-        search = "%s -is:suspended -is:buried -deck:filtered" % search
+        search = "%s -is:suspended -is:buried -deck:filtered -is:learn" % search
         try:
             ids = self.col.findCards(search, order=orderlimit)
         except:

@@ -18,6 +18,7 @@ class Toolbar:
             "sync": self._syncLinkHandler,
         }
         self.web.setFixedHeight(30)
+        self.web.requiresCol = False
 
     def draw(self):
         self.web.onBridgeCmd = self._linkHandler
@@ -42,7 +43,7 @@ class Toolbar:
         buf = ""
         for ln, name, title in links:
             buf += '''
-            <a class=hitem aria-label="%s" title="%s" href=# onclick="pycmd('%s')">%s</a>''' % (
+            <a class=hitem aria-label="%s" title="%s" href=# onclick="return pycmd('%s')">%s</a>''' % (
                 name, title, ln, name)
         return buf
 

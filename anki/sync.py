@@ -69,10 +69,8 @@ class Syncer:
         rts = meta['ts']
         self.rmod = meta['mod']
         self.maxUsn = meta['usn']
-        # this is a temporary measure to address the problem of users
-        # forgetting which email address they've used - it will be removed
-        # when enough time has passed
         self.uname = meta.get("uname", "")
+        self.hostNum = meta.get("hostNum")
         meta = self.meta()
         self.col.log("lmeta", meta)
         self.lmod = meta['mod']
@@ -93,12 +91,19 @@ class Syncer:
         if not self.col.basicCheck():
             self.col.log("basic check")
             return "basicCheckFailed"
-        # step 2: deletions
+        # step 2: startup and deletions
         runHook("sync", "meta")
-        lrem = self.removed()
-        rrem = self.server.start(
-            minUsn=self.minUsn, lnewer=self.lnewer, graves=lrem)
+        rrem = self.server.start(minUsn=self.minUsn, lnewer=self.lnewer)
+
+        # apply deletions to server
+        lgraves = self.removed()
+        while lgraves:
+            gchunk, lgraves = self._gravesChunk(lgraves)
+            self.server.applyGraves(chunk=gchunk)
+
+        # then apply server deletions here
         self.remove(rrem)
+
         # ...and small objects
         lchg = self.changes()
         rchg = self.server.applyChanges(changes=lchg)
@@ -137,6 +142,20 @@ class Syncer:
         self.finish(mod)
         return "success"
 
+    def _gravesChunk(self, graves):
+        lim = 250
+        chunk = dict(notes=[], cards=[], decks=[])
+        for cat in "notes", "cards", "decks":
+            if lim and graves[cat]:
+                chunk[cat] = graves[cat][:lim]
+                graves[cat] = graves[cat][lim:]
+                lim -= len(chunk[cat])
+
+        # anything remaining?
+        if graves['notes'] or graves['cards'] or graves['decks']:
+            return chunk, graves
+        return chunk, None
+
     def meta(self):
         """A dictionnary with:
         -mod, scm, usn according to col's data
@@ -162,13 +181,6 @@ class Syncer:
             d['conf'] = self.getConf()
             d['crt'] = self.col.crt
         return d
-
-    def applyChanges(self, changes):
-        self.rchg = changes
-        lchg = self.changes()
-        # merge our side before returning
-        self.mergeChanges(lchg, self.rchg)
-        return lchg
 
     def mergeChanges(self, lchg, rchg):
         # then the other objects
@@ -197,14 +209,8 @@ class Syncer:
                 return "tag had usn = -1"
         found = False
         for m in self.col.models.all():
-            if self.col.server:
-                # the web upgrade was mistakenly setting usn
-                if m['usn'] < 0:
-                    m['usn'] = 0
-                    found = True
-            else:
-                if m['usn'] == -1:
-                    return "model had usn = -1"
+            if m['usn'] == -1:
+                return "model had usn = -1"
         if found:
             self.col.models.save()
         self.col.sched.reset()
@@ -222,22 +228,10 @@ class Syncer:
             len(self.col.decks.allConf()),
         ]
 
-    def sanityCheck2(self, client):
-        server = self.sanityCheck()
-        if client != server:
-            return dict(status="bad", c=client, s=server)
-        return dict(status="ok")
-
     def usnLim(self):
-        if self.col.server:
-            return "usn >= %d" % self.minUsn
-        else:
-            return "usn = -1"
+        return "usn = -1"
 
     def finish(self, mod=None):
-        if not mod:
-            # server side; we decide new mod time
-            mod = intTime(1000)
         self.col.ls = mod
         self.col._usn = self.maxUsn + 1
         # ensure we save the mod time even if no changes made
@@ -282,11 +276,10 @@ from notes where %s""" % d)
                 # table is empty
                 self.tablesLeft.pop(0)
                 self.cursor = None
-                # if we're the client, mark the objects as having been sent
-                if not self.col.server:
-                    self.col.db.execute(
-                        "update %s set usn=? where usn=-1"%curTable,
-                        self.maxUsn)
+                # mark the objects as having been sent
+                self.col.db.execute(
+                    "update %s set usn=? where usn=-1"%curTable,
+                    self.maxUsn)
             buf[curTable] = rows
             lim -= fetched
         if not self.tablesLeft:
@@ -308,12 +301,10 @@ from notes where %s""" % d)
         cards = []
         notes = []
         decks = []
-        if self.col.server:
-            curs = self.col.db.execute(
-                "select oid, type from graves where usn >= ?", self.minUsn)
-        else:
-            curs = self.col.db.execute(
-                "select oid, type from graves where usn = -1")
+
+        curs = self.col.db.execute(
+            "select oid, type from graves where usn = -1")
+
         for oid, type in curs:
             if type == REM_CARD:
                 cards.append(oid)
@@ -321,23 +312,16 @@ from notes where %s""" % d)
                 notes.append(oid)
             else:
                 decks.append(oid)
-        if not self.col.server:
-            self.col.db.execute("update graves set usn=? where usn=-1",
-                                 self.maxUsn)
-        return dict(cards=cards, notes=notes, decks=decks)
 
-    def start(self, minUsn, lnewer, graves):
-        self.maxUsn = self.col._usn
-        self.minUsn = minUsn
-        self.lnewer = not lnewer
-        lgraves = self.removed()
-        self.remove(graves)
-        return lgraves
+        self.col.db.execute("update graves set usn=? where usn=-1",
+                             self.maxUsn)
+
+        return dict(cards=cards, notes=notes, decks=decks)
 
     def remove(self, graves):
         # pretend to be the server so we don't set usn = -1
-        wasServer = self.col.server
         self.col.server = True
+
         # notes first, so we don't end up with duplicate graves
         self.col._remNotes(graves['notes'])
         # then cards
@@ -345,20 +329,18 @@ from notes where %s""" % d)
         # and decks
         for oid in graves['decks']:
             self.col.decks.rem(oid, childrenToo=False)
-        self.col.server = wasServer
+
+        self.col.server = False
 
     # Models
     ##########################################################################
 
     def getModels(self):
-        if self.col.server:
-            return [m for m in self.col.models.all() if m['usn'] >= self.minUsn]
-        else:
-            mods = [m for m in self.col.models.all() if m['usn'] == -1]
-            for m in mods:
-                m['usn'] = self.maxUsn
-            self.col.models.save()
-            return mods
+        mods = [m for m in self.col.models.all() if m['usn'] == -1]
+        for m in mods:
+            m['usn'] = self.maxUsn
+        self.col.models.save()
+        return mods
 
     def mergeModels(self, rchg):
         for r in rchg:
@@ -371,20 +353,14 @@ from notes where %s""" % d)
     ##########################################################################
 
     def getDecks(self):
-        if self.col.server:
-            return [
-                [g for g in self.col.decks.all() if g['usn'] >= self.minUsn],
-                [g for g in self.col.decks.allConf() if g['usn'] >= self.minUsn]
-            ]
-        else:
-            decks = [g for g in self.col.decks.all() if g['usn'] == -1]
-            for g in decks:
-                g['usn'] = self.maxUsn
-            dconf = [g for g in self.col.decks.allConf() if g['usn'] == -1]
-            for g in dconf:
-                g['usn'] = self.maxUsn
-            self.col.decks.save()
-            return [decks, dconf]
+        decks = [g for g in self.col.decks.all() if g['usn'] == -1]
+        for g in decks:
+            g['usn'] = self.maxUsn
+        dconf = [g for g in self.col.decks.allConf() if g['usn'] == -1]
+        for g in dconf:
+            g['usn'] = self.maxUsn
+        self.col.decks.save()
+        return [decks, dconf]
 
     def mergeDecks(self, rchg):
         for r in rchg[0]:
@@ -409,17 +385,13 @@ from notes where %s""" % d)
     ##########################################################################
 
     def getTags(self):
-        if self.col.server:
-            return [t for t, usn in self.col.tags.allItems()
-                    if usn >= self.minUsn]
-        else:
-            tags = []
-            for t, usn in self.col.tags.allItems():
-                if usn == -1:
-                    self.col.tags.tags[t] = self.maxUsn
-                    tags.append(t)
-            self.col.tags.save()
-            return tags
+        tags = []
+        for t, usn in self.col.tags.allItems():
+            if usn == -1:
+                self.col.tags.tags[t] = self.maxUsn
+                tags.append(t)
+        self.col.tags.save()
+        return tags
 
     def mergeTags(self, tags):
         self.col.tags.register(tags, usn=self.maxUsn)
@@ -468,23 +440,17 @@ from notes where %s""" % d)
     def mergeConf(self, conf):
         self.col.conf = conf
 
-# Local syncing for unit tests
-##########################################################################
-
-class LocalServer(Syncer):
-
-    # serialize/deserialize payload, so we don't end up sharing objects
-    # between cols
-    def applyChanges(self, changes):
-        l = json.loads; d = json.dumps
-        return l(d(Syncer.applyChanges(self, l(d(changes)))))
-
 # Wrapper for requests that tracks upload/download progress
 ##########################################################################
 
 class AnkiRequestsClient:
     """session"""
     verify = True
+<<<<<<< HEAD
+=======
+    timeout = 60
+
+>>>>>>> b4f4e65c556142be2d673380cb4beee07b1b7378
     def __init__(self):
         self.session = requests.Session()
 
@@ -492,13 +458,13 @@ class AnkiRequestsClient:
         data = _MonitoringFile(data)
         headers['User-Agent'] = self._agentName()
         return self.session.post(
-            url, data=data, headers=headers, stream=True, timeout=60, verify=self.verify)
+            url, data=data, headers=headers, stream=True, timeout=self.timeout, verify=self.verify)
 
     def get(self, url, headers=None):
         if headers is None:
             headers = {}
         headers['User-Agent'] = self._agentName()
-        return self.session.get(url, stream=True, timeout=60, verify=self.verify)
+        return self.session.get(url, stream=True, headers=headers, timeout=self.timeout, verify=self.verify)
 
     def streamContent(self, resp):
         resp.raise_for_status()
@@ -530,16 +496,30 @@ class _MonitoringFile(io.BufferedReader):
 ##########################################################################
 
 class HttpSyncer:
+<<<<<<< HEAD
     """
     hkey -- TODO
     skey: a random  8 hexadecimal value
     
     """
     def __init__(self, hkey=None, client=None):
+=======
+
+    def __init__(self, hkey=None, client=None, hostNum=None):
+>>>>>>> b4f4e65c556142be2d673380cb4beee07b1b7378
         self.hkey = hkey
         self.skey = checksum(str(random.random()))[:8]
         self.client = client or AnkiRequestsClient()
         self.postVars = {}
+        self.hostNum = hostNum
+        self.prefix = "sync/"
+
+    def syncURL(self):
+        if devMode:
+            url = "https://l1sync.ankiweb.net/"
+        else:
+            url = SYNC_BASE % (self.hostNum or "")
+        return url + self.prefix
 
     def assertOk(self, resp):
         # not using raise_for_status() as aqt expects this error msg
@@ -615,13 +595,8 @@ Content-Type: application/octet-stream\r\n\r\n""")
 
 class RemoteServer(HttpSyncer):
 
-    def __init__(self, hkey):
-        HttpSyncer.__init__(self, hkey)
-
-    def syncURL(self):
-        if devMode:
-            return "https://l1sync.ankiweb.net/sync/"
-        return SYNC_BASE + "sync/"
+    def __init__(self, hkey, hostNum):
+        HttpSyncer.__init__(self, hkey, hostNum=hostNum)
 
     def hostKey(self, user, pw):
         "Returns hkey or none if user/pw incorrect."
@@ -648,6 +623,9 @@ class RemoteServer(HttpSyncer):
             # invalid auth
             return
         return json.loads(ret.decode("utf8"))
+
+    def applyGraves(self, **kw):
+        return self._run("applyGraves", kw)
 
     def applyChanges(self, **kw):
         return self._run("applyChanges", kw)
@@ -679,21 +657,17 @@ class RemoteServer(HttpSyncer):
 
 class FullSyncer(HttpSyncer):
 
-    def __init__(self, col, hkey, client):
-        HttpSyncer.__init__(self, hkey, client)
+    def __init__(self, col, hkey, client, hostNum):
+        HttpSyncer.__init__(self, hkey, client, hostNum=hostNum)
         self.postVars = dict(
             k=self.hkey,
             v="ankidesktop,%s,%s"%(anki.version, platDesc()),
         )
         self.col = col
 
-    def syncURL(self):
-        if devMode:
-            return "https://l1.ankiweb.net/sync/"
-        return SYNC_BASE + "sync/"
-
     def download(self):
         runHook("sync", "download")
+        localNotEmpty = self.col.db.scalar("select 1 from cards")
         self.col.close()
         cont = self.req("download")
         tpath = self.col.path + ".tmp"
@@ -704,7 +678,12 @@ class FullSyncer(HttpSyncer):
         # check the received file is ok
         d = DB(tpath)
         assert d.scalar("pragma integrity_check") == "ok"
+        remoteEmpty = not d.scalar("select 1 from cards")
         d.close()
+        # accidental clobber?
+        if localNotEmpty and remoteEmpty:
+            os.unlink(tpath)
+            return "downloadClobber"
         # overwrite existing collection
         os.unlink(self.col.path)
         os.rename(tpath, self.col.path)
@@ -871,14 +850,10 @@ class MediaSyncer:
 
 class RemoteMediaServer(HttpSyncer):
 
-    def __init__(self, col, hkey, client):
+    def __init__(self, col, hkey, client, hostNum):
         self.col = col
-        HttpSyncer.__init__(self, hkey, client)
-
-    def syncURL(self):
-        if devMode:
-            return "https://l1.ankiweb.net/msync/"
-        return SYNC_MEDIA_BASE
+        HttpSyncer.__init__(self, hkey, client, hostNum=hostNum)
+        self.prefix = "msync/"
 
     def begin(self):
         self.postVars = dict(

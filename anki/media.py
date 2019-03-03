@@ -251,7 +251,7 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
         for ord in ords:
             s = re.sub(clozeReg%ord, qrepl, string)
             #Replace the cloze number ord by the deletion
-            s = re.sub(clozeReg%".+?", "\\4", s)
+            s = re.sub(clozeReg%".+?", "\\2", s)
             #Replace every other clozes by their content
             strings.append(s)
         strings.append(re.sub(clozeReg%".+?", arepl, string))

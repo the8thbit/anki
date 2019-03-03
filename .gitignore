@@ -6,5 +6,6 @@
 .coverage
 aqt/forms
 locale
-.idea
 tools/runanki.system
+/anki/ankiweb.certs
+/tests/test_sched.py

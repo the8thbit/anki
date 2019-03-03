@@ -10,7 +10,7 @@ from sqlite3 import dbapi2 as sqlite
 DBError = sqlite.Error
 
 class DB:
-    def __init__(self, path, timeout=0):
+    def __init__(self, path, timeout=5):
         self._db = sqlite.connect(path, timeout=timeout)
         self._db.text_factory = self._textFactory
         self._path = path
@@ -22,6 +22,7 @@ class DB:
         
         If insert, update or delete, mod is set to True
         If self.echo, prints the execution time
+        if self.echo is "2", also print the arguments.
         """
         s = sql.strip().lower()
         # mark modified?
