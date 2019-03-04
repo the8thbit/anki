@@ -9,6 +9,7 @@ import aqt.clayout
 from anki import stdmodels
 from aqt.utils import saveGeom, restoreGeom
 import collections
+from anki.lang import _, ngettext
 
 
 class Models(QDialog):

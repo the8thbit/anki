@@ -6,7 +6,6 @@
 # - Saves in pickles rather than json to easily store Qt window state.
 # - Saves in sqlite rather than a flat file so the config can't be corrupted
 
-import os
 import random
 import pickle
 import shutil
@@ -16,13 +15,14 @@ import re
 
 from aqt.qt import *
 from anki.db import DB
-from anki.utils import isMac, isWin, intTime, checksum
+from anki.utils import isMac, isWin, intTime
 import anki.lang
 from aqt.utils import showWarning
 from aqt import appHelpSite
 import aqt.forms
 from send2trash import send2trash
 import anki.sound
+from anki.lang import _
 
 metaConf = dict(
     ver=0,
@@ -135,7 +135,7 @@ a flash drive.""" % self.base)
             def find_class(self, module, name):
                 if module == "PyQt5.sip":
                     try:
-                        import PyQt5.sip
+                        import PyQt5.sip # pylint: disable=unused-import
                     except:
                         # use old sip location
                         module = "sip"
@@ -226,7 +226,7 @@ details have been forgotten."""))
         # rename folder
         try:
             os.rename(oldFolder, newFolder)
-        except WindowsError as e:
+        except Exception as e:
             self.db.rollback()
             if "WinError 5" in str(e):
                 showWarning(_("""\
@@ -378,10 +378,6 @@ please see:
     # On first run, allow the user to choose the default language
 
     def _setDefaultLang(self):
-        # the dialog expects _ to be defined, but we're running before
-        # setupLang() has been called. so we create a dummy op for now
-        import builtins
-        builtins.__dict__['_'] = lambda x: x
         # create dialog
         class NoCloseDiag(QDialog):
             def reject(self):

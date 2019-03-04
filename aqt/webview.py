@@ -6,8 +6,9 @@ import sys
 import math
 from anki.hooks import runHook
 from aqt.qt import *
-from aqt.utils import openLink, showWarning, tooltip
-from anki.utils import isMac, isWin, isLin, devMode
+from aqt.utils import openLink, tooltip
+from anki.utils import isMac, isWin, isLin
+from anki.lang import _
 
 # Page for debug messages
 ##########################################################################
@@ -222,7 +223,11 @@ class AnkiWebView(QWebEngineView):
             return QColor("#ececec")
         return self.style().standardPalette().color(QPalette.Window)
 
-    def stdHtml(self, body, css=[], js=["jquery.js"], head=""):
+    def stdHtml(self, body, css=None, js=None, head=""):
+        if css is None:
+            css = []
+        if js is None:
+            js = ["jquery.js"]
         if isWin:
             widgetspec = "button { font-size: 12px; font-family:'Segoe UI'; }"
             fontspec = 'font-size:12px;font-family:"Segoe UI";'

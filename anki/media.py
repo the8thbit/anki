@@ -24,23 +24,25 @@ import unicodedata
 import sys
 import zipfile
 import pathlib
-from io import StringIO
+import json
+import os
 
-from anki.utils import checksum, isWin, isMac, json
+from anki.utils import checksum, isWin, isMac
 from anki.db import DB, DBError
 from anki.consts import *
 from anki.latex import mungeQA
+from anki.lang import _
 
 class MediaManager:
 
     """Captures the argument foo of [sound:foo]"""
-    soundRegexps = ["(?i)(\[sound:(?P<fname>[^]]+)\])"]
+    soundRegexps = [r"(?i)(\[sound:(?P<fname>[^]]+)\])"]
     """Captures the argument foo of <img src=foo bar>, ignoring quotes around foo."""
     imgRegexps = [
         # src element quoted case
-        "(?i)(<img[^>]* src=(?P<str>[\"'])(?P<fname>[^>]+?)(?P=str)[^>]*>)",
+        r"(?i)(<img[^>]* src=(?P<str>[\"'])(?P<fname>[^>]+?)(?P=str)[^>]*>)",
         # unquoted case
-        "(?i)(<img[^>]* src=(?!['\"])(?P<fname>[^ >]+)[^>]*?>)",
+        r"(?i)(<img[^>]* src=(?!['\"])(?P<fname>[^ >]+)[^>]*?>)",
     ]
     regexps = soundRegexps + imgRegexps
 
@@ -50,7 +52,7 @@ class MediaManager:
             self._dir = None
             return
         # media directory
-        self._dir = re.sub("(?i)\.(anki2)$", ".media", self.col.path)
+        self._dir = re.sub(r"(?i)\.(anki2)$", ".media", self.col.path)
         if not os.path.exists(self._dir):
             os.makedirs(self._dir)
         try:
@@ -149,14 +151,15 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
     def _isFAT32(self):
         if not isWin:
             return
+        # pylint: disable=import-error
         import win32api, win32file
         try:
-                name = win32file.GetVolumeNameForVolumeMountPoint(self._dir[:3])
+            name = win32file.GetVolumeNameForVolumeMountPoint(self._dir[:3])
         except:
             # mapped & unmapped network drive; pray that it's not vfat
             return
         if win32api.GetVolumeInformation(name)[4].lower().startswith("fat"):
-                return True
+            return True
 
     # Adding media
     ##########################################################################
@@ -216,7 +219,7 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
                 if checksum(f.read()) == csum:
                     return fname
             # otherwise, increment the index in the filename
-            reg = " \((\d+)\)$"
+            reg = r" \((\d+)\)$"
             if not re.search(reg, root):
                 root = root + " (1)"
             else:
@@ -266,8 +269,8 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
         For each cloze number n, there is a string with cloze n replaced by [...] or by [hint], and every other clozes replaced by their text. 
 
         There is also a text where each cloze are replaced by their value; i.e. the answer"""
-        ords = set(re.findall("{{c(\d+)::.+?}}", string))
         #The set of clozes occurring in the string
+        ords = set(re.findall(r"{{c(\d+)::.+?}}", string))
         strings = []
         from anki.template.template import clozeReg
         def qrepl(m):

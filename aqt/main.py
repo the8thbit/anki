@@ -23,13 +23,13 @@ import aqt.webview
 import aqt.toolbar
 import aqt.stats
 import aqt.mediasrv
-from aqt.utils import showWarning
 import anki.sound
 import anki.mpv
 from aqt.utils import saveGeom, restoreGeom, showInfo, showWarning, \
     restoreState, getOnlyText, askUser, showText, tooltip, \
     openHelp, openLink, checkInvalidFilename, getFile
-import sip
+from aqt.qt import sip
+from anki.lang import _, ngettext
 
 class AnkiQt(QMainWindow):
     """
@@ -481,6 +481,7 @@ from the profile screen."))
         oldState = self.state or "dummy"
         cleanup = getattr(self, "_"+oldState+"Cleanup", None)
         if cleanup:
+            # pylint: disable=not-callable
             cleanup(state)
         self.clearStateShortcuts()
         self.state = state
@@ -728,9 +729,6 @@ title="%s" %s>%s</button>''' % (
             # make sure window is shown
             self.setWindowState(self.windowState() & ~Qt.WindowMinimized)
         return True
-
-    def setStatus(self, text, timeout=3000):
-        self.form.statusbar.showMessage(text, timeout)
 
     def setupStyle(self):
         buf = ""
@@ -1292,6 +1290,7 @@ will be lost. Continue?"""))
         pp = pprint.pprint
         self._captureOutput(True)
         try:
+            # pylint: disable=exec-used
             exec(text)
         except:
             self._output += traceback.format_exc()
@@ -1412,7 +1411,7 @@ Please ensure a profile is open and Anki is not busy, then try again."""),
     ##########################################################################
 
     def setupMediaServer(self):
-        self.mediaServer = aqt.mediasrv.MediaServer()
+        self.mediaServer = aqt.mediasrv.MediaServer(self)
         self.mediaServer.start()
 
     def baseHTML(self):

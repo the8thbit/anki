@@ -3,9 +3,10 @@
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 import re, os, zipfile, shutil, unicodedata
+import json
 
 from anki.lang import _
-from anki.utils import ids2str, splitFields, json, namedtmp
+from anki.utils import ids2str, splitFields, namedtmp
 from anki.hooks import runHook
 from anki import Collection
 
@@ -18,6 +19,9 @@ class Exporter:
         #Currently, did is never set during initialisation.
         self.col = col
         self.did = did
+
+    def doExport(self, path):
+        raise Exception("not implemented")
 
     def exportInto(self, path):
         """Export into path.
@@ -286,6 +290,7 @@ class AnkiPackageExporter(AnkiExporter):
             raise Exception("Please switch to the normal scheduler before exporting a single deck with scheduling information.")
 
             # prevent older clients from accessing
+            # pylint: disable=unreachable
             self._addDummyCollection(z)
             z.write(colfile, "collection.anki21")
 
@@ -309,7 +314,7 @@ class AnkiPackageExporter(AnkiExporter):
             if os.path.isdir(mpath):
                 continue
             if os.path.exists(mpath):
-                if re.search('\.svg$', file, re.IGNORECASE):
+                if re.search(r'\.svg$', file, re.IGNORECASE):
                     z.write(mpath, cStr, zipfile.ZIP_DEFLATED)
                 else:
                     z.write(mpath, cStr, zipfile.ZIP_STORED)

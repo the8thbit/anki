@@ -58,9 +58,9 @@ ord -- "template number, see flds",
 qfmt -- "question format string"
 """
 
-import copy, re
+import copy, re, json
 from anki.utils import intTime, joinFields, splitFields, ids2str,\
-    checksum, json
+    checksum
 from anki.lang import _
 from anki.consts import *
 from anki.hooks import runHook
@@ -257,10 +257,9 @@ select id from cards where nid in (select id from notes where mid = ?)""",
         Keyword arguments
         m -- a model object"""
         for mcur in self.all():
-            if (mcur['name'] == m['name'] and
-                mcur['id'] != m['id']):
-                    m['name'] += "-" + checksum(str(time.time()))[:5]
-                    break
+            if (mcur['name'] == m['name'] and mcur['id'] != m['id']):
+                m['name'] += "-" + checksum(str(time.time()))[:5]
+                break
 
     def update(self, m):
         "Add or update an existing model. Used for syncing and merging."
@@ -814,8 +813,8 @@ select id from notes where mid = ?)""" % " ".join(map),
                 continue#Do not consider cloze not related to an existing field
             ord = map[fname][0]
             ords.update([int(m)-1 for m in re.findall(
-                "(?s){{c(\d+)::.+?}}", sflds[ord])])#The number of the cloze of this field, minus one
-        if -1 in ords:#remove cloze 0
+                r"(?s){{c(\d+)::.+?}}", sflds[ord])])#The number of the cloze of this field, minus one
+        if -1 in ords:
             ords.remove(-1)
         if not ords and allowEmpty:
             # empty clozes use first ord

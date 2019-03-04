@@ -26,7 +26,7 @@ from zipfile import ZipFile
 import aqt.forms
 import aqt
 from aqt.downloader import download
-from anki.lang import _
+from anki.lang import _, ngettext
 from anki.utils import intTime
 from anki.sync import AnkiRequestsClient
 
@@ -510,6 +510,19 @@ Are you sure you want to continue?"""
         if not os.path.exists(bp):
             return
         os.rename(bp, p)
+    
+    # Web Exports
+    ######################################################################
+
+    _webExports = {}
+
+    def setWebExports(self, module, pattern):
+        addon = self.addonFromModule(module)
+        self._webExports[addon] = pattern
+    
+    def getWebExports(self, addon):
+        return self._webExports.get(addon)
+
 
 # Add-ons Dialog
 ######################################################################

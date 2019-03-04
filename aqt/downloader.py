@@ -3,13 +3,12 @@
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 """Everything required to download an add-on, when we already have the number."""
-
-import time, re, traceback
+import time, re
 from aqt.qt import *
 from anki.sync import AnkiRequestsClient
-from aqt.utils import showWarning
 from anki.hooks import addHook, remHook
 import aqt
+from anki.lang import _
 
 def download(mw, code):
     """add-on file and add-on name whose number is code. Downloaded

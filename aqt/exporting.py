@@ -18,11 +18,11 @@ import re
 
 from aqt.qt import *
 import  aqt
-from aqt.utils import getSaveFile, tooltip, showWarning, askUser, \
+from aqt.utils import getSaveFile, tooltip, showWarning, \
     checkInvalidFilename, showInfo
 from anki.exporting import exporters
 from anki.hooks import addHook, remHook
-from anki.lang import ngettext
+from anki.lang import ngettext, _
 import time
 
 class ExportDialog(QDialog):

@@ -18,8 +18,7 @@ from anki.hooks import addHook, remHook
 import aqt.forms
 import aqt.modelchooser
 import aqt.deckchooser
-from anki.lang import ngettext
-
+from anki.lang import ngettext, _
 
 class ChangeMap(QDialog):
     def __init__(self, mw, model, current):
@@ -287,20 +286,20 @@ def onImport(mw):
     importFile(mw, file)
 
 def importFile(mw, file):
-    importer = None
+    importerClass = None
     done = False
     for i in importing.Importers:
         if done:
             break
-        for mext in re.findall("[( ]?\*\.(.+?)[) ]", i[0]):
+        for mext in re.findall(r"[( ]?\*\.(.+?)[) ]", i[0]):
             if file.endswith("." + mext):
-                importer = i[1]
+                importerClass = i[1]
                 done = True
                 break
-    if not importer:
+    if not importerClass:
         # if no matches, assume TSV
-        importer = importing.Importers[0][1]
-    importer = importer(mw.col, file)
+        importerClass = importing.Importers[0][1]
+    importer = importerClass(mw.col, file)
     # need to show import dialog?
     if importer.needMapper:
         # make sure we can load the file first

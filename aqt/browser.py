@@ -14,17 +14,18 @@ import json
 from aqt.qt import *
 import anki
 import aqt.forms
-from anki.utils import fmtTimeSpan, ids2str, stripHTMLMedia, htmlToTextLine, \
+from anki.utils import fmtTimeSpan, ids2str, htmlToTextLine, \
     isWin, intTime, \
-    isMac, isLin, bodyClass
+    isMac, bodyClass
 from aqt.utils import saveGeom, restoreGeom, saveSplitter, restoreSplitter, \
     saveHeader, restoreHeader, saveState, restoreState, getTag, \
     showInfo, askUser, tooltip, openHelp, showWarning, shortcut, mungeQA, \
     getOnlyText, MenuList, SubMenu, qtMenuShortcutWorkaround
+from anki.lang import _
 from anki.hooks import runHook, addHook, remHook, runFilter
 from aqt.webview import AnkiWebView
 from anki.consts import *
-from anki.sound import playFromText, clearAudioQueue, allSounds, play
+from anki.sound import clearAudioQueue, allSounds, play
 
 
 # Data model
@@ -417,6 +418,7 @@ class Browser(QMainWindow):
         self.show()
 
     def setupMenus(self):
+        # pylint: disable=unnecessary-lambda
         # actions
         f = self.form
         f.previewButton.clicked.connect(self.onTogglePreview)
@@ -815,8 +817,8 @@ by clicking on one on the left."""))
         def __init__(self):
             QTreeWidget.__init__(self)
             self.itemClicked.connect(self.onTreeClick)
-            self.itemExpanded.connect(lambda item: self.onTreeCollapse(item))
-            self.itemCollapsed.connect(lambda item: self.onTreeCollapse(item))
+            self.itemExpanded.connect(self.onTreeCollapse)
+            self.itemCollapsed.connect(self.onTreeCollapse)
 
         def keyPressEvent(self, evt):
             if evt.key() in (Qt.Key_Return, Qt.Key_Enter):
@@ -959,7 +961,7 @@ by clicking on one on the left."""))
         if self.mw.app.keyboardModifiers() & Qt.ControlModifier:
             cur = str(self.form.searchEdit.lineEdit().text())
             if cur and cur != self._searchPrompt:
-                        txt = cur + " " + txt
+                txt = cur + " " + txt
         elif self.mw.app.keyboardModifiers() & Qt.ShiftModifier:
             cur = str(self.form.searchEdit.lineEdit().text())
             if cur:

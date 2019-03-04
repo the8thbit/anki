@@ -8,6 +8,7 @@ import aqt
 from anki.sound import stripSounds
 from anki.utils import isWin, isMac, invalidFilename, noBundledLibs, \
     versionWithBuild
+from anki.lang import _
 
 def openHelp(section):
     link = aqt.appHelpSite
@@ -131,7 +132,7 @@ def askUser(text, parent=None, help="", defaultno=False, msgfunc=None, \
 class ButtonedDialog(QMessageBox):
 
     def __init__(self, text, buttons, parent=None, help="", title="Anki"):
-        QDialog.__init__(self, parent)
+        QMessageBox.__init__(self, parent)
         self.buttons = []
         self.setWindowTitle(title)
         self.help = help
