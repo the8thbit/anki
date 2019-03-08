@@ -7,11 +7,12 @@ import re, sys, threading, time, subprocess, os, atexit
 import  random
 from anki.hooks import addHook, runHook
 from anki.utils import  tmpdir, isWin, isMac, isLin
+from anki.lang import _
 
 # Shared utils
 ##########################################################################
 
-_soundReg = "\[sound:(.*?)\]"
+_soundReg = r"\[sound:(.*?)\]"
 
 def playFromText(text):
     for match in allSounds(text):
@@ -69,6 +70,7 @@ if isWin:
     try:
         si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
     except:
+        # pylint: disable=no-member
         # python2.7+
         si.dwFlags |= subprocess._subprocess.STARTF_USESHOWWINDOW
 else:
@@ -146,20 +148,25 @@ def cleanupMPV():
 # if anki crashes, an old mplayer instance may be left lying around,
 # which prevents renaming or deleting the profile
 def cleanupOldMplayerProcesses():
+    # pylint: disable=import-error
     import psutil
 
     exeDir = os.path.dirname(os.path.abspath(sys.argv[0]))
 
-    for proc in psutil.process_iter(attrs=['pid', 'name', 'exe']):
-        if not proc.info['exe'] or proc.info['name'] != 'mplayer.exe':
-            continue
+    for proc in psutil.process_iter():
+        try:
+            info = proc.as_dict(attrs=['pid', 'name', 'exe'])
+            if not info['exe'] or info['name'] != 'mplayer.exe':
+                continue
 
-        # not anki's bundled mplayer
-        if os.path.dirname(proc.info['exe']) != exeDir:
-            continue
+            # not anki's bundled mplayer
+            if os.path.dirname(info['exe']) != exeDir:
+                continue
 
-        print("terminating old mplayer process...")
-        proc.kill()
+            print("terminating old mplayer process...")
+            proc.kill()
+        except SystemError:
+            pass
 
 mplayerCmd = ["mplayer", "-really-quiet", "-noautosub"]
 if isWin:
@@ -292,6 +299,8 @@ def stopMplayer(*args):
     if not mplayerManager:
         return
     mplayerManager.kill()
+    if isWin:
+        cleanupOldMplayerProcesses()
 
 addHook("unloadProfile", stopMplayer)
 

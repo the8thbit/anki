@@ -7,9 +7,9 @@
 import time, re, traceback
 from aqt.qt import *
 from anki.sync import AnkiRequestsClient
-from aqt.utils import showWarning
 from anki.hooks import addHook, remHook
 import aqt
+from anki.lang import _
 
 def download(mw, code):
     """add-on file and add-on name whose number is code. Downloaded
@@ -68,14 +68,10 @@ class Downloader(QThread):
                 self.error = _("Invalid code, or add-on not available for your version of Anki.")
                 return
             else:
-                self.error = _("Error downloading: %s" % resp.status_code)
+                self.error = _("Unexpected response code: %s" % resp.status_code)
                 return
         except Exception as e:
-            exc = traceback.format_exc()
-            try:
-                self.error = str(e[0])
-            except:
-                self.error = str(exc)
+            self.error = _("Please check your internet connection.") + "\n\n" + str(e)
             return
         finally:
             remHook("httpRecv", recvEvent)

@@ -23,13 +23,13 @@ import aqt.webview
 import aqt.toolbar
 import aqt.stats
 import aqt.mediasrv
-from aqt.utils import showWarning
 import anki.sound
 import anki.mpv
 from aqt.utils import saveGeom, restoreGeom, showInfo, showWarning, \
     restoreState, getOnlyText, askUser, showText, tooltip, \
     openHelp, openLink, checkInvalidFilename, getFile
-import sip
+from aqt.qt import sip
+from anki.lang import _, ngettext
 
 class AnkiQt(QMainWindow):
     """
@@ -86,6 +86,7 @@ class AnkiQt(QMainWindow):
         self.setupThreads()
         self.setupMediaServer()
         self.setupSound()
+        self.setupSpellCheck()
         self.setupMainWindow()
         self.setupSystemSpecific()
         self.setupStyle()
@@ -481,6 +482,7 @@ from the profile screen."))
         oldState = self.state or "dummy"
         cleanup = getattr(self, "_"+oldState+"Cleanup", None)
         if cleanup:
+            # pylint: disable=not-callable
             cleanup(state)
         self.clearStateShortcuts()
         self.state = state
@@ -672,6 +674,10 @@ title="%s" %s>%s</button>''' % (
         if not self.safeMode:
             self.addonManager.loadAddons()
 
+    def setupSpellCheck(self):
+        os.environ["QTWEBENGINE_DICTIONARIES_PATH"] = (
+            os.path.join(self.pm.base, "dictionaries"))
+
     def setupThreads(self):
         self._mainThread = QThread.currentThread()
 
@@ -728,9 +734,6 @@ title="%s" %s>%s</button>''' % (
             # make sure window is shown
             self.setWindowState(self.windowState() & ~Qt.WindowMinimized)
         return True
-
-    def setStatus(self, text, timeout=3000):
-        self.form.statusbar.showMessage(text, timeout)
 
     def setupStyle(self):
         buf = ""
@@ -1233,11 +1236,19 @@ will be lost. Continue?"""))
         d.silentlyClose = True
         frm = aqt.forms.debug.Ui_Dialog()
         frm.setupUi(d)
+        font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
+        font.setPointSize(frm.text.font().pointSize() + 1)
+        frm.text.setFont(font)
+        frm.log.setFont(font)
         s = self.debugDiagShort = QShortcut(QKeySequence("ctrl+return"), d)
         s.activated.connect(lambda: self.onDebugRet(frm))
         s = self.debugDiagShort = QShortcut(
             QKeySequence("ctrl+shift+return"), d)
         s.activated.connect(lambda: self.onDebugPrint(frm))
+        s = self.debugDiagShort = QShortcut(QKeySequence("ctrl+l"), d)
+        s.activated.connect(frm.log.clear)
+        s = self.debugDiagShort = QShortcut(QKeySequence("ctrl+shift+l"), d)
+        s.activated.connect(frm.text.clear)
         d.show()
 
     def _captureOutput(self, on):
@@ -1263,7 +1274,16 @@ will be lost. Continue?"""))
         return aqt.dialogs._dialogs['Browser'][1].card.__dict__
 
     def onDebugPrint(self, frm):
-        frm.text.setPlainText("pp(%s)" % frm.text.toPlainText())
+        cursor = frm.text.textCursor()
+        position = cursor.position()
+        cursor.select(QTextCursor.LineUnderCursor)
+        line = cursor.selectedText()
+        pfx, sfx = "pp(", ")"
+        if not line.startswith(pfx):
+            line = "{}{}{}".format(pfx, line, sfx)
+            cursor.insertText(line)
+            cursor.setPosition(position + len(pfx))
+            frm.text.setTextCursor(cursor)
         self.onDebugRet(frm)
 
     def onDebugRet(self, frm):
@@ -1275,6 +1295,7 @@ will be lost. Continue?"""))
         pp = pprint.pprint
         self._captureOutput(True)
         try:
+            # pylint: disable=exec-used
             exec(text)
         except:
             self._output += traceback.format_exc()
@@ -1395,7 +1416,7 @@ Please ensure a profile is open and Anki is not busy, then try again."""),
     ##########################################################################
 
     def setupMediaServer(self):
-        self.mediaServer = aqt.mediasrv.MediaServer()
+        self.mediaServer = aqt.mediasrv.MediaServer(self)
         self.mediaServer.start()
 
     def baseHTML(self):

@@ -74,8 +74,9 @@ bury -- If True, when a review card is answered, the related cards of its notes 
 """
 import copy, operator
 import unicodedata
+import json
 
-from anki.utils import intTime, ids2str, json
+from anki.utils import intTime, ids2str
 from anki.hooks import runHook
 from anki.consts import *
 from anki.lang import _
@@ -220,7 +221,7 @@ class DeckManager:
     # Deck save/load
     #############################################################
 
-    def id(self, name, create=True, type=defaultDeck):
+    def id(self, name, create=True, type=None):
         """Returns a deck's id with a given name. Potentially creates it.
 
         Keyword arguments:
@@ -229,6 +230,8 @@ class DeckManager:
         not exists. Default true, otherwise return None
         type -- A deck to copy in order to create this deck
         """
+        if type is None:
+            type = defaultDeck
         name = name.replace('"', '')
         name = unicodedata.normalize("NFC", name)
         for id, g in list(self.decks.items()):
@@ -437,9 +440,9 @@ class DeckManager:
         action would be useless.
         """
         if draggedDeckName == ontoDeckName \
-                or self._isParent(ontoDeckName, draggedDeckName) \
-                or self._isAncestor(draggedDeckName, ontoDeckName):
-                    return False
+            or self._isParent(ontoDeckName, draggedDeckName) \
+            or self._isAncestor(draggedDeckName, ontoDeckName):
+            return False
         else:
             return True
 
@@ -513,11 +516,13 @@ same id."""
         self.dconf[str(g['id'])] = g
         self.save()
 
-    def confId(self, name, cloneFrom=defaultConf):
+    def confId(self, name, cloneFrom=None):
         "Create a new configuration and return its id.
 
         Keyword arguments
         cloneFrom -- The configuration copied by the new one."
+        if cloneFrom is None:
+            cloneFrom = defaultConf
         c = copy.deepcopy(cloneFrom)
         while 1:
             id = intTime(1000)

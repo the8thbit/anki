@@ -8,7 +8,7 @@ import aqt.editor
 from aqt.utils import saveGeom, restoreGeom
 from anki.hooks import addHook, remHook
 from anki.utils import isMac
-
+from anki.lang import _
 
 class EditCurrent(QDialog):
 
@@ -30,8 +30,9 @@ class EditCurrent(QDialog):
         addHook("reset", self.onReset)
         self.mw.requireReset()
         self.show()
-        # reset focus after open
-        self.mw.progress.timer(100, self.editor.web.setFocus, False)
+        # reset focus after open, taking care not to retain webview
+        # pylint: disable=unnecessary-lambda
+        self.mw.progress.timer(100, lambda: self.editor.web.setFocus(), False)
 
     def onReset(self):
         """

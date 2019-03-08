@@ -19,7 +19,7 @@ from anki.utils import isMac, isWin, joinFields, bodyClass
 from aqt.webview import AnkiWebView
 import json
 from anki.hooks import runFilter
-
+from anki.lang import _, ngettext
 
 class CardLayout(QDialog):
     """TODO
@@ -82,9 +82,12 @@ class CardLayout(QDialog):
         """TODO
         update the list of card
         """
-        self.cards = self.col.previewCards(self.note, 2)
+        did = None
+        if hasattr(self.parent,"deckChooser"):
+            did = self.parent.deckChooser.selectedId()
+        self.cards = self.col.previewCards(self.note, 2, did=did)
         #the list of cards of this note, with all templates
-        idx = self.ord#useless variable ?
+        idx = self.ord
         if idx >= len(self.cards):
             self.ord = len(self.cards) - 1
 
@@ -365,7 +368,7 @@ Please create a new card type first."""))
             repl = "<center>%s</center>" % repl
         else:
             repl = answerRepl
-        return re.sub("\[\[type:.+?\]\]", repl, txt)
+        return re.sub(r"\[\[type:.+?\]\]", repl, txt)
 
     # Card operations
     ######################################################################

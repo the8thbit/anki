@@ -18,11 +18,11 @@ import re
 
 from aqt.qt import *
 import  aqt
-from aqt.utils import getSaveFile, tooltip, showWarning, askUser, \
+from aqt.utils import getSaveFile, tooltip, showWarning, \
     checkInvalidFilename, showInfo
 from anki.exporting import exporters
 from anki.hooks import addHook, remHook
-from anki.lang import ngettext
+from anki.lang import ngettext, _
 import time
 
 class ExportDialog(QDialog):
@@ -39,9 +39,9 @@ class ExportDialog(QDialog):
 
     def setup(self, did):
         """
-        
+
         keyword arguments:
-        did -- if None, then export whole anki. If did, export this deck (at least as default). 
+        did -- if None, then export whole anki. If did, export this deck (at least as default).
         """
         self.exporters = exporters()
         # if a deck specified, start with .apkg type selected
@@ -78,6 +78,12 @@ class ExportDialog(QDialog):
             getattr(self.exporter, "includeMedia", None) is not None)
         self.frm.includeTags.setVisible(
             getattr(self.exporter, "includeTags", None) is not None)
+        html = getattr(self.exporter, "includeHTML", None)
+        if html is not None:
+            self.frm.includeHTML.setVisible(True)
+            self.frm.includeHTML.setChecked(html)
+        else:
+            self.frm.includeHTML.setVisible(False)
         # show deck list?
         self.frm.deck.setVisible(not self.isVerbatim)
 
@@ -88,7 +94,9 @@ class ExportDialog(QDialog):
             self.frm.includeMedia.isChecked())
         self.exporter.includeTags = (
             self.frm.includeTags.isChecked())
-        if not self.frm.deck.currentIndex():#position 0 means: all decks.
+        self.exporter.includeHTML = (
+            self.frm.includeHTML.isChecked())
+        if not self.frm.deck.currentIndex():
             self.exporter.did = None
         else:
             name = self.decks[self.frm.deck.currentIndex()]
