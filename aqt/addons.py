@@ -422,6 +422,19 @@ Are you sure you want to continue?"""
     ######################################################################
 
     def getConfig(self, module):
+        """The current configuration. 
+
+        More precisely:
+        -None if the module has no file config.json
+        -otherwise the union of:
+        --default config from config.json
+        --the last version of the config, as saved in meta
+
+        Note that if you edited the dictionary obtained from the
+        configuration file without calling self.writeConfig(module,
+        config), then getConfig will not return current config
+
+        """
         addon = self.addonFromModule(module)
         # get default config
         config = self.addonConfigDefaults(addon)
@@ -434,25 +447,43 @@ Are you sure you want to continue?"""
         return config
 
     def setConfigAction(self, module, fn):
-        """From now on, function fn will be called when add-on manager is
-        asked to edit the module's configuration.
+        """Change the action of add-on manager for the edition of the
+        current add-ons config.
 
+        Each time the user click in the add-on manager on the button
+        "config" button, fn is called. Unless fn is falsy, in which
+        case the standard procedure is used
+
+        Keyword arguments:
+        module -- the module/addon considered
+        fn -- a function taking no argument, or a falsy value
         """
         addon = self.addonFromModule(module)
         self._configButtonActions[addon] = fn
 
     def setConfigUpdatedAction(self, module, fn):
+        """Allow a function to add on new configurations.
+
+        Each time the configuration of module is modified in the
+        add-on manager, fn is called on the new configuration.
+
+        Keyword arguments:
+        module -- the module/addon considered
+        fn -- a function taking as argument a configuration.
+=======
         """From now on, function fn will be called when the edition of
         module's configuration was done using add-on manager.
 
         module -- __name__ from module's code
         fn -- A function taking the configuration, parsed as json, in
         argument.
+>>>>>>> 441d152cf3877ea28822360dfdd2a21a5640cf09
         """
         addon = self.addonFromModule(module)
         self._configUpdatedActions[addon] = fn
 
     def writeConfig(self, module, conf):
+        """The config for the module whose name is module  is now conf"""
         addon = self.addonFromModule(module)
         meta = self.addonMeta(addon)
         meta['config'] = conf
@@ -664,6 +695,12 @@ class AddonsDialog(QDialog):
                 self.redrawAddons()
 
     def onConfig(self):
+        """Assuming a single addon is selected, either:
+        -if this add-on as a special config, set using setConfigAction, with a
+        truthy value, call this config.
+        -otherwise, call the config editor on the current config of
+        this add-on"""
+        
         addon = self.onlyOneSelected()
         if not addon:
             return
@@ -774,6 +811,16 @@ class ConfigEditor(QDialog):
         super().reject()
 
     def accept(self):
+        """
+        Transform the new config into json, and either:
+        -pass it to the special config function, set using
+        setConfigUpdatedAction if it exists, 
+        -or save it as configuration otherwise.
+
+        If the config is not proper json, show an error message and do
+        nothing.
+        -if the special config is falsy, just save the value
+        """
         txt = self.form.editor.toPlainText()
         try:
             new_conf = json.loads(txt)

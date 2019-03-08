@@ -22,6 +22,7 @@ class DB:
         
         If insert, update or delete, mod is set to True
         If self.echo, prints the execution time
+        if self.echo is "2", also print the arguments.
         """
         s = sql.strip().lower()
         # mark modified?
