@@ -487,7 +487,7 @@ did = ? and queue = {QUEUE_NEW_CRAM} limit ?)""", did, lim)
         if not lim:
             return 0
         lim = min(lim, self.reportLimit)
-        return self.col.db.scalar("""
+        return self.col.db.scalar(f"""
 select count() from
 (select 1 from cards where did = ? and queue = {QUEUE_NEW_CRAM} limit ?)""", did, lim)
 
@@ -816,7 +816,7 @@ did = ? and queue = {QUEUE_DAY_LRN} and due <= ? limit ?""",
         self.col.db.execute(f"""
 update cards set
 due = odue, queue = {QUEUE_REV}, mod = %d, usn = %d, odue = 0
-where queue in ({QUEUE_LRN},{QUEUE_DAY_LRN) and type = {CARD_DUE}
+where queue in ({QUEUE_LRN},{QUEUE_DAY_LRN}) and type = {CARD_DUE}
 %s
 """ % (intTime(), self.col.usn(), extra))
         # new cards in learning

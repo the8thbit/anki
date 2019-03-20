@@ -604,10 +604,10 @@ insert into cards values (?,?,?,?,?,?,0,0,?,0,0,0,0,0,0,0,0,"")""",
         return self.db.scalar("select count() from cards")
 
     def remCards(self, ids, notes=True):
-        "Bulk delete cards by ID.
+        """Bulk delete cards by ID.
 
         keyword arguments:
-        notes -- whether note without cards should be deleted."
+        notes -- whether note without cards should be deleted."""
         if not ids:
             return
         sids = ids2str(ids)
@@ -836,7 +836,7 @@ where c.nid == f.id
         return self._undo[1]
 
     def undo(self):
-        "Undo the last operation.
+        """Undo the last operation.
 
         Assuming an undo object exists."""
         if self._undo[0] == 1:

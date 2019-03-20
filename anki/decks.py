@@ -316,11 +316,11 @@ class DeckManager:
         self.save()
 
     def allNames(self, dyn=True):
-        "An unsorted list of all deck names.
+        """An unsorted list of all deck names.
 
         Keyword arguments:
         dyn -- if set to false, do not list the dynamic decks.
-        "
+        """
         if dyn:
             return [x['name'] for x in list(self.decks.values())]
         else:
@@ -464,7 +464,7 @@ class DeckManager:
         return self._path(name)[-1]
 
     def _ensureParents(self, name):
-        "Ensure parents exist, and return name with case matching parents.
+        """Ensure parents exist, and return name with case matching parents.
 
         Parents are created if they do not already exists.
         """
@@ -517,10 +517,10 @@ same id."""
         self.save()
 
     def confId(self, name, cloneFrom=None):
-        "Create a new configuration and return its id.
+        """Create a new configuration and return its id.
 
         Keyword arguments
-        cloneFrom -- The configuration copied by the new one."
+        cloneFrom -- The configuration copied by the new one."""
         if cloneFrom is None:
             cloneFrom = defaultConf
         c = copy.deepcopy(cloneFrom)

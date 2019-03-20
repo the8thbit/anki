@@ -259,16 +259,16 @@ lapses=?, left=?, odue=?, odid=?, did=? where id = ?""",
         self.timerStarted = time.time()
 
     def timeLimit(self):
-        "Time limit for answering in milliseconds.
+        """Time limit for answering in milliseconds.
 
-        According to the deck's information."
+        According to the deck's information."""
         conf = self.col.decks.confForDid(self.odid or self.did)
         return conf['maxTaken']*1000
 
     def shouldShowTimer(self):
-        "Whether timer should be shown.
+        """Whether timer should be shown.
 
-        According to the deck's information."
+        According to the deck's information."""
         conf = self.col.decks.confForDid(self.odid or self.did)
         return conf['timer']
 

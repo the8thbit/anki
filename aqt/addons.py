@@ -189,10 +189,10 @@ Are you sure you want to continue?"""
                         % dict(name=name, found=addons)))
         if not ret:
             return False
-        
+
         for package in found:
             self.toggleEnabled(package, enable=False)
-        
+
         return True
 
     # Installing and deleting add-ons
@@ -222,7 +222,7 @@ Are you sure you want to continue?"""
             zfile = ZipFile(file)
         except zipfile.BadZipfile:
             return False, "zip"
-        
+
         with zfile:
             manifest = manifest or self._readManifestFile(zfile)
             if not manifest:
@@ -233,7 +233,7 @@ Are you sure you want to continue?"""
                 return False, "conflicts"
             meta = self.addonMeta(package)
             self._install(package, zfile)
-        
+
         schema = self._manifest_schema
         manifest_meta = {k: v for k, v in manifest.items()
                          if k in schema and schema[k]["meta"]}
@@ -269,7 +269,7 @@ Are you sure you want to continue?"""
 
     # Processing local add-on files
     ######################################################################
-    
+
     def processPackages(self, paths):
         log = []
         errs = []
@@ -422,7 +422,7 @@ Are you sure you want to continue?"""
     ######################################################################
 
     def getConfig(self, module):
-        """The current configuration. 
+        """The current configuration.
 
         More precisely:
         -None if the module has no file config.json
@@ -468,16 +468,8 @@ Are you sure you want to continue?"""
         add-on manager, fn is called on the new configuration.
 
         Keyword arguments:
-        module -- the module/addon considered
-        fn -- a function taking as argument a configuration.
-=======
-        """From now on, function fn will be called when the edition of
-        module's configuration was done using add-on manager.
-
         module -- __name__ from module's code
         fn -- A function taking the configuration, parsed as json, in
-        argument.
->>>>>>> 441d152cf3877ea28822360dfdd2a21a5640cf09
         """
         addon = self.addonFromModule(module)
         self._configUpdatedActions[addon] = fn
@@ -510,7 +502,7 @@ Are you sure you want to continue?"""
         if not os.path.exists(bp):
             return
         os.rename(bp, p)
-    
+
     # Web Exports
     ######################################################################
 
@@ -519,7 +511,7 @@ Are you sure you want to continue?"""
     def setWebExports(self, module, pattern):
         addon = self.addonFromModule(module)
         self._webExports[addon] = pattern
-    
+
     def getWebExports(self, addon):
         return self._webExports.get(addon)
 
@@ -576,7 +568,7 @@ class AddonsDialog(QDialog):
     def redrawAddons(self):
         addonList = self.form.addonList
         mgr = self.mgr
-        
+
         self.addons = [(mgr.annotatedName(d), d) for d in mgr.allAddons()]
         self.addons.sort()
 
@@ -661,7 +653,7 @@ class AddonsDialog(QDialog):
                             key="addons", multi=True)
             if not paths:
                 return False
-        
+
         log, errs = self.mgr.processPackages(paths)
 
         if log:
@@ -700,7 +692,7 @@ class AddonsDialog(QDialog):
         truthy value, call this config.
         -otherwise, call the config editor on the current config of
         this add-on"""
-        
+
         addon = self.onlyOneSelected()
         if not addon:
             return
@@ -814,7 +806,7 @@ class ConfigEditor(QDialog):
         """
         Transform the new config into json, and either:
         -pass it to the special config function, set using
-        setConfigUpdatedAction if it exists, 
+        setConfigUpdatedAction if it exists,
         -or save it as configuration otherwise.
 
         If the config is not proper json, show an error message and do
@@ -838,6 +830,6 @@ class ConfigEditor(QDialog):
             act = self.mgr.configUpdatedAction(self.addon)
             if act:
                 act(new_conf)
-        
+
         self.onClose()
         super().accept()

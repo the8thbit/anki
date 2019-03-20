@@ -206,10 +206,10 @@ class ModelManager:
         return [m['name'] for m in self.all()]
 
     def byName(self, name):
-        "Get model whose name is name.
+        """Get model whose name is name.
 
         keyword arguments
-        name -- the name of the wanted model."
+        name -- the name of the wanted model."""
         for m in list(self.models.values()):
             if m['name'] == name:
                 return m
@@ -296,10 +296,10 @@ select id from cards where nid in (select id from notes where mid = ?)""",
             "select id from notes where mid = ?", m['id'])
 
     def useCount(self, m):
-        "Number of note using the model m.
+        """Number of note using the model m.
 
         Keyword arguments
-        m -- a model object."
+        m -- a model object."""
         return self.col.db.scalar(
             "select count() from notes where mid = ?", m['id'])
 
@@ -333,11 +333,11 @@ and notes.mid = ? and cards.ord = ?""", m['id'], ord)
         return f
 
     def fieldMap(self, m):
-        "Mapping of (field name) -> (ord, field object).
+        """Mapping of (field name) -> (ord, field object).
 
         keyword arguments:
         m : a model
-        "
+        """
         return dict((f['name'], (f['ord'], f)) for f in m['flds'])
 
     def fieldNames(self, m):
@@ -516,11 +516,11 @@ and notes.mid = ? and cards.ord = ?""", m['id'], ord)
         self.save(m)
 
     def remTemplate(self, m, template):
-        "Remove the input template from the model m.
+        """Remove the input template from the model m.
 
         Return False if removing template would leave orphan
         notes. Otherwise True
-        "
+        """
         assert len(m['tmpls']) > 1
         # find cards using this template
         ord = m['tmpls'].index(template)
@@ -752,11 +752,10 @@ select id from notes where mid = ?)""" % " ".join(map),
         return type, req
 
     def availOrds(self, m, flds):
-        "Given a joined field string, return template ordinals which should be
+        """Given a joined field string, return template ordinals which should be
         seen. See ../documentation/templates_generation_rules.md for
         the detail
-
-        "
+        """
         if m['type'] == MODEL_CLOZE:
             return self._availClozeOrds(m, flds)
         fields = {}

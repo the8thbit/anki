@@ -69,7 +69,7 @@ def showText(txt, parent=None, type="text", run=True, geomKey=None, \
     text.setOpenExternalLinks(True)
     if type == "text":
         text.setPlainText(txt)
-o    else:
+    else:
         text.setHtml(txt)
     layout.addWidget(text)
     box = QDialogButtonBox(QDialogButtonBox.Close)

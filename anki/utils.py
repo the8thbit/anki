@@ -325,7 +325,7 @@ def noBundledLibs():
         os.environ["LD_LIBRARY_PATH"] = oldlpath
 
 def call(argv, wait=True, **kwargs):
-    "Execute a command and return its return code.
+    """Execute a command and return its return code.
 
     If wait is set to False, don't wait and return immediatly 0
     (i.e. correct exit number)
