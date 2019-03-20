@@ -301,7 +301,7 @@ order by due""" % (self._deckLimit()),
         #something similar to nodes, but without the recursive part
         nodes_=self.deckDueList()
         #the actual nodes
-        nodes=self._groupChildren(nodes)
+        nodes=self._groupChildren(nodes_)
         return nodes
 
     def _groupChildren(self, grps):
@@ -421,7 +421,7 @@ did = ? and queue = {QUEUE_NEW_CRAM} limit ?)""", did, lim)
             lim = min(self.queueLimit, self._deckNewLimit(did))
             if lim:
                 # fill the queue with the current did
-                self._newQueue = self.col.db.list("""
+                self._newQueue = self.col.db.list(f"""
                 select id from cards where did = ? and queue = {QUEUE_USER_BURIED} order by due,ord limit ?""" , did, lim)
                 if self._newQueue:
                     self._newQueue.reverse()
@@ -891,7 +891,7 @@ did = ? and queue = {QUEUE_REV} and due <= ? limit %d)""" % (lim),
             lim = min(self.queueLimit, self._deckRevLimit(did))
             if lim:
                 # fill the queue with the current did
-                self._revQueue = self.col.db.list("""
+                self._revQueue = self.col.db.list(f"""
 select id from cards where
 did = ? and queue = {QUEUE_REV} and due <= ? limit ?""",
                                                   did, self.today, lim)
@@ -1130,7 +1130,7 @@ select id from cards where did in %s and queue = {QUEUE_REV} and due <= ? limit 
         Card is assumed to be a review card."""
         idealIvl = self._nextRevIvl(card, ease)
         fuzzedIvl = self._adjRevIvl(card, idealIvl)
-        increasedIvl = max(fuzzedIvlcard.ivl+1)
+        increasedIvl = max(fuzzedIvl, card.ivl+1)
         card.ivl = min(increasedIvl, self._revConf(card)['maxIvl'])
 
     def _adjRevIvl(self, card, idealIvl):
