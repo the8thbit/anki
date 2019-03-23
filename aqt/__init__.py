@@ -85,16 +85,16 @@ class DialogManager:
         "About": [about.show, None],
         "Preferences": [preferences.Preferences, None],
     }
-    
+
 
     def open(self, name, *args):
         """Open a window of kind name.
 
         Open (and show) the one already opened, if it
-        exists. Otherwise a new one.  
-        
+        exists. Otherwise a new one.
+
         keyword arguments:
-        args -- values passed to the opener. 
+        args -- values passed to the opener.
         name -- the name of the window to open
         """
         (creator, instance) = self._dialogs[name]
@@ -131,7 +131,7 @@ class DialogManager:
         Keyword arguments:
         onsuccess -- the function to call when the last window is closed.
         """
-        
+
         # can we close immediately?
         if self.allClosed():
             onsuccess()
@@ -222,7 +222,7 @@ class AnkiApp(QApplication):
         self._argv = argv
 
     def secondInstance(self):
-        # we accept only one command line argument. if it's missing, send
+        # we accept only one command line argument. If it's missing, send
         # a blank screen to just raise the existing window
         opts, args = parseArgs(self._argv)
         buf = "raise"

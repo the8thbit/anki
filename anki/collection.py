@@ -133,8 +133,14 @@ class _Collection:
     Here, type is 1 for review, 2 for checkpoint.
     undoName is the name of the action to undo. Used in the edit menu,
     and in tooltip stating that undo was done.
+
+    server -- always False in anki.
+
     """
     def __init__(self, db, server=False, log=False):
+        """
+
+        server -- always False in anki"""
         self._debugLog = log
         self.db = db
         self.path = db._path

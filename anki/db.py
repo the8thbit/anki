@@ -18,8 +18,8 @@ class DB:
         self.mod = False
 
     def execute(self, sql, *a, **ka):
-        """The result of execute on the database with sql query and either ka if it exists, or a. 
-        
+        """The result of execute on the database with sql query and either ka if it exists, or a.
+
         If insert, update or delete, mod is set to True
         If self.echo, prints the execution time
         if self.echo is "2", also print the arguments.
@@ -45,7 +45,7 @@ class DB:
 
     def executemany(self, sql, l):
         """The result of executmany on the database with sql query and l list.
-        
+
         Mod is set to True
         If self.echo, prints the execution time
         """

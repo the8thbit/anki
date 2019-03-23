@@ -35,7 +35,7 @@ class Syncer:
     minUsn -- USN of the collection
     col -- its collection
     server -- the server. Object of class RemoteServer in pratice
-    syncMsg -- TODO
+    syncMsg -- By default the empty string. Otherwise, a message from meta.
     uname -- TODO
 
     """

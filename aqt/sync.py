@@ -16,6 +16,10 @@ from anki.lang import _
 ######################################################################
 
 class SyncManager(QObject):
+    """
+    label -- The current action done by the synchronizez. Or in case f syncMsg, the first argument
+    """
+
 
     def __init__(self, mw, pm):
         QObject.__init__(self, mw)
@@ -286,7 +290,11 @@ Check Database, then sync again."""))
 ######################################################################
 
 class SyncThread(QThread):
+    """
 
+    path -- the path of the database of the collection
+    syncMsg -- Initially the empty string. At the end of a successful non-full sync, before syncinc media, it becomes the value of the meta[
+    """
     event = pyqtSignal(str, str)
 
     def __init__(self, path, hkey, auth=None, media=True, hostNum=None):
@@ -460,5 +468,3 @@ class SyncThread(QThread):
 
     def fireEvent(self, cmd, arg=""):
         self.event.emit(cmd, arg)
-
-

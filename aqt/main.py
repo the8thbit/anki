@@ -44,7 +44,9 @@ class AnkiQt(QMainWindow):
       -- deckBrowser
     stateShortcuts -- shortcuts related to the kind of window currently in main.
     bottomWeb -- a ankiwebview, with the bottom of the main window. Shown unless for reset required.
+    app -- an object of class AnkiApp.
     """
+
     def __init__(self, app, profileManager, opts, args):
         QMainWindow.__init__(self)
         self.state = "startup"

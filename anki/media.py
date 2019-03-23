@@ -34,6 +34,11 @@ from anki.latex import mungeQA
 from anki.lang import _
 
 class MediaManager:
+    """
+    _dir -- the directory of media. Unless server is given to the constructor, in this cas it's None. Directory is changed to it during synchronization, and then changed back to previous directory.
+    _oldcwd -- the working directory when media manager is created. The directory is changed to this value when the MediaManager is closed. If server is given in the constructor, then it's None.
+
+"""
 
     """Captures the argument foo of [sound:foo]"""
     soundRegexps = [r"(?i)(\[sound:(?P<fname>[^]]+)\])"]
@@ -47,6 +52,10 @@ class MediaManager:
     regexps = soundRegexps + imgRegexps
 
     def __init__(self, col, server):
+        """
+        TODO
+
+        server -- always false in Anki"""
         self.col = col
         if server:
             self._dir = None
@@ -146,6 +155,7 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
         self.connect()
 
     def dir(self):
+        """The directory of media"""
         return self._dir
 
     def _isFAT32(self):

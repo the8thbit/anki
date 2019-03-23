@@ -821,7 +821,7 @@ limit ?""" % ids2str(self.col.decks.active()),
             """
 select count() from cards where id in (
 select id from cards where did in %s and queue = {QUEUE_REV} and due <= ? limit ?)"""
-            % ids2str(self.col.decks.active()), self.today, self.reportLimit))
+            % ids2str(self.col.decks.active()), self.today, self.reportLimit)
 
     # Answering a review card
     ##########################################################################
@@ -1405,7 +1405,7 @@ update cards set queue=?,mod=?,usn=? where id in """+ids2str(cids),
     def unburyCards(self):
         "Unbury all buried cards in all decks."
         self.col.log(
-            self.col.db.list("select id from cards where queue in ({QUEUE_USER_BURIED}, {QUEUE_SCHED_BURIED})")
+            self.col.db.list("select id from cards where queue in ({QUEUE_USER_BURIED}, {QUEUE_SCHED_BURIED})"))
         self.col.db.execute(
             "update cards set %s where queue in ({QUEUE_USER_BURIED}, {QUEUE_SCHED_BURIED})" % self._restoreQueueSnippet)
 

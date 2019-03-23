@@ -167,6 +167,7 @@ a flash drive.""" % self.base)
         self.name = name
         try:
             self.profile = self._unpickle(data)
+            print(f"profile is «{self.profile}»")
         except:
             QMessageBox.warning(
                 None, _("Profile Corrupt"), _("""\
@@ -252,7 +253,7 @@ and no other programs are accessing your profile folders, then try again."""))
 
     def profileFolder(self, create=True):
         """The path to the folder of this profile.
-        
+
         It is based on the base, and this profile name
         This folder may not exists.
         Create it only if does not exists and create is set to True"""
@@ -264,7 +265,7 @@ and no other programs are accessing your profile folders, then try again."""))
     def addonFolder(self):
         """The path to the add-on folder.
 
-        Guarenteed to exists. 
+        Guarenteed to exists.
         It is in base, not in profile"""
         return self._ensureExists(os.path.join(self.base, "addons21"))
 
@@ -317,7 +318,7 @@ and no other programs are accessing your profile folders, then try again."""))
         Create a new profile and an error message if prefs21.db has a problem.
         if no preference database exists, create it, and create a global profile in it using current meta.
         put database of preferences in self.db
-        Put the _global preferences in self.meta 
+        Put the _global preferences in self.meta
         todo: explain call to _setDefaultLang
         """
         opath = os.path.join(self.base, "prefs.db")
@@ -356,6 +357,7 @@ create table if not exists profiles
             # load previously created data
             try:
                 self.meta = self._unpickle(data)
+                print(f"meta is «{self.meta}»")
                 return
             except:
                 print("resetting corrupt _global")
