@@ -305,10 +305,12 @@ reception.
 Called from anki.sync._MonitoringFile.read.
 
 ##### sync
-Contains (lambda type:aqt.sync.SyncThread.fireEvent("sync",type)),
-i.e. (lambda type:aqt.sync.SyncThread.event.emit("sync",type)) but
-only while aqt.sync.SyncThread.run runs, i.e. while anki
-synchronization is running. Here, event is a pyqtSignal(str, str)
+Contains, equivalently:
+* (lambda type:aqt.sync.SyncThread.fireEvent("sync",type)),
+* (lambda type:aqt.sync.SyncThread.event.emit("sync",type))
+* (lambda type:aqt.sync.onEvent("sync",type))
+but only while aqt.sync.SyncThread.run runs, i.e. while anki synchronization is
+running. Here, event is a pyqtSignal(str, str)
 
 It is called from anki.sync.Syncer.sync, each time the
 synchronization's step change. The different step/type are, in this
