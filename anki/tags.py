@@ -37,8 +37,9 @@ class TagManager:
     #############################################################
 
     def register(self, tags, usn=None):
-        """Given a list/set of tags, add any missing ones to tag registry. If
-        there is one, call the hook newTag.
+        """Given a list/set of tags, add any tag missing in the registry to
+        the registry. If there is such a new tag, call the hook
+        newTag.
 
         """
         found = False

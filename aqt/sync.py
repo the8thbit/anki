@@ -44,8 +44,10 @@ class SyncManager(QObject):
         gc.collect()
         # create the thread, setup signals and start running
         t = self.thread = SyncThread(
-            self.pm.collectionPath(), self.pm.profile['syncKey'],
-            auth=auth, media=self.pm.profile['syncMedia'],
+            self.pm.collectionPath(),
+            self.pm.profile['syncKey'],
+            auth=auth,
+            media=self.pm.profile['syncMedia'],
             hostNum=self.pm.profile.get("hostNum"),
         )
         t.event.connect(self.onEvent)
@@ -293,7 +295,11 @@ class SyncThread(QThread):
     """
 
     path -- the path of the database of the collection
-    syncMsg -- Initially the empty string. At the end of a successful non-full sync, before syncinc media, it becomes the value of the meta[
+    syncMsg -- Initially the empty string. At the end of a successful non-full sync, before syncinc media, it becomes the value of the meta[TODO
+    hostNum -- the value of hostNum in the profile (i.e. a number which states the number of the ankiweb server which is used to synchronize)
+    hkey -- the value of SyncKey in the profile (i.e. a random string replacing the password)
+    auth -- the password; asked to the user (not saved)
+    syncMedia -- whether medias should be synchronized
     """
     event = pyqtSignal(str, str)
 
