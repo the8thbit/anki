@@ -167,7 +167,6 @@ a flash drive.""" % self.base)
         self.name = name
         try:
             self.profile = self._unpickle(data)
-            print(f"profile is «{self.profile}»")
         except:
             QMessageBox.warning(
                 None, _("Profile Corrupt"), _("""\
@@ -357,7 +356,6 @@ create table if not exists profiles
             # load previously created data
             try:
                 self.meta = self._unpickle(data)
-                print(f"meta is «{self.meta}»")
                 return
             except:
                 print("resetting corrupt _global")

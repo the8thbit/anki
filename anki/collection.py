@@ -134,13 +134,12 @@ class _Collection:
     undoName is the name of the action to undo. Used in the edit menu,
     and in tooltip stating that undo was done.
 
-    server -- always False in anki.
+    server -- Whether to pretend to be the server. Only set to true during anki.sync.Syncer.remove; i.e. while removing what the server says to remove. When set to true:
+    * the usn returned by self.usn is self._usn, otherwise -1.
+    * media manager does not connect nor close database connexion (I've no idea why)
 
     """
     def __init__(self, db, server=False, log=False):
-        """
-
-        server -- always False in anki"""
         self._debugLog = log
         self.db = db
         self.path = db._path
@@ -329,6 +328,12 @@ crt=?, mod=?, scm=?, dty=?, usn=?, ls=?, conf=?""",
         return self.scm > self.ls
 
     def usn(self):
+        """Return the synchronization number to use. Usually, -1, since
+        no actions are synchronized. The exception being actions
+        requested by synchronization itself, when self.server is
+        true. In which case _usn number.
+
+        """
         return self._usn if self.server else -1
 
     def beforeUpload(self):

@@ -1,22 +1,23 @@
 # Database check
 
 In this document, we consider the processing of checking of the
-database. We actually consider three different checking. The one which
-cause anki to tell that the database has inconsistencies and that we
-should use run «Check Database». The action which occur when «Check
-Database is run». And the kind of database error which are not
-repaired nor fixed by anki (but they are fixed by the add-on [Database
-checker/fixer explained, more
-fixers](https://ankiweb.net/shared/info/1135180054)).
+database. We actually consider four different checkings:
+* The one which cause anki to tell that the database has
+inconsistencies and that we should use run «Check Database».
+* The action which occur when «Check Database is run». 
+* The kind of database error which are not repaired nor fixed by anki.
+(but they are fixed by the add-on [Database checker/fixer explained,
+more fixers](https://ankiweb.net/shared/info/1135180054)).
 
 ## Warning of database inconsistency
 
 We consider ```anki.collection._Collection.basicCheck```. Note that,
 contrary to what the name hints, this is not what occurs when you
-press «Check Database». Instead, this is run thrice during the
+press «Check Database». Instead, this is run twice during the
 synchronization process to check whether the database is still
-correct. Hence, this is the process which may state that you need to
-run «Check Database» because the database is incosistent.
+correct. Once before the sync starts, and once when it ends. Hence,
+this is the process which may state that you need to run «Check
+Database» because the database is inconsistent.
 
 This checking does the four following checks:
 * whether the model of each note is in the database
@@ -164,6 +165,7 @@ the number of cards affected.
 
 ### Optimizing the database
 Anki calls sqlite3 and tells it to optimize itself.
+
 
 ## Errors not taken into account (yet) by anki.
 
