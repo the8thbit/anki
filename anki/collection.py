@@ -277,7 +277,9 @@ crt=?, mod=?, scm=?, dty=?, usn=?, ls=?, conf=?""",
         self.db.mod = mod
 
     def close(self, save=True):
-        "Disconnect from DB."
+        """Save or rollback collection's db according to save.
+        Close collection's db, media's db and log.
+        """
         if self.db:
             if save:
                 self.save()
@@ -337,7 +339,16 @@ crt=?, mod=?, scm=?, dty=?, usn=?, ls=?, conf=?""",
         return self._usn if self.server else -1
 
     def beforeUpload(self):
-        "Called before a full upload."
+        """Called before a full upload.
+
+        * change usn -1 to 0 in notes, card and revlog, and all models, tags, decks, deck options.
+        * empty graves.
+        * Update usn
+        * set modSchema to true (no nead for new upload)
+        * update last sync time to current schema
+        * Save or rollback collection's db according to save.
+        * Close collection's db, media's db and log.
+        """
         tbls = "notes", "cards", "revlog"
         for t in tbls:
             self.db.execute("update %s set usn=0 where usn=-1" % t)
@@ -1108,7 +1119,8 @@ and type = 0""", intTime(), self.usn())
             return pprint.pformat(x)
         path, num, fn, y = traceback.extract_stack(
             limit=2+kwargs.get("stack", 0))[0]
-        buf = "[%s] %s:%s(): %s" % (intTime(), os.path.basename(path), fn,
+        time = datetime.datetime.now()
+        buf = "[%s] %s:%s(): %s" % (time, os.path.basename(path), fn,
                                      ", ".join([customRepr(x) for x in args]))
         self._logHnd.write(buf + "\n")
         if devMode:

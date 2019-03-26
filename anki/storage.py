@@ -18,7 +18,9 @@ from anki.stdmodels import addBasicModel, addClozeModel, addForwardReverse, \
 def Collection(path, lock=True, server=False, log=False):
     """Open a new or existing collection. Path must be unicode.
 
-    server -- always False in anki without add-on. """
+    server -- always False in anki without add-on.
+    log -- Boolean stating whether log must be made in the file, with same name than the collection, but ending in .log.
+    """
     assert path.endswith(".anki2")
     path = os.path.abspath(path)
     create = not os.path.exists(path)

@@ -485,17 +485,22 @@ Are you sure you want to continue?"""
     ######################################################################
 
     def _userFilesPath(self, sid):
+        """The path of the user file's folder."""
         return os.path.join(self.addonsFolder(sid), "user_files")
 
     def _userFilesBackupPath(self):
+        """A path to use for back-up. It's independent of the add-on number."""
         return os.path.join(self.addonsFolder(), "files_backup")
 
     def backupUserFiles(self, sid):
+        """Move user file's folder to a folder called files_backup in the add-on folder"""
         p = self._userFilesPath(sid)
         if os.path.exists(p):
             os.rename(p, self._userFilesBackupPath())
 
     def restoreUserFiles(self, sid):
+        """Move the back up of user file's folder to its normal location in
+        the folder of the addon sid"""
         p = self._userFilesPath(sid)
         bp = self._userFilesBackupPath()
         # did we back up userFiles?

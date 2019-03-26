@@ -594,18 +594,34 @@ class AnkiRequestsClient:
         self.session = requests.Session()
 
     def post(self, url, data, headers):
+        """
+        Similar to a post request, where:
+        * User-Agent name is added
+        * hook httpSend is run
+        * stream is true, timeout and verify are as in the class.
+        """
         data = _MonitoringFile(data)
         headers['User-Agent'] = self._agentName()
         return self.session.post(
             url, data=data, headers=headers, stream=True, timeout=self.timeout, verify=self.verify)
 
     def get(self, url, headers=None):
+        """
+        Similar to a post request, where:
+        * User-Agent name is added to header
+        * stream is true, timeout and verify are as in the class.
+        """
         if headers is None:
             headers = {}
         headers['User-Agent'] = self._agentName()
         return self.session.get(url, stream=True, headers=headers, timeout=self.timeout, verify=self.verify)
 
     def streamContent(self, resp):
+        """
+        Return a string containing the content of the entire response to a request.
+
+        If the response is not successful, raise requests.exceptions.HTTPError
+        """
         resp.raise_for_status()
 
         buf = io.BytesIO()
@@ -628,6 +644,7 @@ if os.environ.get("ANKI_NOVERIFYSSL"):
 
 class _MonitoringFile(io.BufferedReader):
     def read(self, size=-1):
+        """"Similar to io.BufferedReader's read method, where the hook httpSend is emitted after data is found."""
         data = io.BufferedReader.read(self, HTTP_BUF_SIZE)
         runHook("httpSend", len(data))
         return data
@@ -678,9 +695,9 @@ class HttpSyncer:
 
     def _buildPostData(self, fobj, comp):
         """
-        A pair headers, buffer as follow.
+        A pair (headers, buffer) as follow.
 
-        buffer's position is 0. It contains, separated by --Anki-sync-boundary,
+        buffer's position is 0. It contains, separated by "--Anki-sync-boundary",
 «Content-Disposition: form-data; name="{key}"
 
 value
@@ -688,7 +705,7 @@ value
         where key,values come from self.postVars, and also contains key 'c', whose value is 1 if it's compressing, 0 otherwise.
 
 If there is an object, then it also contains
-«\
+«
 Content-Disposition: form-data; name="data"; filename="data"\r\n\
 Content-Type: application/octet-stream\r\n\r\n"»
 {object}
@@ -852,7 +869,18 @@ class FullSyncer(HttpSyncer):
         self.col = col
 
     def download(self):
+        """Download a database from the server. If instead it receives
+        "upgradeRequired", a message stating to go on ankiweb is
+        shown. Otherwise, if the downloaded db has no card while
+        current collection has card, it returns
+        "downloadClobber". Otherwise, the downloaded database replace
+        the collection's database.
+
+        It also change message to "Downloading for AnkiWeb...".
+
+        """
         runHook("sync", "download")
+        #whether the collection has at least one card.
         localNotEmpty = self.col.db.scalar("select 1 from cards")
         self.col.close()
         cont = self.req("download")
@@ -907,6 +935,21 @@ class MediaSyncer:
         self.server = server
 
     def sync(self):
+        """
+        Return either:
+        * "corruptMediaDB": if reading the  database raise an exception
+        * "noChanges": if the usn on collection and server are the same
+        * "OK": if everything was correctly downloaded and uploaded
+        * Any other message  sent by the server during mediaSanity check.
+
+        It sends the following messages:
+        * begin: send hostkey and "ankidesktop,{anki's version number},{platform}:{platform's
+  version}". Returing an id to use until the end of communication
+        * mediaChanges: the name of new/modified medias, and usn in collection. Return name of new/modified media on server
+        * downloadFiles: request files named by the server when necessary, receive zip files with up to 25 files, and save them in the collection.
+        * uploadChanges: Send zip files with up to 25 files.
+        * mediaSanity: sending the number of media to server, to check whether there is the same number online. If not, empty media database and return value sent by the server.
+        """
         # check if there have been any changes
         runHook("sync", "findMedia")
         self.col.log("findChanges")
@@ -1044,6 +1087,18 @@ class RemoteMediaServer(HttpSyncer):
         self.prefix = "msync/"
 
     def begin(self):
+        """Send a request to initialize the communication. It contains:
+        * 'k': the hostkey (a number sent during synchronization of data, to identify the user)
+        * 'v': "ankidesktop,{anki's version number},{platform}:{platform's
+        version}", with platform being either win, lin, mac or unknown. In
+        the last case, there are no version sent.
+
+        Set the identification number as provided by the server. This
+        number is used for this communication only.
+
+        Raise an exception if the response contains an error field or is not json.
+
+        """
         self.postVars = dict(
             k=self.hkey,
             v="ankidesktop,%s,%s"%(anki.version, platDesc())
@@ -1076,6 +1131,11 @@ class RemoteMediaServer(HttpSyncer):
             self.req("mediaSanity", io.BytesIO(json.dumps(kw).encode("utf8"))))
 
     def _dataOnly(self, resp):
+        """
+        If the error in resp  is truthy, log it, raise an exception. Otherwise, return the data of resp.
+
+        resp -- a json utf8 string. Otherwise raise an exception. Received from the server
+        """
         resp = json.loads(resp.decode("utf8"))
         if resp['err']:
             self.col.log("error returned:%s"%resp['err'])

@@ -391,6 +391,10 @@ def invalidFilename(str, dirsep=True):
         return "."
 
 def platDesc():
+    """{system}:{version}, where system is mac, win, or lin.
+
+    It is theoretically resistant to system call interuption.
+    """
     # we may get an interrupted system call, so try this in a loop
     n = 0
     theos = "unknown"

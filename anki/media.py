@@ -497,7 +497,7 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
     ##########################################################################
 
     def findChanges(self):
-        "Scan the media folder if it's changed, and note any changes."
+        "Scan the media folder if it's changed, and note any changes in the db."
         if self._changed():
             self._logChanges()
 
@@ -649,6 +649,14 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
     ##########################################################################
 
     def mediaChangesZip(self):
+        """
+        The pair with:
+        * A string encoding a zip files with:
+        ** media to upload
+        ** _meta: a json list associating to each name (as in zip) to
+        the real name of the file
+        * list of media considered
+        """
         f = io.BytesIO()
         z = zipfile.ZipFile(f, "w", compression=zipfile.ZIP_DEFLATED)
 
@@ -656,8 +664,9 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
         # meta is list of (fname, zipname), where zipname of None
         # is a deleted file
         meta = []
-        sz = 0
+        sz = 0#sum of the size of the media.
 
+        # loop over dirty medias. At most SYNC_ZIP_COUNT = 25 elements
         for c, (fname, csum) in enumerate(self.db.execute(
                         "select fname, csum from media where dirty=1"
                         " limit %d"%SYNC_ZIP_COUNT)):
@@ -682,7 +691,15 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
         return f.getvalue(), fnames
 
     def addFilesFromZip(self, zipData):
-        "Extract zip data; true if finished."
+        """
+        Copy each file from zipData (except _meta) to the media
+        folder, and add those files to the media database. Rename the
+        file according to _meta.
+
+        zipData -- A byte tream containing a zipfile, containing:
+        * _meta, a file containing a json dict associtaing to each name of file in zip (except meta) a name to be used in the media folder
+        * arbitrary fields to save in the media folder
+        """
         f = io.BytesIO(zipData)
         z = zipfile.ZipFile(f, "r")
         media = []
