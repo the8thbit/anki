@@ -126,7 +126,9 @@ is at most maximal interval set in the deck's option.
 In this case, the new interval is equal to the product of:
 * the sum of the interval, and a fourth of the delay
 * 1.2
-* the interval factor divided by 100 If this number is at most the
+* the interval factor divided by 100
+
+If this number is at most the
 last interval, then the new interval is equal to the last interval,
 plus one.
 
@@ -138,6 +140,7 @@ In this case, the new interval is equal to the product of:
 * the sum of the interval, and the half of the delay
 * The easyness factor
 * the interval factor divided by 100
+
 If this number is at most the one of the button hard, then the  new
 interval is equal to the hard interval plus one. (This could be the
 case if easiness is less than 1.2 and there is no delay)
@@ -149,6 +152,7 @@ In this case, the new interval is equal to the product of:
 * The easyness factor of the deck. It can be found in the deck's
   option, review tag, "easy bonus"
 * the interval factor divided by 100
+
 If this number is at most the one of the button good, then the  new
 interval is equal to the good interval plus one. (This could be the
 case if you choose a very low easyness for the deck)
