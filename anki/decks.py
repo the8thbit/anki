@@ -7,13 +7,10 @@
 
 
 A deck is an array composed of:
-newToday -- two number array.
+new/rev/lrnToday -- two number array.
             First one is currently unused
-            The second one is equal to the negation (* (-1)) of the increase of the number of new cards to see today.
-revToday -- two number array.
-            First one is currently unused
-            The second one is equal to the negation (* (-1)) of the increase of the number of review cards to see today.
-lrnToday -- two number array used somehow for custom study, Seems to be unused in the current code.
+            The second one is equal to the number of cards seen today in this deck minus the number of new cards in custom study today.
+ BEWARE, it's changed in anki.sched(v2).Scheduler._updateStats and anki.sched(v2).Scheduler._updateCutoff.update  but can't be found by grepping 'newToday', because it's instead written as type+"Today" with type which may be new/rev/lrnToday
 timeToday -- two number array used somehow for custom study,  seems to be currently unused
 conf -- (string) id of option group from dconf, or absent in dynamic decks
 usn -- Update sequence number: used in same way as other usn vales in db
@@ -800,6 +797,9 @@ same id."""
         return parents
 
     def nameMap(self):
+        """
+        Dictionnary from deck name to deck object.
+        """
         return dict((d['name'], d) for d in self.decks.values())
 
     # Sync handling
