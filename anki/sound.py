@@ -91,10 +91,6 @@ from anki.mpv import MPV, MPVBase
 
 mpvPath, mpvEnv = _packagedCmd(["mpv"])
 
-def setMpvConfigBase(base):
-    global mpvEnv
-    mpvEnv['XDG_CONFIG_HOME'] = base
-
 class MpvManager(MPV):
 
     executable = mpvPath[0]
@@ -125,6 +121,13 @@ class MpvManager(MPV):
 
     def on_idle(self):
         runHook("mpvIdleHook")
+
+def setMpvConfigBase(base):
+    mpvConfPath = os.path.join(base, "mpv.conf")
+    MpvManager.default_argv += [
+        "--no-config",
+        "--include="+mpvConfPath,
+    ]
 
 mpvManager = None
 
