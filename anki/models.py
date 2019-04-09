@@ -4,11 +4,11 @@
 
 """This module deals with models, known as note type in Anki's documentation.
 
-A model is a dic composed of:
+A model is composed of:
 css -- CSS, shared for all templates of the model
 did -- Long specifying the id of the deck that cards are added to by
 default
-flds -- A list of field objects. See below. Json in the database
+flds -- JSONArray containing object for each field in the model. See flds
 id -- model ID, matches notes.mid
 latexPost -- String added to end of LaTeX expressions (usually \\end{document}),
 latexPre -- preamble for LaTeX expressions,
@@ -50,8 +50,10 @@ want to require from the 'flds' array"]"""
 
 """tmpls (a template): a dict with
 afmt -- "answer template string",
-bafmt -- "browser answer format: used for displaying answer in browser",
-bqfmt -- "browser question format: used for displaying question in browser",
+bafmt -- "browser answer format:
+used for displaying answer in browser",
+bqfmt -- "browser question format:
+used for displaying question in browser",
 did -- "deck override (null by default)",
 name -- "template name",
 ord -- "template number, see flds",
@@ -363,7 +365,9 @@ and notes.mid = ? and cards.ord = ?""", m['id'], ord)
         self.save(m)
 
     def addField(self, m, field):
-        """Append the field field as last fields of the model m.
+        """Append the field field as last element of the model m.
+
+        todo
 
         Keyword arguments
         m -- a model
@@ -466,7 +470,8 @@ and notes.mid = ? and cards.ord = ?""", m['id'], ord)
 
     def _updateFieldOrds(self, m):
         """
-        Put correct values of f['ord'] for each fields of model m.
+        Change the order of the field of the model in order to copy
+        the order in m['flds'].
 
         Keyword arguments
         m -- a model"""
@@ -789,7 +794,6 @@ select id from notes where mid = ?)""" % " ".join(map),
         return avail
 
     def _availClozeOrds(self, m, flds, allowEmpty=True):
-
         """The list of fields F which are used in some {{cloze:F}} in a template
 
         keyword arguments:

@@ -17,7 +17,7 @@ class Note:
     tags -- List of tags.
          -- In the database, it is a space-separated string of tags.
          -- includes space at the beginning and end, for LIKE "% tag %" queries
-    fields -- the list of values of the fields in this note.  Starting at 0
+    fields -- the list of values of the fields in this note.
           in the db, instead of fields, there is flds; which is the content of fields, in the order of the note type, concatenated using \x1f (\\x1f))
     sfld -- sort field: used for quick sorting and duplicate check
     csum -- field checksum used for duplicate check.
@@ -80,7 +80,6 @@ from notes where id = ?""", self.id)
 
     def flush(self, mod=None):
         """If fields or tags have changed, write changes to disk.
-
 
         If there exists a note with same id, tags and fields, and mod is not set, do nothing.
         Change the mod to given argument or current time

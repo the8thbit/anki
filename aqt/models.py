@@ -27,7 +27,6 @@ class Models(QDialog):
     form -- TODO
     models -- all models of the collection
     """
-
     def __init__(self, mw, parent=None, fromMain=False):
         self.mw = mw
         self.parent = parent or mw

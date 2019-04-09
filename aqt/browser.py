@@ -2060,8 +2060,8 @@ class ChangeModel(QDialog):
         indices[cb] = i
 
     def getTemplateMap(self, old=None, combos=None, new=None):
-        """Associating to each template's ord of the source model a template's
-        ord (or None) of the new model.
+        """A map from template's ord of the old model to template's ord of the new
+        model. Or None if no template
 
         Contrary to what this name indicates, the method may be used
         without templates. In getFieldMap it is used for fields
@@ -2096,7 +2096,7 @@ class ChangeModel(QDialog):
             new=self.targetModel['flds'])
 
     def cleanup(self):
-        """Close the GUI
+        """Actions to end this gui.
 
         Remove hook related to this window, and potentially its model chooser.
         Save the geometry of the current window in order to keep it for a new reordering

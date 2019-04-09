@@ -5,8 +5,10 @@
 
 """This module deals with decks and their configurations.
 
+self.decks is the dictionnary associating an id to the deck with this id
+self.dconf is the dictionnary associating an id to the dconf with this id
 
-A deck is an array composed of:
+A deck is a dict composed of:
 new/rev/lrnToday -- two number array.
             First one is currently unused
             The second one is equal to the number of cards seen today in this deck minus the number of new cards in custom study today.
@@ -23,36 +25,50 @@ name -- name of deck,
 browserCollapsed -- true when deck collapsed in browser,
 id -- deck ID (automatically generated long),
 mod -- last modification time,
+mid -- the model of the deck
 """
 
 
 
 """A configuration of deck is a dictionnary composed of:
 name -- its name, including the parents, and the "::"
+
+
+
+
+A configuration of deck is composed of:
+name -- its name
 new -- The configuration for new cards, see below.
 lapse -- The configuration for lapse cards, see below.
 rev -- The configuration for review cards, see below.
 maxTaken -- The number of seconds after which to stop the timer
 timer -- whether timer should be shown (1) or not (0)
-autoplay -- whether the audio associated to a question should be played when the question is shown
-replayq -- whether the audio associated to a question should be played when the answer is shown
+autoplay -- whether the audio associated to a question should be
+played when the question is shown
+replayq -- whether the audio associated to a question should be
+played when the answer is shown
 mod -- Last modification time
 usn -- see USN documentation
 dyn -- Whether this deck is dynamic. Not present in the default configurations
-id -- configuration ID (automatically generated long). Not present in the default configurations.
+id -- deck ID (automatically generated long). Not present in the default configurations.
 
 The configuration related to new card is composed of:
-delays -- The list of successive delay between the learning steps of the new cards, as explained in the manual.
-ints -- The delay to wait for the next review. In position 1, if the review is easy. In position 0 otherwise.
+delays -- The list of successive delay between the learning steps of
+the new cards, as explained in the manual.
+ints -- The delays according to the button pressed while leaving the
+learning mode.
 initial factor -- The initial ease factor
 separate -- delay between answering Good on a card with no steps left, and seeing the card again. Seems to be unused in the code
-order -- In which order new cards must be shown. NEW_CARDS_RANDOM = 0 and NEW_CARDS_DUE = 1
+order -- In which order new cards must be shown. NEW_CARDS_RANDOM = 0
+and NEW_CARDS_DUE = 1
 perDay -- Maximal number of new cards shown per day
 bury -- Whether to bury cards related to new cards answered
 
 The configuration related to lapses card is composed of:
-delays -- The delays between each relearning while the card is lapsed, as in the manual
-mult -- percent by which to multiply the current interval when a card goes has lapsed
+delays -- The delays between each relearning while the card is lapsed,
+as in the manual
+mult -- percent by which to multiply the current interval when a card
+goes has lapsed
 minInt -- a lower limit to the new interval after a leech
 leechFails -- the number of lapses authorized before doing leechAction
 leechAction -- What to do to leech cards. 0 for suspend, 1 for
@@ -62,18 +78,21 @@ aqt/dconf.ui
 
 The configuration related to review card is composed of:
 perDay -- Numbers of cards to review per day
-ease4 -- the number to add to the easyness when the easy button is pressed
-fuzz -- The new interval is multiplied by a random number between-fuzz and fuzz
+ease4 -- the number to add to the easyness when the easy button is
+pressed
+fuzz -- The new interval is multiplied by a random number between
+-fuzz and fuzz
 minSpace -- not currently used
-ivlFct -- multiplication factor applied to the intervals Anki generates
+ivlFct -- multiplication factor applied to the intervals Anki
+generates
 maxIvl -- the maximal interval for review
-bury -- If True, when a review card is answered, the related cards of its notes are buried
+bury -- If True, when a review card is answered, the related cards of
+its notes are buried
 """
+
 import copy, operator
 import unicodedata
-import json
-
-from anki.utils import intTime, ids2str
+from anki.utils import intTime, ids2str, json
 from anki.hooks import runHook
 from anki.consts import *
 from anki.lang import _

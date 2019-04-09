@@ -193,12 +193,11 @@ lapses=?, left=?, odue=?, odid=?, did=? where id = ?""",
     def q(self, reload=False, browser=False):
         """The card question with its css.
 
-        Keyword arguments: reload -- whether the card should be
-        reloaded even if it is already known browser -- whether its
-        called from the browser (in which case the format strings are
+        Keyword arguments:
+        reload -- whether the card should be reloaded even if it is already known
+        browser -- whether its        called from the browser (in which case the format strings are
         bqfmt and not qfmt)
-
-        """
+"""
         return self.css() + self._getQA(reload, browser)['q']
 
     def a(self):

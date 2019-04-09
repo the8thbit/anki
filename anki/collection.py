@@ -71,14 +71,11 @@ class _Collection:
     usn -- update sequence number: used for finding diffs when syncing.
         --   See usn in cards table for more details.
     ls -- "last sync time"
-    conf -- object containing configuration options that are synced
-"""
+    conf -- json object containing configuration options that are synced
+    """
 
     """
-    In the db, not in col objects
-
-    models -- the model manager
-    In the db: json array of json objects containing the models (aka Note types)
+    In the db, not in col objects: json array of json objects containing the models (aka Note types)
     decks -- The deck manager
           -- in the db  it is a json array of json objects containing the deck
     dconf -- json array of json objects containing the deck options
@@ -138,6 +135,24 @@ class _Collection:
     * the usn returned by self.usn is self._usn, otherwise -1.
     * media manager does not connect nor close database connexion (I've no idea why)
 
+=======
+
+    not in the db:
+    activeDecks -- The active decks, that is, the current deck and its descendent.
+    curDeck -- the current deck. That is, the last deck which was selected
+    for review or for adding cards.
+    newSpread -- ??
+    collapseTime --
+    timeLim --
+    estTimes --
+    dueCounts --
+    other --
+    curModel -- A model which is, right now, the default model
+    nextPos -- the highest due of new cards
+    sortType --
+    sortBackwards --
+    addToCur -- add new to currently selected deck?
+>>>>>>> Merge
     """
     def __init__(self, db, server=False, log=False):
         self._debugLog = log
@@ -738,7 +753,8 @@ where c.nid = n.id and c.id in %s group by nid""" % ids2str(cids)):
         fields['Type'] = model['name']
         fields['Deck'] = self.decks.name(did)
         fields['Subdeck'] = fields['Deck'].split('::')[-1]
-        if model['type'] == MODEL_STD:#Note that model['type'] has not the same meaning as fields['Type']
+        fields['CardFlag'] = self._flagNameFromCardFlags(cardFlags)
+        if model['type'] == MODEL_STD:#model['type'] is distinct from fields['Type']
             template = model['tmpls'][ord]
         else:#for cloze deletions
             template = model['tmpls'][0]
@@ -750,7 +766,7 @@ where c.nid = n.id and c.id in %s group by nid""" % ids2str(cids)):
         qfmt = qfmt or template['qfmt']
         afmt = afmt or template['afmt']
         for (type, format) in (("q", qfmt), ("a", afmt)):
-            if type == "q":
+            if type == "q":#if/else is in the loop in order for d['q'] to be defined below
                 format = re.sub("{{(?!type:)(.*?)cloze:", r"{{\1cq-%d:" % (ord+1), format)
                 #Replace {{'foo'cloze: by {{'foo'cq-(ord+1), where 'foo' does not begins with "type:"
                 format = format.replace("<%cloze:", "<%%cq:%d:" % (

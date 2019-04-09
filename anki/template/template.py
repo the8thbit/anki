@@ -44,7 +44,7 @@ class Template:
     """TODO
 
     A template object contains:
-    template -- does not seems to be used
+    template -- ; see ../models.py
     context -- a dictionnary containing at least:
     ** the fields
     ** the  value for Tags, Type, Deck, Subdeck, Fields, FrontSide (on

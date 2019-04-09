@@ -36,7 +36,7 @@ def runHook(hook, *args):
                 raise
 
 def runFilter(hook, arg, *args):
-    """Apply each function on hook to the result of the last function
+    "Apply each function on hook to the result of the last function
     and *args. The first argument is arg. Return the value returned by
     the last function.
 
@@ -77,7 +77,6 @@ def wrap(old, new, pos="after"):
     keyword arguments:
     old -- The function which is overrided
     new -- The function which should be added
-
     """
     def repl(*args, **kwargs):
         """If pos is after (default), execute old and return new.
