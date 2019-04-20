@@ -39,12 +39,6 @@ class AnkiQt(QMainWindow):
         aqt.mw = self
         self.app = app
         self.pm = profileManager
-        # running 2.0 for the first time?
-        if self.pm.meta['firstRun']:
-            # load the new deck user profile
-            self.pm.load(self.pm.profiles()[0])
-            self.pm.meta['firstRun'] = False
-            self.pm.save()
         # init rest of app
         self.safeMode = self.app.queryKeyboardModifiers() & Qt.ShiftModifier
         try:
@@ -62,7 +56,11 @@ class AnkiQt(QMainWindow):
             self.onAppMsg(args[0])
         # Load profile in a timer so we can let the window finish init and not
         # close on profile load error.
-        self.progress.timer(10, self.setupProfile, False, requiresCollection=False)
+        if isWin:
+            fn = self.setupProfileAfterWebviewsLoaded
+        else:
+            fn = self.setupProfile
+        self.progress.timer(10, fn, False, requiresCollection=False)
 
     def setupUI(self):
         self.col = None
@@ -90,6 +88,16 @@ class AnkiQt(QMainWindow):
         self.setupOverview()
         self.setupReviewer()
 
+    def setupProfileAfterWebviewsLoaded(self):
+        for w in (self.web, self.bottomWeb):
+            if not w._domDone:
+                self.progress.timer(10, self.setupProfileAfterWebviewsLoaded, False, requiresCollection=False)
+                return
+            else:
+                w.requiresCol = True
+
+        self.setupProfile()
+
     # Profiles
     ##########################################################################
 
@@ -108,6 +116,12 @@ class AnkiQt(QMainWindow):
             self.closeFires = True
 
     def setupProfile(self):
+        if self.pm.meta['firstRun']:
+            # load the new deck user profile
+            self.pm.load(self.pm.profiles()[0])
+            self.pm.meta['firstRun'] = False
+            self.pm.save()
+
         self.pendingImport = None
         self.restoringBackup = False
         # profile not provided on command line?
@@ -292,7 +306,7 @@ close the profile or restart Anki."""))
                 if getattr(w, "silentlyClose", None):
                     w.close()
                 else:
-                    showWarning("Window should have been closed: {}".format(w))
+                    print("Window should have been closed: {}".format(w))
 
     def unloadProfileAndExit(self):
         self.unloadProfile(self.cleanupAndExit)
@@ -607,6 +621,13 @@ title="%s" %s>%s</button>''' % (
         self.mainLayout.addWidget(sweb)
         self.form.centralwidget.setLayout(self.mainLayout)
 
+        # force webengine processes to load before cwd is changed
+        if isWin:
+            for o in self.web, self.bottomWeb:
+                o.requiresCol = False
+                o._domReady = False
+                o._page.setContent(bytes("", "ascii"))
+
     def closeAllWindows(self, onsuccess):
         aqt.dialogs.closeAll(onsuccess)
 
@@ -793,6 +814,7 @@ QTreeWidget {
         cid = self.col.undo()
         if cid and self.state == "review":
             card = self.col.getCard(cid)
+            self.col.sched.reset()
             self.reviewer.cardQueue.append(card)
             self.reviewer.nextCard()
             self.maybeEnableUndo()
