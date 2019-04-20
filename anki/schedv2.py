@@ -1561,7 +1561,7 @@ and due >= ? and queue = {QUEUE_NEW_CRAM}""" % scids, now, self.col.usn(), shift
 
     def resortConf(self, conf):
         for did in self.col.decks.didsForConf(conf):
-            if conf['new']['order'] == 0:
+            if conf['new']['order'] == NEW_CARDS_RANDOM:
                 self.randomizeCards(did)
             else:
                 self.orderCards(did)

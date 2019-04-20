@@ -75,7 +75,7 @@ class AnkiWebPage(QWebEnginePage):
         # catch buggy <a href='#' onclick='func()'> links
         from aqt import mw
         if url.matches(QUrl(mw.serverURL()), QUrl.RemoveFragment):
-            sys.stderr.write("onclick handler needs to return false\n")
+            print("onclick handler needs to return false")
             return False
         # load all other links in browser
         openLink(url)
@@ -228,10 +228,15 @@ class AnkiWebView(QWebEngineView):
             css = []
         if js is None:
             js = ["jquery.js"]
+
+        palette = self.style().standardPalette()
+        color_hl = palette.color(QPalette.Highlight).name()
+
         if isWin:
             #T: include a font for your language on Windows, eg: "Segoe UI", "MS Mincho"
             family = _('"Segoe UI"')
             widgetspec = "button { font-size: 12px; font-family:%s; }" % family
+            widgetspec += "\n:focus { outline: 1px solid %s; }" % color_hl
             fontspec = 'font-size:12px;font-family:%s;' % family
         elif isMac:
             family="Helvetica"
@@ -241,9 +246,7 @@ class AnkiWebView(QWebEngineView):
 button { font-size: 13px; -webkit-appearance: none; background: #fff; border: 1px solid #ccc;
 border-radius:5px; font-family: Helvetica }"""
         else:
-            palette = self.style().standardPalette()
             family = self.font().family()
-            color_hl = palette.color(QPalette.Highlight).name()
             color_hl_txt = palette.color(QPalette.HighlightedText).name()
             color_btn = palette.color(QPalette.Button).name()
             fontspec = 'font-size:14px;font-family:"%s";'% family

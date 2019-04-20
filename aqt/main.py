@@ -71,7 +71,11 @@ class AnkiQt(QMainWindow):
             self.onAppMsg(args[0])
        # Load profile in a timer so we can let the window finish init and not
         # close on profile load error.
-        self.progress.timer(10, self.setupProfile, False, requiresCollection=False)
+        if isWin:
+            fn = self.setupProfileAfterWebviewsLoaded
+        else:
+            fn = self.setupProfile
+        self.progress.timer(10, fn, False, requiresCollection=False)
 
     def setupUI(self):
         self.col = None
@@ -98,6 +102,16 @@ class AnkiQt(QMainWindow):
         self.setupDeckBrowser()
         self.setupOverview()
         self.setupReviewer()
+
+    def setupProfileAfterWebviewsLoaded(self):
+        for w in (self.web, self.bottomWeb):
+            if not w._domDone:
+                self.progress.timer(10, self.setupProfileAfterWebviewsLoaded, False, requiresCollection=False)
+                return
+            else:
+                w.requiresCol = True
+
+        self.setupProfile()
 
     # Profiles
     ##########################################################################
@@ -307,7 +321,7 @@ close the profile or restart Anki."""))
                 if getattr(w, "silentlyClose", None):
                     w.close()
                 else:
-                    showWarning("Window should have been closed: {}".format(w))
+                    print("Window should have been closed: {}".format(w))
 
     def unloadProfileAndExit(self):
         self.unloadProfile(self.cleanupAndExit)
@@ -649,8 +663,10 @@ title="%s" %s>%s</button>''' % (
 
         # force webengine processes to load before cwd is changed
         if isWin:
-            self.web._page.setHtml("")
-            self.bottomWeb._page.setHtml("")
+            for o in self.web, self.bottomWeb:
+                o.requiresCol = False
+                o._domReady = False
+                o._page.setContent(bytes("", "ascii"))
 
     def closeAllWindows(self, onsuccess):
         aqt.dialogs.closeAll(onsuccess)
