@@ -49,10 +49,13 @@ class AddonManager:
         sys.path.insert(0, self.addonsFolder())
 
     def allAddons(self):
-        """List of installed add-ons.
+        """List of installed add-ons' folder name
 
         In alphabetical order of folder name. I.e. add-on number for downloaded add-ons.
         Reverse order if the environment variable  ANKIREVADDONS is set.
+
+        A folder is an add-on folder iff it contains __init__.py.
+
         """
         l = []
         for d in os.listdir(self.addonsFolder()):

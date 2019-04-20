@@ -52,7 +52,8 @@ reviewer of cards in the main window
 #### Other menues
 ###### setupEditorButtons
 Called from aqt.editor.Editor.setupWeb, with the buttons on right top,
-and the editor itself.
+and the editor itself. It would allow to add more buttons on the top
+right of editors
 
 ##### mungeEditingFontName
 Contains aqt.editor.fontMungeHack, which return the input, by

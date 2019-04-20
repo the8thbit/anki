@@ -80,6 +80,7 @@ class Editor:
         self.web.onBridgeCmd = self.onBridgeCmd
         self.outerLayout.addWidget(self.web, 1)
 
+        # List of buttons on top right of editor
         righttopbtns = list()
         righttopbtns.append(self._addButton('text_bold', 'bold', _("Bold text (Ctrl+B)"), id='bold'))
         righttopbtns.append(self._addButton('text_italic', 'italic', _("Italic text (Ctrl+I)"), id='italic'))
@@ -103,23 +104,29 @@ class Editor:
         righttopbtns.append(self._addButton('media-record', 'record', _("Record audio (F5)")))
         righttopbtns.append(self._addButton('more', 'more'))
         righttopbtns = runFilter("setupEditorButtons", righttopbtns, self)
-        topbuts = """
-            <div id="topbutsleft" style="float:left;">
+
+        # Fields... and Cards... button on top lefts, and
+        lefttopbtns = """
                 <button title='%(fldsTitle)s' onclick="pycmd('fields')">%(flds)s...</button>
                 <button title='%(cardsTitle)s' onclick="pycmd('cards')">%(cards)s...</button>
+        """%dict(flds=_("Fields"), cards=_("Cards"),
+                   fldsTitle=_("Customize Fields"),
+                   cardsTitle=shortcut(_("Customize Card Templates (Ctrl+L)")))
+        topbuts= """
+            <div id="topbutsleft" style="float:left;">
+                %(lefttopbtns)s
             </div>
             <div id="topbutsright" style="float:right;">
                 %(rightbts)s
             </div>
-        """ % dict(flds=_("Fields"), cards=_("Cards"), rightbts="".join(righttopbtns),
-                   fldsTitle=_("Customize Fields"),
-                   cardsTitle=shortcut(_("Customize Card Templates (Ctrl+L)")))
+        """ % dict(lefttopbtns = lefttopbtns, rightbts="".join(righttopbtns))
         bgcol = self.mw.app.palette().window().color().name()
         # then load page
-        self.web.stdHtml(_html % (
+        html = _html % (
             bgcol, bgcol,
             topbuts,
-            _("Show Duplicates")),
+            _("Show Duplicates"))
+        self.web.stdHtml(html,
                          css=["editor.css"],
                          js=["jquery.js", "editor.js"])
 
@@ -151,6 +158,17 @@ class Editor:
 
     def _addButton(self, icon, cmd, tip="", label="", id=None, toggleable=False,
                    disables=True):
+        """Create a button, with the image icon, or the text of the label, or
+        of the cmd. It send the python command cmd.
+
+        icon -- url to the icon. Potentially falsy
+        cmd -- python command to call when the button is pressed
+        tip -- text to show when the mouse is on the button
+        id -- an identifier for the html button
+        toggleable -- whether pressing the button should call the js function toggleEditorButton
+        disables -- if true, add class "perm" to the btuton
+
+        """
         if icon:
             if icon.startswith("qrc:/"):
                 iconstr = icon
@@ -307,7 +325,7 @@ class Editor:
     ######################################################################
 
     def setNote(self, note, hide=True, focusTo=None):
-        """Make NOTE the current note.
+        """Make `note` the current note.
 
         if note is Falsy:
         Remove tags's line.
@@ -337,7 +355,7 @@ class Editor:
         if not self.note:
             return
 
-        data = []
+        data = []# field name, field content modified so that it's image's url can be used locally.
         for fld, val in list(self.note.items()):
             data.append((fld, self.mw.col.media.escapeImages(val)))
         self.widget.show()

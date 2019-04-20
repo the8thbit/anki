@@ -319,6 +319,8 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
         return txt
 
     def escapeImages(self, string, unescape=False):
+        """Replace local image url by replacing special character by the
+        escape %xx or reciprocally depending on unescape value."""
         if unescape:
             fn = urllib.parse.unquote
         else:

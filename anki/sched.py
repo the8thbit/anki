@@ -1554,8 +1554,8 @@ To study outside of the normal schedule, click the Custom Study button below."""
         "Unsuspend cards."
         self.col.log(ids)
         self.col.db.execute(
-            (f"update cards set queue=type,mod=?,usn=? "
-            "where queue = {QUEUE_SUSPENDED} and id in ")+ ids2str(ids),
+            (f"""update cards set queue=type,mod=?,usn=?
+            where queue = {QUEUE_SUSPENDED} and id in """)+ ids2str(ids),
             intTime(), self.col.usn())
 
     def buryCards(self, cids):
@@ -1660,6 +1660,20 @@ usn=:usn,mod=:mod,factor=:fact where id=:id""",
     ##########################################################################
 
     def sortCards(self, cids, start=1, step=1, shuffle=False, shift=False):
+        """Change the due of new cards in `cids`.
+
+        Each card of the same note have the same due. The order of the
+        due is random if shuffle. Otherwise the order of the note `n` is
+        similar to the order of the first occurrence of a card of `n` in cids.
+
+        Keyword arguments:
+        cids -- list of card ids to reorder (i.e. change due). Not new cards are ignored
+        start -- the first due to use
+        step -- the difference between to successive due of notes
+        shuffle -- whether to shuffle the note. By default, the order is similar to the created order
+        shift -- whether to change the due of all new cards whose due is greater than start (to ensure that the new due of cards in cids is not already used)
+
+        """
         scids = ids2str(cids)
         now = intTime()
         nids = []
@@ -1679,7 +1693,7 @@ usn=:usn,mod=:mod,factor=:fact where id=:id""",
         for c, nid in enumerate(nids):
             due[nid] = start+c*step
         # pylint: disable=undefined-loop-variable
-        high = start+c*step
+        high = start+c*step #Highest due which will be used
         # shift?
         if shift:
             low = self.col.db.scalar(
@@ -1700,16 +1714,27 @@ and due >= ? and queue = {QUEUE_NEW_CRAM}""" % (scids), now, self.col.usn(), shi
             "update cards set due=:due,mod=:now,usn=:usn where id = :cid", d)
 
     def randomizeCards(self, did):
+        """Change the due value of new cards of deck `did`. The new due value
+        is the same for every card of a note (as long as they are in the same
+        deck.)"""
         cids = self.col.db.list("select id from cards where did = ?", did)
         self.sortCards(cids, shuffle=True)
 
     def orderCards(self, did):
+        """Change the due value of new cards of deck `did`. The new due value
+        is the same for every card of a note (as long as they are in the
+        same deck.)
+
+        The note are now ordered according to the smallest id of their
+        cards. It generally means they are ordered according to date
+        creation.
+        """
         cids = self.col.db.list("select id from cards where did = ? order by id", did)
         self.sortCards(cids)
 
     def resortConf(self, conf):
         for did in self.col.decks.didsForConf(conf):
-            if conf['new']['order'] == 0:
+            if conf['new']['order'] == NEW_CARDS_RANDOM:
                 self.randomizeCards(did)
             else:
                 self.orderCards(did)

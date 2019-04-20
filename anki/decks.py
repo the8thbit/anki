@@ -36,7 +36,7 @@ name -- its name, including the parents, and the "::"
 
 
 
-A configuration of deck is composed of:
+A configuration of deck (dconf) is composed of:
 name -- its name
 new -- The configuration for new cards, see below.
 lapse -- The configuration for lapse cards, see below.
@@ -52,7 +52,7 @@ usn -- see USN documentation
 dyn -- Whether this deck is dynamic. Not present in the default configurations
 id -- deck ID (automatically generated long). Not present in the default configurations.
 
-The configuration related to new card is composed of:
+The configuration related to new cards is composed of:
 delays -- The list of successive delay between the learning steps of
 the new cards, as explained in the manual.
 ints -- The delays according to the button pressed while leaving the

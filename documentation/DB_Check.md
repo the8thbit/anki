@@ -4,7 +4,7 @@ In this document, we consider the processing of checking of the
 database. We actually consider four different checkings:
 * The one which cause anki to tell that the database has
 inconsistencies and that we should use run «Check Database».
-* The action which occur when «Check Database is run». 
+* The action which occur when «Check Database is run».
 * The kind of database error which are not repaired nor fixed by anki.
 (but they are fixed by the add-on [Database checker/fixer explained,
 more fixers](https://ankiweb.net/shared/info/1135180054)).
@@ -123,19 +123,20 @@ the number of cards with this problem.
 
 ### New cards can't have a due position > 32 bits
 For some reason, anki believes that the due value of new cards should
-be at most 1000000. So if its not the case, the number is changed
-to 1000000. One of the reason to do this is that it ensures that the
+be at most 1,000,000. So if its not the case, the number is changed to
+1,000,000. One of the reason to do this is that it ensures that the
 number fits on 32 bits.
 
 Actually, it kind of makes sens. If the card is new, the due value
 just give an order in which cards will be seen, and if the first
-1000000 cards are shown in the correct order, the remaining may be
+1,000,000 cards are shown in the correct order, the remaining may be
 consireded not important right now. If the card is due, due is the
 day in which the card will be seen. When doing this edition, anki
 prints nothing.
 
 ### tags
 Anki calls self.tags.registerNotes() (todo)
+
 ### nextPos
 Anki set the next position value to the successor of the greatest ord
 of new card. Note that if this is 1000000, then the nextPos will be a

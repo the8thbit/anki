@@ -36,7 +36,7 @@ def runHook(hook, *args):
                 raise
 
 def runFilter(hook, arg, *args):
-    "Apply each function on hook to the result of the last function
+    """Apply each function on hook to the result of the last function
     and *args. The first argument is arg. Return the value returned by
     the last function.
 

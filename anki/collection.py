@@ -1075,7 +1075,7 @@ update cards set due = 1000000, mod = ?, usn = ? where due > 1000000
 and type = 0""", intTime(), self.usn())
         # new card position
         self.conf['nextPos'] = self.db.scalar(
-            "select max(due)+1 from cards where type = 0") or 0
+            "select max(due)+1 from cards where type = {CARD_NEW}") or 0
         # reviews should have a reasonable due #
         ids = self.db.list(
             "select id from cards where queue = 2 and due > 100000")

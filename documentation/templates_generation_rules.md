@@ -25,8 +25,8 @@ Anki generate the html content of some cards in some cases. It checks
 this content to choose what kind of rules should be applied
 
 First, anki generates the html of card where all fields are
-empty. We'll call this content ```empty content```. We'll use this two
-times below.
+empty. We'll call this content ```empty content```. We'll use this
+twice below.
 
 
 #### Everything and Nothing

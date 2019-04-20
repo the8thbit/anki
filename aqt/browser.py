@@ -1185,7 +1185,7 @@ border: 1px solid #000; padding: 3px; '>%s</div>""" % rep
             fmt = "<span style='color:%s'>%s</span>"
             if type == CARD_NEW:
                 tstr = fmt % (st.colLearn, tstr)
-            elif type == CARD_REV:
+            elif type == CARD_DUE:
                 tstr = fmt % (st.colMature, tstr)
             elif type == CARD_RELRN:
                 tstr = fmt % (st.colRelearn, tstr)
