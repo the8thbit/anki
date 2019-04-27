@@ -31,7 +31,7 @@ changed -- Whether the Model has been changed and should be written in
 the database."""
 
 
-"""A field object is an array composed of:
+"""A field object (flds) is an array composed of:
 font -- "display font",
 media -- "array of media. appears to be unused",
 name -- "field name",

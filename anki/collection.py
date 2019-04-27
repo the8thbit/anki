@@ -265,7 +265,11 @@ crt=?, mod=?, scm=?, dty=?, usn=?, ls=?, conf=?""",
             self._usn, self.ls, json.dumps(self.conf))
 
     def save(self, name=None, mod=None):
-        "Flush, commit DB, and take out another write lock."
+        """
+        Flush, commit DB, and take out another write lock.
+
+        name --
+        """
         # let the managers conditionally flush
         self.models.flush()
         self.decks.flush()
@@ -396,6 +400,9 @@ crt=?, mod=?, scm=?, dty=?, usn=?, ls=?, conf=?""",
     ##########################################################################
 
     def nextID(self, type, inc=True):
+        """Get the id next{Type} in the collection's configuration. Increment this id.
+
+        Use 1 instead if this id does not exists in the collection."""
         type = "next"+type.capitalize()
         id = self.conf.get(type, 1)
         if inc:
@@ -481,7 +488,7 @@ crt=?, mod=?, scm=?, dty=?, usn=?, ls=?, conf=?""",
         return ok
 
     def genCards(self, nids):
-        """Ids of cards needed to be removed.
+        """Ids of cards which needs to be removed.
 
         Generate missing cards of a note with id in nids.
         """

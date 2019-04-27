@@ -1064,7 +1064,11 @@ select id from cards where did in %s and queue = {QUEUE_REV} and due <= ? limit 
             card.odue = 0
 
     def _logRev(self, card, ease, delay):
-        """Log this review. Retry once if failed"""
+        """Log this review. Retry once if failed.
+        card -- a card object
+        ease -- the button pressed
+        delay -- if the answer is again, then the number of second until the next review
+        """
         def log():
             self.col.db.execute(
                 "insert into revlog values (?,?,?,?,?,?,?,?,?)",
@@ -1733,6 +1737,8 @@ and due >= ? and queue = {QUEUE_NEW_CRAM}""" % (scids), now, self.col.usn(), shi
         self.sortCards(cids)
 
     def resortConf(self, conf):
+        """When a deck configuration's order of new card is changed, apply
+        this change to each deck having the same deck configuration."""
         for did in self.col.decks.didsForConf(conf):
             if conf['new']['order'] == NEW_CARDS_RANDOM:
                 self.randomizeCards(did)
