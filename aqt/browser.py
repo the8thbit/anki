@@ -1185,11 +1185,11 @@ border: 1px solid #000; padding: 3px; '>%s</div>""" % rep
             fmt = "<span style='color:%s'>%s</span>"
             if type == CARD_NEW:
                 tstr = fmt % (st.colLearn, tstr)
-            elif type == CARD_DUE:
+            elif type == CARD_LRN:
                 tstr = fmt % (st.colMature, tstr)
-            elif type == CARD_RELRN:
+            elif type == CARD_DUE:
                 tstr = fmt % (st.colRelearn, tstr)
-            elif type == CARD_CRAM:
+            elif type == CARD_FILTERED:
                 tstr = fmt % (st.colCram, tstr)
             else:
                 tstr = fmt % ("#000", tstr)
