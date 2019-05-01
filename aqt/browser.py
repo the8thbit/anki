@@ -310,7 +310,7 @@ class DataModel(QAbstractTableModel):
             date = c.due
         elif c.queue == QUEUE_NEW_CRAM or c.type == CARD_NEW:
             return str(c.due)
-        elif c.queue in (QUEUE_DAY_LRN,QUEUE_PREVIEW) or (c.type == CARD_DUE and
+        elif c.queue in (QUEUE_REV, QUEUE_DAY_LRN) or (c.type == CARD_DUE and
                                                           c.queue < 0#suspended or buried
         ):
             date = time.time() + ((c.due - self.col.sched.today)*86400)
