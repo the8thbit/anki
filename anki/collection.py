@@ -668,6 +668,7 @@ select id from notes where id in %s and id not in (select nid from cards)""" %
         self._remNotes(nids)
 
     def emptyCids(self):
+        """The card id of empty cards of the collection"""
         rem = []
         for m in self.models.all():
             rem += self.genCards(self.models.nids(m))
@@ -826,6 +827,7 @@ where c.nid == f.id
         return anki.find.Finder(self).findCards(query, order)
 
     def findNotes(self, query):
+        "Return a list of notes ids for QUERY."
         return anki.find.Finder(self).findNotes(query)
 
     def findReplace(self, nids, src, dst, regex=None, field=None, fold=True):

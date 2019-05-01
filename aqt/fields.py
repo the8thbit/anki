@@ -160,6 +160,7 @@ class FieldDialog(QDialog):
         fld['rtl'] = f.rtl.isChecked()
 
     def reject(self):
+        """Close the window. If there were some change, recompute with updateFieldCache(todo)"""
         self.saveField()
         if self.oldSortField != self.model['sortf']:
             self.mw.progress.start()

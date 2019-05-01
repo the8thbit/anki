@@ -69,6 +69,7 @@ class Models(QDialog):
         maybeHideClose(box)
 
     def onRename(self):
+        """Ask the user for a new name for the model. Save it"""
         txt = getText(_("New name:"), default=self.model['name'])
         if txt[1] and txt[0]:
             self.model['name'] = txt[0]
@@ -90,6 +91,7 @@ class Models(QDialog):
         self.form.modelsList.setCurrentRow(row)
 
     def modelChanged(self):
+        """Called if the selected model has changed, in order to change self.model"""
         if self.model:
             self.saveModel()
         idx = self.form.modelsList.currentRow()
@@ -137,6 +139,7 @@ class Models(QDialog):
         self.model['latexPost'] = str(frm.latexFooter.toPlainText())
 
     def saveModel(self):
+        """Similar to "save the model" in anki/models.py"""
         self.mm.save(self.model)
 
     def _tmpNote(self):

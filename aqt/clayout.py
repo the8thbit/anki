@@ -234,6 +234,7 @@ class CardLayout(QDialog):
                 g.setTitle(g.title() + _(" (1 of %d)") % max(cnt, 1))
 
     def onRemove(self):
+        """ Remove the current template, except if it would leave a note without card. Ask user for confirmation"""
         if len(self.model['tmpls']) < 2:
             return showInfo(_("At least one card type is required."))
         idx = self.ord
@@ -385,6 +386,7 @@ Please create a new card type first."""))
         self.redraw()
 
     def onReorder(self):
+        """Asks user for a new position for current template. Move to this position if it is a valid position."""
         n = len(self.cards)
         cur = self.card.template()['ord']+1
         pos = getOnlyText(
@@ -415,6 +417,7 @@ Please create a new card type first."""))
         return name
 
     def onAddCard(self):
+        """Ask for confirmation and create a copy of current card as the last template"""
         cnt = self.mw.col.models.useCount(self.model)
         txt = ngettext("This will create %d card. Proceed?",
                        "This will create %d cards. Proceed?", cnt) % cnt
@@ -573,6 +576,7 @@ Enter deck to place new %s cards in, or leave blank:""") %
         self.reject()
 
     def reject(self):
+        """ Close the window and save the current version of the model"""
         self.cancelPreviewTimer()
         clearAudioQueue()
         if self.addMode:

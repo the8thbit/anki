@@ -7,15 +7,13 @@ be taken into account.
 
 This is the simplest case. If you select a card in the browser, or is
 reviewing a card, and you decide to delete it, you'll delete the
-entire note. This is also what occurs if you delete a note type.
-
-There is nothing else to say about it.
+entire note. This is also what occurs if you delete a note type. (Note
+that if you have in your collection a note whose note type is unkwown,
+or with a wrong number of field, or which has no card, it will also be
+silently deleted during a database check.)
 
 ## Deleting cards
 Here are the following way to delete a card.
-* deleting a card type (this can not be done if this is the card type
-  of the only card of a note)
-* deleting empty cards
 * deleting a deck
 * deletion requested by a synchronization.
 
@@ -24,6 +22,25 @@ exists and the card is not empty, the next «check database» will
 regenerate those cards, but they'll be considered to be brand new
 cards.
 
+* changing a note's note type.
+
+You change use «change the note type» without actually changing it,
+and just moving a card to «nothing». Note however that, if this card
+is not empty, it will immediatly be regenerated. Thus what you are
+doing is only changing this card for a new card (and potentially
+changing it's deck, because anki may have to guess the deck for the
+new card.)
+
+* deleting a card type (this can not be done if this is the card type
+  of the only card of a note)
+* deleting the note containing the card
+* deleting empty cards
+
+Of course this last option only delete empty cards.
+
+* doing a database check
+this delete cards if the card has a position which is incorrect, or if
+it's note does not exists anymore.
 
 
 ## Deleting each card of a note

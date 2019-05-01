@@ -585,7 +585,9 @@ select id from notes where mid = ?)""" % " ".join(map),
                              self.col.usn(), intTime(), m['id'])
 
     def _syncTemplates(self, m):
-        """Generate all cards not yet generated from, whose note's model is m"""
+        """Generate all cards not yet generated, whose note's model is m.
+
+        It's called only when model is saved, a new model is given and template is asked to be computed"""
         rem = self.col.genCards(self.nids(m))
 
     # Model changing
@@ -757,9 +759,10 @@ select id from notes where mid = ?)""" % " ".join(map),
         return type, req
 
     def availOrds(self, m, flds):
-        """Given a joined field string, return template ordinals which should be
-        seen. See ../documentation/templates_generation_rules.md for
-        the detail
+        """Given a joined field string, return ordinal of card type which
+        should be generated. See
+        ../documentation/templates_generation_rules.md for the detail
+
         """
         if m['type'] == MODEL_CLOZE:
             return self._availClozeOrds(m, flds)
