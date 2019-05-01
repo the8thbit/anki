@@ -1175,13 +1175,13 @@ border: 1px solid #000; padding: 3px; '>%s</div>""" % rep
                     _("Resched")][type]
             import anki.stats as st
             fmt = "<span style='color:%s'>%s</span>"
-            if type == 0:
+            if type == CARD_NEW:
                 tstr = fmt % (st.colLearn, tstr)
-            elif type == 1:
+            elif type == CARD_LRN:
                 tstr = fmt % (st.colMature, tstr)
-            elif type == 2:
+            elif type == CARD_DUE:
                 tstr = fmt % (st.colRelearn, tstr)
-            elif type == 3:
+            elif type == CARD_FILTERED:
                 tstr = fmt % (st.colCram, tstr)
             else:
                 tstr = fmt % ("#000", tstr)
@@ -2095,4 +2095,3 @@ Are you sure you want to continue?""")):
 
     def onHelp(self):
         openHelp("browsermisc")
-
