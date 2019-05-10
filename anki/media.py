@@ -239,7 +239,9 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
     ##########################################################################
 
     def filesInStr(self, mid, string, includeRemote=False):
-        """The list of media's path in the string.
+        """The list of media's path in the string. 
+
+        Medias starting with _ are treated as any media.
 
         Each clozes are expanded in every possible ways. It allows
         for different strings to be created.

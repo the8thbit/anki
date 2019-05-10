@@ -197,6 +197,7 @@ class MPVBase:
         """Start up the communication threads.
         """
         self._thread = threading.Thread(target=self._reader)
+        self._thread.daemon = True
         self._thread.start()
 
     def _stop_thread(self):
@@ -349,8 +350,8 @@ class MPVBase:
         """Send a command to the mpv process and collect the result.
         """
         self.ensure_running()
-        self._send_message(message, timeout)
         try:
+            self._send_message(message, timeout)
             return self._get_response(timeout)
         except MPVCommandError as e:
             raise MPVCommandError("%r: %s" % (message["command"], e))
@@ -450,6 +451,7 @@ class MPV(MPVBase):
         """
         super()._start_thread()
         self._event_thread = threading.Thread(target=self._event_reader)
+        self._event_thread.daemon = True
         self._event_thread.start()
 
     def _stop_thread(self):

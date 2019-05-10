@@ -981,6 +981,7 @@ select id from notes where mid = ?) limit 1""" %
     def fixIntegrity(self):
         "Fix possible problems and rebuild caches."
         problems = []
+        curs = self.db.cursor()
         self.save()
         oldSize = os.stat(self.path)[stat.ST_SIZE]
 
@@ -1078,10 +1079,13 @@ select id from cards where odid > 0 and did in %s""" % ids2str(dids))
         # field cache
         for m in self.models.all():
             self.updateFieldCache(self.models.nids(m))
-        # new cards can't have a due position > 32 bits
-        self.db.execute(f"""
-update cards set due = 1000000, mod = ?, usn = ? where due > 1000000
-and type = {CARD_NEW}""", intTime(), self.usn())
+        # new cards can't have a due position > 32 bits, so wrap items over
+        # 2 million back to 1 million
+        curs.execute("""
+update cards set due=1000000+due%1000000,mod=?,usn=? where due>=1000000
+and type=0""", [intTime(), self.usn()])
+        if curs.rowcount:
+            problems.append("Found %d new cards with a due number >= 1,000,000 - consider repositioning them in the Browse screen." % curs.rowcount)
         # new card position
         self.conf['nextPos'] = self.db.scalar(
             f"select max(due)+1 from cards where type = {CARD_NEW}") or 0
@@ -1094,8 +1098,6 @@ and type = {CARD_NEW}""", intTime(), self.usn())
                 "update cards set due = ?, ivl = 1, mod = ?, usn = ? where id in %s"
                 % ids2str(ids), self.sched.today, intTime(), self.usn())
         # v2 sched had a bug that could create decimal intervals
-        curs = self.db.cursor()
-
         curs.execute("update cards set ivl=round(ivl),due=round(due) where ivl!=round(ivl) or due!=round(due)")
         if curs.rowcount:
             problems.append("Fixed %d cards with v2 scheduler bug." % curs.rowcount)
@@ -1103,6 +1105,9 @@ and type = {CARD_NEW}""", intTime(), self.usn())
         curs.execute("update revlog set ivl=round(ivl),lastIvl=round(lastIvl) where ivl!=round(ivl) or lastIvl!=round(lastIvl)")
         if curs.rowcount:
             problems.append("Fixed %d review history entries with v2 scheduler bug." % curs.rowcount)
+        # models
+        if self.models.ensureNotEmpty():
+            problems.append("Added missing note type.")
         # and finally, optimize
         self.optimize()
         newSize = os.stat(self.path)[stat.ST_SIZE]

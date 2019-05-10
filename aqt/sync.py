@@ -80,7 +80,7 @@ If you use any other devices, please sync them now, and choose \
 to download the collection you have just uploaded from this computer. \
 After doing so, future reviews and added cards will be merged \
 automatically."""))
-        self.mw.progress.timer(1000, delayedInfo, False)
+        self.mw.progress.timer(1000, delayedInfo, False, requiresCollection=False)
 
     def _updateLabel(self):
         self.mw.progress.update(label="%s\n%s" % (
@@ -433,7 +433,8 @@ class SyncThread(QThread):
         elif ret == "success":
             self.fireEvent("success")
         elif ret == "serverAbort":
-            pass
+            self.syncMsg = self.client.syncMsg
+            return
         else:
             self.fireEvent("error", "Unknown sync return code.")
         self.syncMsg = self.client.syncMsg

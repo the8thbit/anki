@@ -658,7 +658,7 @@ did = ? and queue = {QUEUE_DAY_LRN} and due <= ? limit ?"""),
         card.type = CARD_DUE
 
     def _startingLeft(self, card):
-        if card.type == CARD_DUE:
+        if card.type == CARD_FILTERED:
             conf = self._lapseConf(card)
         else:
             conf = self._lrnConf(card)

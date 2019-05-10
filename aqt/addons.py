@@ -17,6 +17,8 @@ import zipfile
 from collections import defaultdict
 import markdown
 from send2trash import send2trash
+import jsonschema
+from jsonschema.exceptions import ValidationError
 
 from aqt.qt import *
 from aqt.utils import showInfo, openFolder, isWin, openLink, \
@@ -33,12 +35,19 @@ from anki.sync import AnkiRequestsClient
 class AddonManager:
 
     ext = ".ankiaddon"
-    # todo?: use jsonschema package
     _manifest_schema = {
-        "package": {"type": str, "req": True, "meta": False},
-        "name": {"type": str, "req": True, "meta": True},
-        "mod": {"type": int, "req": False, "meta": True},
-        "conflicts": {"type": list, "req": False, "meta": True}
+        "type": "object",
+        "properties": {
+            "package": {"type": "string", "meta": False},
+            "name": {"type": "string", "meta": True},
+            "mod": {"type": "number", "meta": True},
+            "conflicts": {
+                "type": "array",
+                "items": {"type": "string"},
+                "meta": True
+            }
+        },
+        "required": ["package", "name"]
     }
 
     def __init__(self, mw):
@@ -198,18 +207,15 @@ and have been disabled: %(found)s") % dict(name=self.addonName(dir), found=addon
     # Installing and deleting add-ons
     ######################################################################
 
-    def _readManifestFile(self, zfile):
+    def readManifestFile(self, zfile):
         try:
             with zfile.open("manifest.json") as f:
                 data = json.loads(f.read())
-            manifest = {}  # build new manifest from recognized keys
-            for key, attrs in self._manifest_schema.items():
-                if not attrs["req"] and key not in data:
-                    continue
-                val = data[key]
-                assert isinstance(val, attrs["type"])
-                manifest[key] = val
-        except (KeyError, json.decoder.JSONDecodeError, AssertionError):
+            jsonschema.validate(data, self._manifest_schema)
+            # build new manifest from recognized keys
+            schema = self._manifest_schema["properties"]
+            manifest = {key: data[key] for key in data.keys() & schema.keys()}
+        except (KeyError, json.decoder.JSONDecodeError, ValidationError):
             # raised for missing manifest, invalid json, missing/invalid keys
             return {}
         return manifest
@@ -224,7 +230,7 @@ and have been disabled: %(found)s") % dict(name=self.addonName(dir), found=addon
             return False, "zip"
 
         with zfile:
-            file_manifest = self._readManifestFile(zfile)
+            file_manifest = self.readManifestFile(zfile)
             if manifest:
                 file_manifest.update(manifest)
             manifest = file_manifest
@@ -236,8 +242,7 @@ and have been disabled: %(found)s") % dict(name=self.addonName(dir), found=addon
                                                        conflicts)
             meta = self.addonMeta(package)
             self._install(package, zfile)
-
-        schema = self._manifest_schema
+        schema = self._manifest_schema["properties"]
         manifest_meta = {k: v for k, v in manifest.items()
                          if k in schema and schema[k]["meta"]}
         meta.update(manifest_meta)
@@ -250,7 +255,9 @@ and have been disabled: %(found)s") % dict(name=self.addonName(dir), found=addon
         base = self.addonsFolder(dir)
         if os.path.exists(base):
             self.backupUserFiles(dir)
-            self.deleteAddon(dir)
+            if not self.deleteAddon(dir):
+                self.restoreUserFiles(dir)
+                return
 
         os.mkdir(base)
         self.restoreUserFiles(dir)
@@ -267,8 +274,15 @@ and have been disabled: %(found)s") % dict(name=self.addonName(dir), found=addon
                 continue
             zfile.extract(n, base)
 
+    # true on success
     def deleteAddon(self, dir):
-        send2trash(self.addonsFolder(dir))
+        try:
+            send2trash(self.addonsFolder(dir))
+            return True
+        except OSError as e:
+            showWarning(_("Unable to update or delete add-on. Please start Anki while holding down the shift key to temporarily disable add-ons, then try again.\n\nDebug info: %s") % e,
+                        textFormat="plain")
+            return False
 
     # Processing local add-on files
     ######################################################################
@@ -657,7 +671,8 @@ class AddonsDialog(QDialog):
                                dict(num=len(selected))):
             return
         for dir in selected:
-            self.mgr.deleteAddon(dir)
+            if not self.mgr.deleteAddon(dir):
+                break
         self.form.addonList.clearSelection()
         self.redrawAddons()
 

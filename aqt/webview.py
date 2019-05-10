@@ -170,6 +170,9 @@ class AnkiWebView(QWebEngineView):
         pass
 
     def setHtml(self, html):
+        # discard any previous pending actions
+        self._pendingActions = []
+        self._domDone = True
         self._queueAction("setHtml", html)
 
     def _setHtml(self, html):
@@ -348,13 +351,13 @@ body {{ zoom: {}; background: {}; {} }}
         return False
 
     def _onBridgeCmd(self, cmd):
-        if not self._filterSet:
-            self.focusProxy().installEventFilter(self)
-            self._filterSet = True
-
         if self._shouldIgnoreWebEvent():
             print("ignored late bridge cmd", cmd)
             return
+
+        if not self._filterSet:
+            self.focusProxy().installEventFilter(self)
+            self._filterSet = True
 
         if cmd == "domDone":
             self._domDone = True
