@@ -1,6 +1,21 @@
 # -*- coding: utf-8 -*-
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
+"""
+self.dir media's directory
+self.col the collection
+self.db the database for media (note that it's different from the collection database)
+
+Table media:
+fname -- the name of the file in media directory
+csum -- checksum of the content of the file last time it was checked. Null indicate deleted file
+mtime -- time of last modification
+dirty -- 0 if the data is not dirty, 1 if it is dirty
+
+table meta: a single entry, with:
+dirMod -- date of the last modification of the media directory according to the os
+lastUsn -- int synchronisation number of the last synchronisation
+"""
 import io
 import re
 import traceback
@@ -8,31 +23,45 @@ import urllib.request, urllib.parse, urllib.error
 import unicodedata
 import sys
 import zipfile
-from io import StringIO
+import pathlib
+import json
+import os
 
-from anki.utils import checksum, isWin, isMac, json
+from anki.utils import checksum, isWin, isMac
 from anki.db import DB, DBError
 from anki.consts import *
 from anki.latex import mungeQA
+from anki.lang import _
 
 class MediaManager:
+    """
+    _dir -- the directory of media. Unless server is given to the constructor, in this cas it's None. Directory is changed to it during synchronization, and then changed back to previous directory.
+    _oldcwd -- the working directory when media manager is created. The directory is changed to this value when the MediaManager is closed. If server is given in the constructor, then it's None.
 
-    soundRegexps = ["(?i)(\[sound:(?P<fname>[^]]+)\])"]
+"""
+
+    """Captures the argument foo of [sound:foo]"""
+    soundRegexps = [r"(?i)(\[sound:(?P<fname>[^]]+)\])"]
+    """Captures the argument foo of <img src=foo bar>, ignoring quotes around foo."""
     imgRegexps = [
         # src element quoted case
-        "(?i)(<img[^>]* src=(?P<str>[\"'])(?P<fname>[^>]+?)(?P=str)[^>]*>)",
+        r"(?i)(<img[^>]* src=(?P<str>[\"'])(?P<fname>[^>]+?)(?P=str)[^>]*>)",
         # unquoted case
-        "(?i)(<img[^>]* src=(?!['\"])(?P<fname>[^ >]+)[^>]*?>)",
+        r"(?i)(<img[^>]* src=(?!['\"])(?P<fname>[^ >]+)[^>]*?>)",
     ]
     regexps = soundRegexps + imgRegexps
 
     def __init__(self, col, server):
+        """
+        TODO
+
+        server -- always false in Anki"""
         self.col = col
         if server:
             self._dir = None
             return
         # media directory
-        self._dir = re.sub("(?i)\.(anki2)$", ".media", self.col.path)
+        self._dir = re.sub(r"(?i)\.(anki2)$", ".media", self.col.path)
         if not os.path.exists(self._dir):
             os.makedirs(self._dir)
         try:
@@ -48,6 +77,7 @@ class MediaManager:
         self.connect()
 
     def connect(self):
+        """Ensure the existence of a database in current format, connected in self.db."""
         if self.col.server:
             return
         path = self.dir()+".db2"
@@ -73,6 +103,7 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
 """)
 
     def maybeUpgrade(self):
+        """Upgrade database in old format to current format."""
         oldpath = self.dir()+".db"
         if os.path.exists(oldpath):
             self.db.execute('attach "../collection.media.db" as old')
@@ -100,6 +131,10 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
             os.rename("../collection.media.db", npath)
 
     def close(self):
+        """Close database connection.
+
+        don't do anything if server is truthy.
+        change dir back to old working dir"""
         if self.col.server:
             return
         self.db.close()
@@ -113,35 +148,49 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
                 pass
 
     def _deleteDB(self):
+        """Delete connected DB, connect to a new one"""
         path = self.db._path
         self.close()
         os.unlink(path)
         self.connect()
 
     def dir(self):
+        """The directory of media"""
         return self._dir
 
     def _isFAT32(self):
         if not isWin:
             return
+        # pylint: disable=import-error
         import win32api, win32file
         try:
-                name = win32file.GetVolumeNameForVolumeMountPoint(self._dir[:3])
+            name = win32file.GetVolumeNameForVolumeMountPoint(self._dir[:3])
         except:
             # mapped & unmapped network drive; pray that it's not vfat
             return
         if win32api.GetVolumeInformation(name)[4].lower().startswith("fat"):
-                return True
+            return True
 
     # Adding media
     ##########################################################################
     # opath must be in unicode
 
     def addFile(self, opath):
+        """Copy the file at path opath to collection.media,
+
+        Name may be changed to ensure unicity.
+        """
         with open(opath, "rb") as f:
             return self.writeData(opath, f.read())
 
     def writeData(self, opath, data, typeHint=None):
+        """Add data in the file of name opath in media dir.
+
+        Only file name of opath is keep.
+        If file as no extension, and it is jpg or png according to typeHint, then add extension
+        Add a number extension if this name already exists
+
+        """
         # if fname is a full path, use only the basename
         fname = os.path.basename(opath)
 
@@ -159,8 +208,8 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
         # make sure we write it in NFC form (pre-APFS Macs will autoconvert to NFD),
         # and return an NFC-encoded reference
         fname = unicodedata.normalize("NFC", fname)
-        # remove any dangerous characters
-        base = self.stripIllegal(fname)
+        # ensure it's a valid filename
+        base = self.cleanFilename(fname)
         (root, ext) = os.path.splitext(base)
         def repl(match):
             n = int(match.group(1))
@@ -180,7 +229,7 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
                 if checksum(f.read()) == csum:
                     return fname
             # otherwise, increment the index in the filename
-            reg = " \((\d+)\)$"
+            reg = r" \((\d+)\)$"
             if not re.search(reg, root):
                 root = root + " (1)"
             else:
@@ -191,7 +240,7 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
 
     def filesInStr(self, mid, string, includeRemote=False):
         """The list of media's path in the string.
-        
+
         Each clozes are expanded in every possible ways. It allows
         for different strings to be created.
 
@@ -227,10 +276,10 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
     def _expandClozes(self, string):
         """The list of all strings, where the clozes are expanded.
 
-        For each cloze number n, there is a string with cloze n replaced by [...] or by [hint], and every other clozes replaced by their text. 
+        For each cloze number n, there is a string with cloze n replaced by [...] or by [hint], and every other clozes replaced by their text.
 
         There is also a text where each cloze are replaced by their value; i.e. the answer"""
-        ords = set(re.findall("{{c(\d+)::.+?}}", string))
+        ords = set(re.findall(r"{{c(\d+)::.+?}}", string))
         #The set of clozes occurring in the string
         strings = []
         from anki.template.template import clozeReg
@@ -240,7 +289,7 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
                 return "[%s]" % m.group(4)
             else:
                 return "[...]"
-            
+
             if m.group(3):
                 return "[%s]" % m.group(3)
             else:
@@ -258,16 +307,20 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
         return strings
 
     def transformNames(self, txt, func):
+        """Apply func to all subtext matching the regexps txt."""
         for reg in self.regexps:
             txt = re.sub(reg, func, txt)
         return txt
 
     def strip(self, txt):
+        """Delete all text matching the regexps txt"""
         for reg in self.regexps:
             txt = re.sub(reg, "", txt)
         return txt
 
     def escapeImages(self, string, unescape=False):
+        """Replace local image url by replacing special character by the
+        escape %xx or reciprocally depending on unescape value."""
         if unescape:
             fn = urllib.parse.unquote
         else:
@@ -371,17 +424,22 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
     ##########################################################################
 
     def have(self, fname):
+        """Whether a fil with name fname exists in the media directory"""
         return os.path.exists(os.path.join(self.dir(), fname))
 
-    # Illegal characters
+    # Illegal characters and paths
     ##########################################################################
 
     _illegalCharReg = re.compile(r'[][><:"/?*^\\|\0\r\n]')
 
     def stripIllegal(self, str):
+        """str, without its illegal characters"""
         return re.sub(self._illegalCharReg, "", str)
 
     def hasIllegal(self, str):
+        """Whether str contains a illegal character.
+
+        Either according to _illegalCharReg, or because it can't be encoded if file system encoding"""
         if re.search(self._illegalCharReg, str):
             return True
         try:
@@ -390,21 +448,73 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
             return True
         return False
 
+    def cleanFilename(self, fname):
+        fname = self.stripIllegal(fname)
+        fname = self._cleanWin32Filename(fname)
+        fname = self._cleanLongFilename(fname)
+        if not fname:
+            fname = "renamed"
+
+        return fname
+
+    def _cleanWin32Filename(self, fname):
+        if not isWin:
+            return fname
+
+        # deal with things like con/prn/etc
+        p = pathlib.WindowsPath(fname)
+        if p.is_reserved():
+            fname = "renamed" + fname
+            assert not pathlib.WindowsPath(fname).is_reserved()
+
+        return fname
+
+    def _cleanLongFilename(self, fname):
+        # a fairly safe limit that should work on typical windows
+        # paths and on eCryptfs partitions, even with a duplicate
+        # suffix appended
+        namemax = 136
+
+        if isWin:
+            pathmax = 240
+        else:
+            pathmax = 1024
+
+        # cap namemax based on absolute path
+        dirlen = len(os.path.dirname(os.path.abspath(fname)))
+        remaining = pathmax - dirlen
+        namemax = min(remaining, namemax)
+        assert namemax > 0
+
+        if len(fname) > namemax:
+            head, ext = os.path.splitext(fname)
+            headmax = namemax - len(ext)
+            head = head[0:headmax]
+            fname = head + ext
+            assert(len(fname) <= namemax)
+
+        return fname
+
     # Tracking changes
     ##########################################################################
 
     def findChanges(self):
-        "Scan the media folder if it's changed, and note any changes."
+        "Scan the media folder if it's changed, and note any changes in the db."
         if self._changed():
             self._logChanges()
 
     def haveDirty(self):
+        """Whether the database has at least one dirty element"""
         return self.db.scalar("select 1 from media where dirty=1 limit 1")
 
     def _mtime(self, path):
+        """Time of most recent content modification of file at path.
+
+        Expressed in seconds."""
         return int(os.stat(path).st_mtime)
 
     def _checksum(self, path):
+        """Checksum of file at path"""
         with open(path, "rb") as f:
             return checksum(f.read())
 
@@ -500,6 +610,7 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
         self.db.commit()
 
     def syncInfo(self, fname):
+        """(Checkusm, dirty number) from media with name fname"""
         ret = self.db.first(
             "select csum, dirty from media where fname=?", fname)
         return ret or (None, 0)
@@ -510,15 +621,20 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
                 "update media set dirty=0 where fname=?", fname)
 
     def syncDelete(self, fname):
+        """Delete the file fname if it is not in media directory."""
         if os.path.exists(fname):
             os.unlink(fname)
         self.db.execute("delete from media where fname=?", fname)
 
     def mediaCount(self):
+        """Number of media according to database"""
         return self.db.scalar(
             "select count() from media where csum is not null")
 
     def dirtyCount(self):
+        """Number of dirty media according to database.
+
+        (couting the one potentially deleted)"""
         return self.db.scalar(
             "select count() from media where dirty=1")
 
@@ -535,6 +651,14 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
     ##########################################################################
 
     def mediaChangesZip(self):
+        """
+        The pair with:
+        * A string encoding a zip files with:
+        ** media to upload
+        ** _meta: a json list associating to each name (as in zip) to
+        the real name of the file
+        * list of media considered
+        """
         f = io.BytesIO()
         z = zipfile.ZipFile(f, "w", compression=zipfile.ZIP_DEFLATED)
 
@@ -542,8 +666,9 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
         # meta is list of (fname, zipname), where zipname of None
         # is a deleted file
         meta = []
-        sz = 0
+        sz = 0#sum of the size of the media.
 
+        # loop over dirty medias. At most SYNC_ZIP_COUNT = 25 elements
         for c, (fname, csum) in enumerate(self.db.execute(
                         "select fname, csum from media where dirty=1"
                         " limit %d"%SYNC_ZIP_COUNT)):
@@ -568,7 +693,15 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
         return f.getvalue(), fnames
 
     def addFilesFromZip(self, zipData):
-        "Extract zip data; true if finished."
+        """
+        Copy each file from zipData (except _meta) to the media
+        folder, and add those files to the media database. Rename the
+        file according to _meta.
+
+        zipData -- A byte tream containing a zipfile, containing:
+        * _meta, a file containing a json dict associtaing to each name of file in zip (except meta) a name to be used in the media folder
+        * arbitrary fields to save in the media folder
+        """
         f = io.BytesIO(zipData)
         z = zipfile.ZipFile(f, "r")
         media = []

@@ -36,7 +36,7 @@ import threading
 import subprocess
 import inspect
 
-from distutils.spawn import find_executable
+from distutils.spawn import find_executable # pylint: disable=import-error,no-name-in-module
 from queue import Queue, Empty, Full
 
 
@@ -57,6 +57,7 @@ class MPVTimeoutError(MPVError):
 
 from anki.utils import isWin
 if isWin:
+    # pylint: disable=import-error
     import win32file, win32pipe, pywintypes, winerror
 
 class MPVBase:
@@ -344,7 +345,7 @@ class MPVBase:
         except Empty:
             return None
 
-    def _send_request(self, message, timeout=None):
+    def _send_request(self, message, timeout=None, _retry=1):
         """Send a command to the mpv process and collect the result.
         """
         self.ensure_running()
@@ -353,6 +354,13 @@ class MPVBase:
             return self._get_response(timeout)
         except MPVCommandError as e:
             raise MPVCommandError("%r: %s" % (message["command"], e))
+        except MPVTimeoutError as e:
+            if _retry:
+                print("mpv timed out, restarting")
+                self._stop_process()
+                return self._send_request(message, timeout, _retry-1)
+            else:
+                raise
 
     #
     # Public API
@@ -431,6 +439,7 @@ class MPV(MPVBase):
         # Simulate an init event when the process and all callbacks have been
         # completely set up.
         if hasattr(self, "on_init"):
+            # pylint: disable=no-member
             self.on_init()
 
     #

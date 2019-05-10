@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 import os
 import time
 
-from sqlite3 import dbapi2 as sqlite
+from sqlite3 import dbapi2 as sqlite, Cursor
 
 DBError = sqlite.Error
 
@@ -18,10 +18,11 @@ class DB:
         self.mod = False
 
     def execute(self, sql, *a, **ka):
-        """The result of execute on the database with sql query and either ka if it exists, or a. 
-        
+        """The result of execute on the database with sql query and either ka if it exists, or a.
+
         If insert, update or delete, mod is set to True
         If self.echo, prints the execution time
+        if self.echo is "2", also print the arguments.
         """
         s = sql.strip().lower()
         # mark modified?
@@ -44,7 +45,7 @@ class DB:
 
     def executemany(self, sql, l):
         """The result of executmany on the database with sql query and l list.
-        
+
         Mod is set to True
         If self.echo, prints the execution time
         """
@@ -129,3 +130,6 @@ class DB:
     # strip out invalid utf-8 when reading from db
     def _textFactory(self, data):
         return str(data, errors="ignore")
+
+    def cursor(self, factory=Cursor):
+        return self._db.cursor(factory)

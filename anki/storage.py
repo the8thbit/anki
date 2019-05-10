@@ -1,20 +1,26 @@
 # -*- coding: utf-8 -*-
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 import copy
 import re
+import json
+import os
 
 from anki.lang import _
-from anki.utils import intTime, json
+from anki.utils import intTime, isWin
 from anki.db import DB
 from anki.collection import _Collection
 from anki.consts import *
 from anki.stdmodels import addBasicModel, addClozeModel, addForwardReverse, \
     addForwardOptionalReverse, addBasicTypingModel
 
-def Collection(path, lock=True, server=False, sync=True, log=False):
-    "Open a new or existing collection. Path must be unicode."
+def Collection(path, lock=True, server=False, log=False):
+    """Open a new or existing collection. Path must be unicode.
+
+    server -- always False in anki without add-on.
+    log -- Boolean stating whether log must be made in the file, with same name than the collection, but ending in .log.
+    """
     assert path.endswith(".anki2")
     path = os.path.abspath(path)
     create = not os.path.exists(path)
@@ -30,11 +36,9 @@ def Collection(path, lock=True, server=False, sync=True, log=False):
     else:
         ver = _upgradeSchema(db)
     db.execute("pragma temp_store = memory")
-    if sync:
-        db.execute("pragma cache_size = 10000")
+    db.execute("pragma cache_size = 10000")
+    if not isWin:
         db.execute("pragma journal_mode = wal")
-    else:
-        db.execute("pragma synchronous = off")
     db.setAutocommit(False)
     # add db to col and do any remaining upgrades
     col = _Collection(db, server, log)

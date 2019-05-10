@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 from aqt.qt import *
 from anki.hooks import addHook, remHook
 from aqt.utils import  shortcut
+from anki.lang import _
 
 class DeckChooser(QHBoxLayout):
 
@@ -75,7 +76,8 @@ class DeckChooser(QHBoxLayout):
             self.mw, current=current, accept=_("Choose"),
             title=_("Choose Deck"), help="addingnotes",
             cancel=False, parent=self.widget, geomKey="selectDeck")
-        self.setDeckName(ret.name)
+        if ret.name:
+            self.setDeckName(ret.name)
 
     def setDeckName(self, name):
         self.deck.setText(name.replace("&", "&&"))

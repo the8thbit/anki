@@ -1,31 +1,30 @@
 # -*- coding: utf-8 -*-
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 
 """This module deals with decks and their configurations.
 
+self.decks is the dictionnary associating an id to the deck with this id
+self.dconf is the dictionnary associating an id to the dconf with this id
 
-A deck is an array composed of:
-newToday -- two number array. 
+A deck is a dict composed of:
+new/rev/lrnToday -- two number array.
             First one is currently unused
-            The second one is equal to the negation (* (-1)) of the increase of the number of new cards to see today.
-revToday -- two number array. 
-            First one is currently unused
-            The second one is equal to the negation (* (-1)) of the increase of the number of review cards to see today.
-lrnToday -- two number array used somehow for custom study, Seems to be unused in the current code.
+            The second one is equal to the number of cards seen today in this deck minus the number of new cards in custom study today.
+ BEWARE, it's changed in anki.sched(v2).Scheduler._updateStats and anki.sched(v2).Scheduler._updateCutoff.update  but can't be found by grepping 'newToday', because it's instead written as type+"Today" with type which may be new/rev/lrnToday
 timeToday -- two number array used somehow for custom study,  seems to be currently unused
-conf -- (string) id of option group from dconf
+conf -- (string) id of option group from dconf, or absent in dynamic decks
 usn -- Update sequence number: used in same way as other usn vales in db
 desc -- deck description, it is shown when cards are learned or reviewd
-dyn -- 1 if dynamic (AKA filtered) deck, 
-collapsed -- true when deck is collapsed, 
-extendNew -- extended new card limit (for custom study), 
-extendRev -- extended review card limit (for custom study), 
-name -- name of deck, 
-browserCollapsed -- true when deck collapsed in browser, 
-id -- deck ID (automatically generated long), 
-mod -- last modification time, 
+dyn -- 1 if dynamic (AKA filtered) deck,
+collapsed -- true when deck is collapsed,
+extendNew -- extended new card limit (for custom study). Potentially absent, only used in aqt/customstudy.py. By default 10
+extendRev -- extended review card limit (for custom study), Potentially absent, only used in aqt/customstudy.py. By default 10.
+name -- name of deck,
+browserCollapsed -- true when deck collapsed in browser,
+id -- deck ID (automatically generated long),
+mod -- last modification time,
 mid -- the model of the deck
 """
 
@@ -33,6 +32,12 @@ mid -- the model of the deck
 
 """A configuration of deck is a dictionnary composed of:
 name -- its name, including the parents, and the "::"
+
+
+
+
+A configuration of deck (dconf) is composed of:
+name -- its name
 new -- The configuration for new cards, see below.
 lapse -- The configuration for lapse cards, see below.
 rev -- The configuration for review cards, see below.
@@ -45,9 +50,9 @@ played when the answer is shown
 mod -- Last modification time
 usn -- see USN documentation
 dyn -- Whether this deck is dynamic. Not present in the default configurations
-id -- configuration ID (automatically generated long). Not present in the default configurations.
+id -- deck ID (automatically generated long). Not present in the default configurations.
 
-The configuration related to new card is composed of:
+The configuration related to new cards is composed of:
 delays -- The list of successive delay between the learning steps of
 the new cards, as explained in the manual.
 ints -- The delays according to the button pressed while leaving the
@@ -84,7 +89,9 @@ maxIvl -- the maximal interval for review
 bury -- If True, when a review card is answered, the related cards of
 its notes are buried
 """
+
 import copy, operator
+import unicodedata
 from anki.utils import intTime, ids2str, json
 from anki.hooks import runHook
 from anki.consts import *
@@ -230,18 +237,21 @@ class DeckManager:
     # Deck save/load
     #############################################################
 
-    def id(self, name, create=True, type=defaultDeck):
+    def id(self, name, create=True, type=None):
         """Returns a deck's id with a given name. Potentially creates it.
 
         Keyword arguments:
-        name -- the name of the new deck. " are removed. 
+        name -- the name of the new deck. " are removed.
         create -- States whether the deck must be created if it does
         not exists. Default true, otherwise return None
         type -- A deck to copy in order to create this deck
         """
+        if type is None:
+            type = defaultDeck
         name = name.replace('"', '')
+        name = unicodedata.normalize("NFC", name)
         for id, g in list(self.decks.items()):
-            if g['name'].lower() == name.lower():
+            if unicodedata.normalize("NFC", g['name'].lower()) == name.lower():
                 return int(id)
         if not create:
             return None
@@ -322,11 +332,11 @@ class DeckManager:
         self.save()
 
     def allNames(self, dyn=True):
-        "An unsorted list of all deck names.
+        """An unsorted list of all deck names.
 
         Keyword arguments:
         dyn -- if set to false, do not list the dynamic decks.
-        "
+        """
         if dyn:
             return [x['name'] for x in list(self.decks.values())]
         else:
@@ -360,11 +370,11 @@ class DeckManager:
         return len(self.decks)
 
     def get(self, did, default=True):
-        """Returns the deck objects whose id is did. 
+        """Returns the deck objects whose id is did.
 
         If Default is set to false, does not return if the deck does
         not exists.
-        """ 
+        """
         id = str(did)
         if id in self.decks:
             return self.decks[id]
@@ -393,7 +403,7 @@ class DeckManager:
         # make sure target node doesn't already exist
         if newName in self.allNames():
             raise DeckRenameError(_("That deck already exists."))
-        # ensure we have parents. 
+        # ensure we have parents.
         newName = self._ensureParents(newName)
         # make sure we're not nesting under a filtered deck
         for p in self.parentsByName(newName):
@@ -441,14 +451,14 @@ class DeckManager:
         ontoDeckName.
 
         draggedDeckName should not be dragged onto a descendant of
-        itself (nor itself). 
+        itself (nor itself).
         It should not either be dragged to its parent because the
         action would be useless.
         """
         if draggedDeckName == ontoDeckName \
-                or self._isParent(ontoDeckName, draggedDeckName) \
-                or self._isAncestor(draggedDeckName, ontoDeckName):
-                    return False
+            or self._isParent(ontoDeckName, draggedDeckName) \
+            or self._isAncestor(draggedDeckName, ontoDeckName):
+            return False
         else:
             return True
 
@@ -470,7 +480,7 @@ class DeckManager:
         return self._path(name)[-1]
 
     def _ensureParents(self, name):
-        "Ensure parents exist, and return name with case matching parents.
+        """Ensure parents exist, and return name with case matching parents.
 
         Parents are created if they do not already exists.
         """
@@ -522,11 +532,13 @@ same id."""
         self.dconf[str(g['id'])] = g
         self.save()
 
-    def confId(self, name, cloneFrom=defaultConf):
-        "Create a new configuration and return its id.
+    def confId(self, name, cloneFrom=None):
+        """Create a new configuration and return its id.
 
         Keyword arguments
-        cloneFrom -- The configuration copied by the new one."
+        cloneFrom -- The configuration copied by the new one."""
+        if cloneFrom is None:
+            cloneFrom = defaultConf
         c = copy.deepcopy(cloneFrom)
         while 1:
             id = intTime(1000)
@@ -560,7 +572,7 @@ same id."""
 
     def setConf(self, grp, id):
         """Takes a deck objects, switch his id to id and save it as
-        edited. 
+        edited.
 
         Currently used in tests only."""
         grp['conf'] = id
@@ -594,7 +606,7 @@ same id."""
     #############################################################
 
     def name(self, did, default=False):
-        """The name of the deck whose id is did. 
+        """The name of the deck whose id is did.
 
         If no such deck exists: if default is set to true, then return
         default deck's name. Otherwise return "[no deck]".
@@ -633,7 +645,7 @@ same id."""
         self.select(c['id'])
 
     def cids(self, did, children=False):
-        """Return the list of id of cards whose deck's id is did. 
+        """Return the list of id of cards whose deck's id is did.
 
         If Children is set to true, returns also the list of the cards
         of the descendant."""
@@ -662,13 +674,13 @@ same id."""
         for deck in decks:
             # two decks with the same name?
             if deck['name'] in names:
-                print("fix duplicate deck name", deck['name'])
+                print("fix duplicate deck name", deck['name'].encode("utf8"))
                 deck['name'] += "%d" % intTime(1000)
                 self.save(deck)
 
             # ensure no sections are blank
             if not all(deck['name'].split("::")):
-                print("fix deck with missing sections", deck['name'])
+                print("fix deck with missing sections", deck['name'].encode("utf8"))
                 deck['name'] = "recovered%d" % intTime(1000)
                 self.save(deck)
 
@@ -676,7 +688,7 @@ same id."""
             if "::" in deck['name']:
                 immediateParent = "::".join(deck['name'].split("::")[:-1])
                 if immediateParent not in names:
-                    print("fix deck with missing parent", deck['name'])
+                    print("fix deck with missing parent", deck['name'].encode("utf8"))
                     self._ensureParents(deck['name'])
                     names.add(immediateParent)
 
@@ -703,7 +715,7 @@ same id."""
 
     def select(self, did):
         """Change activeDecks to the list containing did and the did
-        of its children.  
+        of its children.
 
         Also mark the manager as changed."""
         # make sure arg is an int
@@ -804,6 +816,9 @@ same id."""
         return parents
 
     def nameMap(self):
+        """
+        Dictionnary from deck name to deck object.
+        """
         return dict((d['name'], d) for d in self.decks.values())
 
     # Sync handling

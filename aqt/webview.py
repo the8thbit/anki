@@ -1,4 +1,4 @@
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # -*- coding: utf-8 -*-
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 import json
@@ -6,8 +6,9 @@ import sys
 import math
 from anki.hooks import runHook
 from aqt.qt import *
-from aqt.utils import openLink, showWarning
-from anki.utils import isMac, isWin, isLin, devMode
+from aqt.utils import openLink, tooltip
+from anki.utils import isMac, isWin, isLin
+from anki.lang import _
 
 # Page for debug messages
 ##########################################################################
@@ -18,7 +19,6 @@ class AnkiWebPage(QWebEnginePage):
         QWebEnginePage.__init__(self)
         self._onBridgeCmd = onBridgeCmd
         self._setupBridge()
-        self.setBackgroundColor(Qt.transparent)
 
     def _setupBridge(self):
         class Bridge(QObject):
@@ -75,7 +75,7 @@ class AnkiWebPage(QWebEnginePage):
         # catch buggy <a href='#' onclick='func()'> links
         from aqt import mw
         if url.matches(QUrl(mw.serverURL()), QUrl.RemoveFragment):
-            sys.stderr.write("onclick handler needs to return false\n")
+            print("onclick handler needs to return false")
             return False
         # load all other links in browser
         openLink(url)
@@ -93,6 +93,7 @@ class AnkiWebView(QWebEngineView):
         QWebEngineView.__init__(self, parent=parent)
         self.title = "default"
         self._page = AnkiWebPage(self._onBridgeCmd)
+        self._page.setBackgroundColor(self._getWindowColor())  # reduce flicker
 
         self._domDone = True
         self._pendingActions = []
@@ -216,10 +217,27 @@ class AnkiWebView(QWebEngineView):
         else:
             return 3
 
-    def stdHtml(self, body, css=[], js=["jquery.js"], head=""):
+    def _getWindowColor(self):
+        if isMac:
+            # standard palette does not return correct window color on macOS
+            return QColor("#ececec")
+        return self.style().standardPalette().color(QPalette.Window)
+
+    def stdHtml(self, body, css=None, js=None, head=""):
+        if css is None:
+            css = []
+        if js is None:
+            js = ["jquery.js"]
+
+        palette = self.style().standardPalette()
+        color_hl = palette.color(QPalette.Highlight).name()
+
         if isWin:
-            widgetspec = "button { font-size: 12px; font-family:'Segoe UI'; }"
-            fontspec = 'font-size:12px;font-family:"Segoe UI";'
+            #T: include a font for your language on Windows, eg: "Segoe UI", "MS Mincho"
+            family = _('"Segoe UI"')
+            widgetspec = "button { font-size: 12px; font-family:%s; }" % family
+            widgetspec += "\n:focus { outline: 1px solid %s; }" % color_hl
+            fontspec = 'font-size:12px;font-family:%s;' % family
         elif isMac:
             family="Helvetica"
             fontspec = 'font-size:15px;font-family:"%s";'% \
@@ -228,9 +246,7 @@ class AnkiWebView(QWebEngineView):
 button { font-size: 13px; -webkit-appearance: none; background: #fff; border: 1px solid #ccc;
 border-radius:5px; font-family: Helvetica }"""
         else:
-            palette = self.style().standardPalette()
             family = self.font().family()
-            color_hl = palette.color(QPalette.Highlight).name()
             color_hl_txt = palette.color(QPalette.HighlightedText).name()
             color_btn = palette.color(QPalette.Button).name()
             fontspec = 'font-size:14px;font-family:"%s";'% family
@@ -263,7 +279,7 @@ div[contenteditable="true"]:focus {
 <title>{}</title>
 
 <style>
-body {{ zoom: {}; {} }}
+body {{ zoom: {}; background: {}; {} }}
 {}
 </style>
   
@@ -271,7 +287,8 @@ body {{ zoom: {}; {} }}
 </head>
 
 <body>{}</body>
-</html>""".format(self.title, self.zoomFactor(), fontspec, widgetspec, head, body)
+</html>""".format(self.title, self.zoomFactor(), self._getWindowColor().name(),
+                  fontspec, widgetspec, head, body)
         #print(html)
         self.setHtml(html)
 
@@ -356,9 +373,9 @@ body {{ zoom: {}; {} }}
 
     def _onHeight(self, qvar):
         if qvar is None:
+            tooltip(_("Error connecting to local port. Retrying..."))
             from aqt import mw
-            openLink("https://anki.tenderapp.com/kb/problems/anki-must-be-able-to-connect-to-a-local-port")
-            mw.app.closeAllWindows()
+            mw.progress.timer(2000, mw.reset, False)
             return
 
         height = math.ceil(qvar*self.zoomFactor())

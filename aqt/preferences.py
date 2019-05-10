@@ -1,15 +1,19 @@
 # -*- coding: utf-8 -*-
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 import datetime, time
 from aqt.qt import *
 import anki.lang
-from aqt.utils import openFolder, showWarning, getText, openHelp, showInfo, \
-    askUser
+from aqt.utils import openFolder, openHelp, showInfo, askUser
 import aqt
+from anki.lang import _
 
 class Preferences(QDialog):
+
+    """
+    startdate -- datetime where collection was created. Only in schedV1
+    """
 
     def __init__(self, mw):
         if not mw.col:
@@ -228,4 +232,3 @@ Not currently enabled; click the sync button in the main window to enable."""))
 
     def updateOptions(self):
         self.prof['pastePNG'] = self.form.pastePNG.isChecked()
-

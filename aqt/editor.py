@@ -1,30 +1,31 @@
 # -*- coding: utf-8 -*-
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
-"""The part of the window used to edit notes. It is used for adding note, editing existing note, and as the lower part of the browser.
+"""
+The part of the window used to edit notes. It is used for adding
+note, editing existing note, and as the lower part of the browser.
+
 """
 
 import re
-import os
-import urllib.request, urllib.error, urllib.parse
-import ctypes
 import urllib.request, urllib.parse, urllib.error
 import warnings
 import html
 import mimetypes
 import base64
 import unicodedata
+import json
 
 from anki.lang import _
 from aqt.qt import *
-from anki.utils import stripHTML, isWin, isMac, namedtmp, json, stripHTMLMedia, \
+from anki.utils import isWin, namedtmp, stripHTMLMedia, \
     checksum
 import anki.sound
 from anki.hooks import runHook, runFilter, addHook
 from aqt.sound import getAudio
 from aqt.webview import AnkiWebView
 from aqt.utils import shortcut, showInfo, showWarning, getFile, \
-    openHelp, tooltip, downArrow
+    openHelp, tooltip, qtMenuShortcutWorkaround
 import aqt
 from bs4 import BeautifulSoup
 import requests
@@ -36,9 +37,9 @@ audio =  ("wav", "mp3", "ogg", "flac", "mp4", "swf", "mov", "mpeg", "mkv", "m4a"
 _html = """
 <style>
 html { background: %s; }
-#topbuts { background: %s; }
+#topbutsOuter { background: %s; }
 </style>
-<div id="topbuts">%s</div>
+<div id="topbutsOuter"><div id="topbuts" class="clearfix">%s</div></div>
 <div id="fields"></div>
 <div id="dupes" style="display:none;"><a href="#" onclick="pycmd('dupes');return false;">%s</a></div>
 """
@@ -46,6 +47,9 @@ html { background: %s; }
 # caller is responsible for resetting note on reset
 class Editor:
     def __init__(self, mw, widget, parentWindow, addMode=False):
+        """TODO
+
+        addMode -- Whether editor is called from addcard.py"""
         self.mw = mw
         self.widget = widget
         self.parentWindow = parentWindow
@@ -76,6 +80,7 @@ class Editor:
         self.web.onBridgeCmd = self.onBridgeCmd
         self.outerLayout.addWidget(self.web, 1)
 
+        # List of buttons on top right of editor
         righttopbtns = list()
         righttopbtns.append(self._addButton('text_bold', 'bold', _("Bold text (Ctrl+B)"), id='bold'))
         righttopbtns.append(self._addButton('text_italic', 'italic', _("Italic text (Ctrl+I)"), id='italic'))
@@ -99,21 +104,29 @@ class Editor:
         righttopbtns.append(self._addButton('media-record', 'record', _("Record audio (F5)")))
         righttopbtns.append(self._addButton('more', 'more'))
         righttopbtns = runFilter("setupEditorButtons", righttopbtns, self)
-        topbuts = """
+
+        # Fields... and Cards... button on top lefts, and
+        lefttopbtns = """
+                <button title='%(fldsTitle)s' onclick="pycmd('fields')">%(flds)s...</button>
+                <button title='%(cardsTitle)s' onclick="pycmd('cards')">%(cards)s...</button>
+        """%dict(flds=_("Fields"), cards=_("Cards"),
+                   fldsTitle=_("Customize Fields"),
+                   cardsTitle=shortcut(_("Customize Card Templates (Ctrl+L)")))
+        topbuts= """
             <div id="topbutsleft" style="float:left;">
-                <button onclick="pycmd('fields')">%(flds)s...</button>
-                <button onclick="pycmd('cards')">%(cards)s...</button>
+                %(lefttopbtns)s
             </div>
             <div id="topbutsright" style="float:right;">
                 %(rightbts)s
             </div>
-        """ % dict(flds=_("Fields"), cards=_("Cards"), rightbts="".join(righttopbtns))
+        """ % dict(lefttopbtns = lefttopbtns, rightbts="".join(righttopbtns))
         bgcol = self.mw.app.palette().window().color().name()
         # then load page
-        self.web.stdHtml(_html % (
+        html = _html % (
             bgcol, bgcol,
             topbuts,
-            _("Show Duplicates")),
+            _("Show Duplicates"))
+        self.web.stdHtml(html,
                          css=["editor.css"],
                          js=["jquery.js", "editor.js"])
 
@@ -127,11 +140,11 @@ class Editor:
         mime, _ = mimetypes.guess_type(path)
         with open(path, 'rb') as fp:
             data = fp.read()
-            data64 = b''.join(base64.encodestring(data).splitlines())
+            data64 = b''.join(base64.encodebytes(data).splitlines())
             return 'data:%s;base64,%s' % (mime, data64.decode('ascii'))
 
 
-    def addButton(self, icon, cmd, func, tip="", label="", 
+    def addButton(self, icon, cmd, func, tip="", label="",
                   id=None, toggleable=False, keys=None, disables=True):
         """Assign func to bridge cmd, register shortcut, return button"""
         if cmd not in self._links:
@@ -145,8 +158,21 @@ class Editor:
 
     def _addButton(self, icon, cmd, tip="", label="", id=None, toggleable=False,
                    disables=True):
+        """Create a button, with the image icon, or the text of the label, or
+        of the cmd. It send the python command cmd.
+
+        icon -- url to the icon. Potentially falsy
+        cmd -- python command to call when the button is pressed
+        tip -- text to show when the mouse is on the button
+        id -- an identifier for the html button
+        toggleable -- whether pressing the button should call the js function toggleEditorButton
+        disables -- if true, add class "perm" to the btuton
+
+        """
         if icon:
-            if os.path.isabs(icon):
+            if icon.startswith("qrc:/"):
+                iconstr = icon
+            elif os.path.isabs(icon):
                 iconstr = self.resourceToData(icon)
             else:
                 iconstr = "/_anki/imgs/{}.png".format(icon)
@@ -249,7 +275,10 @@ class Editor:
         if cmd.startswith("blur") or cmd.startswith("key"):
             (type, ord, nid, txt) = cmd.split(":", 3)
             ord = int(ord)
-            nid = int(nid)
+            try:
+                nid = int(nid)
+            except ValueError:
+                nid = 0
             if nid != self.note.id:
                 print("ignored late blur")
                 return
@@ -288,14 +317,25 @@ class Editor:
             print("uncaught cmd", cmd)
 
     def mungeHTML(self, txt):
-        txt = re.sub(r"<br>$", "", txt)
+        if txt in ('<br>', '<div><br></div>'):
+            return ''
         return txt
 
     # Setting/unsetting the current note
     ######################################################################
 
     def setNote(self, note, hide=True, focusTo=None):
-        "Make NOTE the current note."
+        """Make `note` the current note.
+
+        if note is Falsy:
+        Remove tags's line.
+
+
+        keyword arguments:
+        note -- the new note in the editor
+        hide -- whether to hide the current widget
+        focusTo -- in which field should the focus appear
+        """
         self.note = note
         self.currentField = None
         if self.note:
@@ -309,10 +349,13 @@ class Editor:
         self.loadNote(self.currentField)
 
     def loadNote(self, focusTo=None):
+        """Todo
+
+        focusTo -- Whether focus should be set to some field."""
         if not self.note:
             return
 
-        data = []
+        data = []# field name, field content modified so that it's image's url can be used locally.
         for fld, val in list(self.note.items()):
             data.append((fld, self.mw.col.media.escapeImages(val)))
         self.widget.show()
@@ -404,6 +447,7 @@ class Editor:
             warnings.simplefilter('ignore', UserWarning)
             html = str(BeautifulSoup(html, "html.parser"))
         self.note.fields[field] = html
+        self.note.flush()
         self.loadNote(focusTo=field)
 
     # Tag handling
@@ -444,6 +488,7 @@ class Editor:
         runHook("tagsUpdated", self.note)
 
     def saveAddModeVars(self):
+        """During creation of new notes, save tags to the note's model"""
         if self.addMode:
             # save tags to model
             m = self.note.model()
@@ -451,6 +496,7 @@ class Editor:
             self.mw.col.models.save(m)
 
     def hideCompleters(self):
+        "Remove tags's line"
         self.tags.hideCompleter()
 
     def onFocusTags(self):
@@ -774,6 +820,9 @@ to a cloze type first, via Edit>Change Note Type."""))
         a = m.addAction(_("Edit HTML"))
         a.triggered.connect(self.onHtmlEdit)
         a.setShortcut(QKeySequence("Ctrl+Shift+X"))
+
+        qtMenuShortcutWorkaround(m)
+
         m.exec_(QCursor.pos())
 
     # LaTeX
@@ -932,7 +981,15 @@ class EditorWebView(AnkiWebView):
 
         # normal text; convert it to HTML
         txt = html.escape(txt)
-        txt = txt.replace("\n", "<br>")
+        txt = txt.replace("\n", "<br>")\
+            .replace("\t", " "*4)
+
+        # if there's more than one consecutive space,
+        # use non-breaking spaces for the second one on
+        def repl(match):
+            return " " + match.group(1).replace(" ", "&nbsp;")
+        txt = re.sub(" ( +)", repl, txt)
+
         return txt
 
     def _processHtml(self, mime):
@@ -976,6 +1033,8 @@ class EditorWebView(AnkiWebView):
         # add a comment in the clipboard html so we can tell text is copied
         # from us and doesn't need to be stripped
         clip = self.editor.mw.app.clipboard()
+        if not clip.ownsClipboard():
+            return
         mime = clip.mimeData()
         if not mime.hasHtml():
             return

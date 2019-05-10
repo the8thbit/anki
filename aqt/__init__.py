@@ -1,11 +1,11 @@
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 from anki import version as _version
 
 import getpass
 import sys
-import optparse
+import argparse
 import tempfile
 import builtins
 import locale
@@ -43,12 +43,26 @@ from anki.utils import checksum
 # ensures only one copy of the window is open at once, and provides
 # a way for dialogs to clean up asynchronously when collection closes
 
+# A window object must contain:
+# - windowState():
+# - activateWindow()
+# - raise_()
+# - Either:
+# -- If it can be closed immediatly:
+# --- silentlyClose must exists and be truthy,
+# --- have a function close() defined
+# -- Or, if some actions must be done before closing:
+# --- define a method closeWithCallback(callback)
+# --- This method should ensure a safe closure of the window
+# --- and then call callback
+
+# A window class must contain:
+# - A constructor, which return a window object.
+
 # to integrate a new window:
 # - add it to _dialogs
-# - define close behaviour, by either:
-# -- setting silentlyClose=True to have it close immediately
-# -- define a closeWithCallback() method
 # - have the window opened via aqt.dialogs.open(<name>, self)
+# - have a method reopen(*args), called if the user ask to open the window a second time. Arguments passed are the same than for original opening.
 
 #- make preferences modal? cmd+q does wrong thing
 
@@ -57,7 +71,12 @@ from aqt import addcards, browser, editcurrent, stats, about, \
     preferences
 
 class DialogManager:
+    """Associating to a window name a pair (as a list...)
 
+    The element associated to WindowName Is composed of:
+    First element is the class to use to create the window WindowName.
+    Second element is the instance of this window, if it is already open. None otherwise
+    """
     _dialogs = {
         "AddCards": [addcards.AddCards, None],
         "Browser": [browser.Browser, None],
@@ -67,13 +86,25 @@ class DialogManager:
         "Preferences": [preferences.Preferences, None],
     }
 
+
     def open(self, name, *args):
+        """Open a window of kind name.
+
+        Open (and show) the one already opened, if it
+        exists. Otherwise a new one.
+
+        keyword arguments:
+        args -- values passed to the opener.
+        name -- the name of the window to open
+        """
         (creator, instance) = self._dialogs[name]
         if instance:
             if instance.windowState() & Qt.WindowMinimized:
                 instance.setWindowState(instance.windowState() & ~Qt.WindowMinimized)
             instance.activateWindow()
             instance.raise_()
+            if hasattr(instance,"reopen"):
+                instance.reopen(*args)
             return instance
         else:
             instance = creator(*args)
@@ -81,12 +112,26 @@ class DialogManager:
             return instance
 
     def markClosed(self, name):
+        """Window name is now considered as closed. It removes the element from _dialogs."""
         self._dialogs[name] = [self._dialogs[name][0], None]
 
     def allClosed(self):
+        """
+        Whether all windows (except the main window) are marked as
+        closed.
+        """
         return not any(x[1] for x in self._dialogs.values())
 
     def closeAll(self, onsuccess):
+        """Close all windows (except the main one). Call onsuccess when it's done.
+
+        Return True if some window needed closing.
+        None otherwise
+
+        Keyword arguments:
+        onsuccess -- the function to call when the last window is closed.
+        """
+
         # can we close immediately?
         if self.allClosed():
             onsuccess()
@@ -98,6 +143,7 @@ class DialogManager:
                 continue
 
             def callback():
+                """Call onsuccess if all window (except main) are closed."""
                 if self.allClosed():
                     onsuccess()
                 else:
@@ -113,6 +159,7 @@ class DialogManager:
         return True
 
 dialogs = DialogManager()
+
 
 # Language handling
 ##########################################################################
@@ -134,8 +181,19 @@ def setupLang(pm, app, force=None):
     # gettext
     _gtrans = gettext.translation(
         'anki', dir, languages=[lang], fallback=True)
-    builtins.__dict__['_'] = _gtrans.gettext
-    builtins.__dict__['ngettext'] = _gtrans.ngettext
+    def fn__(arg):
+        print("accessing _ without importing from anki.lang will break in the future")
+        print("".join(traceback.format_stack()[-2]))
+        from anki.lang import _
+        return _(arg)
+    def fn_ngettext(a, b, c):
+        print("accessing ngettext without importing from anki.lang will break in the future")
+        print("".join(traceback.format_stack()[-2]))
+        from anki.lang import ngettext
+        return ngettext(a, b, c)
+
+    builtins.__dict__['_'] = fn__
+    builtins.__dict__['ngettext'] = fn_ngettext
     anki.lang.setLang(lang, local=False)
     if lang in ("he","ar","fa"):
         app.setLayoutDirection(Qt.RightToLeft)
@@ -164,7 +222,7 @@ class AnkiApp(QApplication):
         self._argv = argv
 
     def secondInstance(self):
-        # we accept only one command line argument. if it's missing, send
+        # we accept only one command line argument. If it's missing, send
         # a blank screen to just raise the existing window
         opts, args = parseArgs(self._argv)
         buf = "raise"
@@ -222,12 +280,12 @@ def parseArgs(argv):
     # as there's no such profile
     if isMac and len(argv) > 1 and argv[1].startswith("-psn"):
         argv = [argv[0]]
-    parser = optparse.OptionParser(version="%prog " + appVersion)
-    parser.usage = "%prog [OPTIONS] [file to import]"
-    parser.add_option("-b", "--base", help="path to base folder")
-    parser.add_option("-p", "--profile", help="profile name to load")
-    parser.add_option("-l", "--lang", help="interface language (en, de, etc)")
-    return parser.parse_args(argv[1:])
+    parser = argparse.ArgumentParser(description="Anki " + appVersion)
+    parser.usage = "%(prog)s [OPTIONS] [file to import]"
+    parser.add_argument("-b", "--base", help="path to base folder", default="")
+    parser.add_argument("-p", "--profile", help="profile name to load", default="")
+    parser.add_argument("-l", "--lang", help="interface language (en, de, etc)")
+    return parser.parse_known_args(argv[1:])
 
 def setupGL(pm):
     if isMac:
@@ -283,8 +341,6 @@ def _run(argv=None, exec=True):
 
     # parse args
     opts, args = parseArgs(argv)
-    opts.base = opts.base or ""
-    opts.profile = opts.profile or ""
 
     # profile manager
     from aqt.profiles import ProfileManager
@@ -337,8 +393,12 @@ environment points to a valid, writable folder.""")
     # i18n
     setupLang(pm, app, opts.lang)
 
-    # remaining pm init
-    pm.ensureProfile()
+    if isLin and pm.glMode() == "auto":
+        from aqt.utils import gfxDriverIsBroken
+        if gfxDriverIsBroken():
+            pm.nextGlMode()
+            QMessageBox.critical(None, "Error", "Your video driver is incompatible. Please start Anki again, and Anki will switch to a slower, more compatible mode.")
+            sys.exit(1)
 
     # load the main window
     import aqt.main

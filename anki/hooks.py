@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 """\
@@ -21,29 +21,37 @@ import decorator
 _hooks = {}
 
 def runHook(hook, *args):
-    "Run all functions on hook. Do not return value.
+    """Run all functions on hook. Do not return value.
 
     keyword arguments:
     hook -- a hook name (string)
-    *args -- the list of arguments to give to the functions"
+    *args -- the list of arguments to give to the functions"""
     hook = _hooks.get(hook, None)
     if hook:
         for func in hook:
-            func(*args)
+            try:
+                func(*args)
+            except:
+                hook.remove(func)
+                raise
 
 def runFilter(hook, arg, *args):
-    "Apply each function on hook to the result of the last function
+    """Apply each function on hook to the result of the last function
     and *args. The first argument is arg. Return the value returned by
-    the last function.    
+    the last function.
 
     keyword arguments:
     hook -- a hook name (string)
     arg -- the arg, which is modified by each method
-    *args -- the list of arguments given to every functions"
+    *args -- the list of arguments given to every functions"""
     hook = _hooks.get(hook, None)
     if hook:
         for func in hook:
-            arg = func(arg, *args)
+            try:
+                arg = func(arg, *args)
+            except:
+                hook.remove(func)
+                raise
     return arg
 
 def addHook(hook, func):
@@ -64,12 +72,11 @@ def remHook(hook, func):
 
 def wrap(old, new, pos="after"):
     """Override an existing function.
-    TODO 
+    TODO
 
     keyword arguments:
     old -- The function which is overrided
     new -- The function which should be added
-    
     """
     def repl(*args, **kwargs):
         """If pos is after (default), execute old and return new.
@@ -77,7 +84,7 @@ def wrap(old, new, pos="after"):
         otherwise, execute new, with parameter _old=old.
 
         In each case, gives to each called function the parameters
-        *args and **kwargs.        
+        *args and **kwargs.
         """
         if pos == "after":
             old(*args, **kwargs)

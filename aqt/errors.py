@@ -1,12 +1,14 @@
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # -*- coding: utf-8 -*-
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 import sys, traceback
 import html
+import re
 
 from anki.lang import _
 from aqt.qt import *
-from aqt.utils import showText, showWarning
+from aqt.utils import showText, showWarning, supportText
+from aqt import mw
 
 if not os.environ.get("DEBUG"):
     def excepthook(etype,val,tb):
@@ -78,6 +80,8 @@ your system's temporary folder may be incorrect.""")
             return showWarning(self.tempFolderMsg())
         if "Beautiful Soup is not an HTTP client" in error:
             return
+        if "database or disk is full" in error:
+            return showWarning(_("Your computer's storage may be full. Please delete some unneeded files, then try again."))
         if "disk I/O error" in error:
             return showWarning(_("""\
 An error occurred while accessing the database.
@@ -121,37 +125,26 @@ report the issue on the <a href="https://help.ankiweb.net/discussions/add-ons/">
 add-ons section</a> of our support site.
 
 <p>Debug info:</p>
-""")
+""")        
         if self.mw.addonManager.dirty:
             txt = pluginText
+            error = supportText() + self._addonText(error) + "\n" + error
         else:
             txt = stdText
+            error = supportText() + "\n" + error
+        
         # show dialog
-        error = self._supportText() + "\n" + error
-
         txt = txt + "<div style='white-space: pre-wrap'>" + error + "</div>"
-        showText(txt, type="html")
+        showText(txt, type="html", copyBtn=True)
 
-    def _supportText(self):
-        import platform
-        from aqt import appVersion
-
-        if isWin:
-            platname = "Windows " + platform.win32_ver()[0]
-        elif isMac:
-            platname = "Mac " + platform.mac_ver()[0]
-        else:
-            platname = "Linux"
-
-        def schedVer():
-            try:
-                return self.mw.col.schedVer()
-            except:
-                return "?"
-
-        return """\
-Anki {} Python {} Qt {} PyQt {}
-Platform: {}
-Flags: frz={} ao={} sv={}
-""".format(appVersion, platform.python_version(), QT_VERSION_STR, PYQT_VERSION_STR, platname,
-           getattr(sys, "frozen", False), self.mw.addonManager.dirty, schedVer())
+    def _addonText(self, error):
+        matches = re.findall(r"addons21/(.*?)/", error)
+        if not matches:
+            return ""
+        # reverse to list most likely suspect first, dict to deduplicate:
+        addons = [mw.addonManager.addonName(i) for i in
+                  dict.fromkeys(reversed(matches))]
+        txt = _("""Add-ons possibly involved: {}\n""")
+        # highlight importance of first add-on:
+        addons[0] = "<b>{}</b>".format(addons[0])
+        return txt.format(", ".join(addons))

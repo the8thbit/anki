@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
-
-from anki.utils import intTime, ids2str, json
-from anki.hooks import runHook
-import re
 
 """
 Anki maintains a cache of used tags so it can quickly present a list of tags
@@ -13,6 +9,11 @@ tracked, so unused tags can only be removed from the list with a DB check.
 
 This module manages the tag cache and tags for notes.
 """
+
+import json
+from anki.utils import intTime, ids2str
+from anki.hooks import runHook
+import re
 
 class TagManager:
 
@@ -36,7 +37,11 @@ class TagManager:
     #############################################################
 
     def register(self, tags, usn=None):
-        "Given a list of tags, add any missing ones to tag registry."
+        """Given a list/set of tags, add any tag missing in the registry to
+        the registry. If there is such a new tag, call the hook
+        newTag.
+
+        """
         found = False
         for t in tags:
             if t not in self.tags:
@@ -84,7 +89,7 @@ class TagManager:
     #############################################################
 
     def bulkAdd(self, ids, tags, add=True):
-        """Add tags in bulk. TAGS is space-separated. 
+        """Add tags in bulk. TAGS is space-separated.
 
         keyword arguments
         ids -- a list of id
@@ -107,8 +112,8 @@ class TagManager:
         lim = " or ".join(
             [l+"like :_%d" % c for c, t in enumerate(newTags)])
         res = self.col.db.all(
-            f"select id, tags from notes where id in 
-            {ids2str(ids)} and ({lim})" ,
+            f"""select id, tags from notes where id in
+            {ids2str(ids)} and ({lim})""" ,
             **dict([("_%d" % x, '%% %s %%' % y.replace('*', '%'))
                     for x, y in enumerate(newTags)]))
         # update tags

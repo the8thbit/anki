@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 from anki.importing.csvfile import TextImporter
@@ -10,6 +10,7 @@ from anki.importing.mnemo import MnemosyneImporter
 from anki.importing.pauker import PaukerImporter
 from anki.lang import _
 
+"""Used by the file system window, to ensure that it knows which kind of file to search for. And then which importer to use to import the file."""
 Importers = (
     (_("Text separated by tabs or semicolons (*)"), TextImporter),
     (_("Packaged Anki Deck/Collection (*.apkg *.colpkg *.zip)"), AnkiPackageImporter),

@@ -1,13 +1,15 @@
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
+"""The window used to select a model. Either directly from note type manager in main. Or through a model chooser window."""
 from aqt.qt import *
 from operator import itemgetter
 from aqt.utils import showInfo, askUser, getText, maybeHideClose, openHelp
-import aqt.modelchooser, aqt.clayout
+import aqt.clayout
 from anki import stdmodels
 from aqt.utils import saveGeom, restoreGeom
 import collections
+from anki.lang import _, ngettext
 
 
 class Models(QDialog):
@@ -16,16 +18,15 @@ class Models(QDialog):
     An object of class Models contains:
     mw -- The main window (?)
     parent -- the window which opened the current window. By default
-    the main window 
+    the main window
     fromMain -- whether the window is opened from the main window. It
     is used to check whether Fields... and Cards... buttons should be
     added.
     col -- the collection
     mm -- the set of models of the colection
     form -- TODO
-
+    models -- all models of the collection
     """
-    
     def __init__(self, mw, parent=None, fromMain=False):
         self.mw = mw
         self.parent = parent or mw
@@ -68,6 +69,7 @@ class Models(QDialog):
         maybeHideClose(box)
 
     def onRename(self):
+        """Ask the user for a new name for the model. Save it"""
         txt = getText(_("New name:"), default=self.model['name'])
         if txt[1] and txt[0]:
             self.model['name'] = txt[0]
@@ -89,6 +91,7 @@ class Models(QDialog):
         self.form.modelsList.setCurrentRow(row)
 
     def modelChanged(self):
+        """Called if the selected model has changed, in order to change self.model"""
         if self.model:
             self.saveModel()
         idx = self.form.modelsList.currentRow()
@@ -136,6 +139,7 @@ class Models(QDialog):
         self.model['latexPost'] = str(frm.latexFooter.toPlainText())
 
     def saveModel(self):
+        """Similar to "save the model" in anki/models.py"""
         self.mm.save(self.model)
 
     def _tmpNote(self):

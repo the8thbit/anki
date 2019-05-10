@@ -1,4 +1,4 @@
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 # Profile handling
@@ -6,7 +6,6 @@
 # - Saves in pickles rather than json to easily store Qt window state.
 # - Saves in sqlite rather than a flat file so the config can't be corrupted
 
-import os
 import random
 import pickle
 import shutil
@@ -16,13 +15,14 @@ import re
 
 from aqt.qt import *
 from anki.db import DB
-from anki.utils import isMac, isWin, intTime, checksum
+from anki.utils import isMac, isWin, intTime
 import anki.lang
 from aqt.utils import showWarning
 from aqt import appHelpSite
 import aqt.forms
 from send2trash import send2trash
 import anki.sound
+from anki.lang import _
 
 metaConf = dict(
     ver=0,
@@ -126,16 +126,22 @@ a flash drive.""" % self.base)
     ######################################################################
 
     def profiles(self):
-        return sorted(x for x in
-            self.db.list("select name from profiles")
-            if x != "_global")
+        def names():
+            return self.db.list("select name from profiles where name != '_global'")
+
+        n = names()
+        if not n:
+            self._ensureProfile()
+            n = names()
+
+        return n
 
     def _unpickle(self, data):
         class Unpickler(pickle.Unpickler):
             def find_class(self, module, name):
                 if module == "PyQt5.sip":
                     try:
-                        import PyQt5.sip
+                        import PyQt5.sip # pylint: disable=unused-import
                     except:
                         # use old sip location
                         module = "sip"
@@ -226,9 +232,9 @@ details have been forgotten."""))
         # rename folder
         try:
             os.rename(oldFolder, newFolder)
-        except WindowsError as e:
+        except Exception as e:
             self.db.rollback()
-            if "Access is denied" in str(e):
+            if "WinError 5" in str(e):
                 showWarning(_("""\
 Anki could not rename your profile because it could not rename the profile \
 folder on disk. Please ensure you have permission to write to Documents/Anki \
@@ -245,15 +251,27 @@ and no other programs are accessing your profile folders, then try again."""))
     ######################################################################
 
     def profileFolder(self, create=True):
+        """The path to the folder of this profile.
+
+        It is based on the base, and this profile name
+        This folder may not exists.
+        Create it only if does not exists and create is set to True"""
         path = os.path.join(self.base, self.name)
         if create:
             self._ensureExists(path)
         return path
 
     def addonFolder(self):
+        """The path to the add-on folder.
+
+        Guarenteed to exists.
+        It is in base, not in profile"""
         return self._ensureExists(os.path.join(self.base, "addons21"))
 
     def backupFolder(self):
+        """The path to the backup folder.
+
+        Guarenteed to exists"""
         return self._ensureExists(
             os.path.join(self.profileFolder(), "backups"))
 
@@ -264,6 +282,7 @@ and no other programs are accessing your profile folders, then try again."""))
     ######################################################################
 
     def _ensureExists(self, path):
+        """Create the path if it does not exists. Return the path"""
         if not os.path.exists(path):
             os.makedirs(path)
         return path
@@ -298,7 +317,7 @@ and no other programs are accessing your profile folders, then try again."""))
         Create a new profile and an error message if prefs21.db has a problem.
         if no preference database exists, create it, and create a global profile in it using current meta.
         put database of preferences in self.db
-        Put the _global preferences in self.meta 
+        Put the _global preferences in self.meta
         todo: explain call to _setDefaultLang
         """
         opath = os.path.join(self.base, "prefs.db")
@@ -347,12 +366,11 @@ create table if not exists profiles
         self._setDefaultLang()
         return True
 
-    def ensureProfile(self):
+    def _ensureProfile(self):
         "Create a new profile if none exists."
-        if self.firstRun:
-            self.create(_("User 1"))
-            p = os.path.join(self.base, "README.txt")
-            open(p, "w").write(_("""\
+        self.create(_("User 1"))
+        p = os.path.join(self.base, "README.txt")
+        open(p, "w", encoding="utf8").write(_("""\
 This folder stores all of your Anki data in a single location,
 to make backups easy. To tell Anki to use a different location,
 please see:
@@ -365,10 +383,6 @@ please see:
     # On first run, allow the user to choose the default language
 
     def _setDefaultLang(self):
-        # the dialog expects _ to be defined, but we're running before
-        # setupLang() has been called. so we create a dummy op for now
-        import builtins
-        builtins.__dict__['_'] = lambda x: x
         # create dialog
         class NoCloseDiag(QDialog):
             def reject(self):

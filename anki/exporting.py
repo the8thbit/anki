@@ -1,24 +1,49 @@
 # -*- coding: utf-8 -*-
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
 import re, os, zipfile, shutil, unicodedata
+import json
 
 from anki.lang import _
-from anki.utils import ids2str, splitFields, json, namedtmp
+from anki.utils import ids2str, splitFields, namedtmp, stripHTML
 from anki.hooks import runHook
 from anki import Collection
 
 class Exporter:
+    """An abstract class. Inherited by class actually doing some kind of export.
+
+    count -- the number of cards to export.
+    """
+    includeHTML = None
+
     def __init__(self, col, did=None):
+        #Currently, did is never set during initialisation.
         self.col = col
         self.did = did
 
+    def doExport(self, path):
+        raise Exception("not implemented")
+
     def exportInto(self, path):
-        self._escapeCount = 0
+        """Export into path.
+
+        This is the method called from the GUI to actually export things.
+
+        Keyword arguments:
+        path -- a path of file in which to export"""
+        self._escapeCount = 0# not used ANYWHERE in the code as of 25 november 2018
         file = open(path, "wb")
         self.doExport(file)
         file.close()
+
+    def processText(self, text):
+        if self.includeHTML is False:
+            text = self.stripHTML(text)
+
+        text = self.escapeText(text)
+
+        return text
 
     def escapeText(self, text):
         "Escape newlines, tabs, CSS and quotechar."
@@ -27,11 +52,23 @@ class Exporter:
         text = text.replace("\n", " ")
         text = text.replace("\t", " " * 8)
         text = re.sub("(?i)<style>.*?</style>", "", text)
+        text = re.sub(r"\[\[type:[^]]+\]\]", "", text)
         if "\"" in text:
             text = "\"" + text.replace("\"", "\"\"") + "\""
         return text
 
+    def stripHTML(self, text):
+        # very basic conversion to text
+        s = text
+        s = re.sub(r"(?i)<(br ?/?|div|p)>", " ", s)
+        s = re.sub(r"\[sound:[^]]+\]", "", s)
+        s = stripHTML(s)
+        s = re.sub(r"[ \n\t]+", " ", s)
+        s = s.strip()
+        return s
+
     def cardIds(self):
+        """card ids of cards in deck self.did if it is set, all ids otherwise."""
         if not self.did:
             cids = self.col.db.list("select id from cards")
         else:
@@ -46,6 +83,7 @@ class TextCardExporter(Exporter):
 
     key = _("Cards in Plain Text")
     ext = ".txt"
+    includeHTML = True
 
     def __init__(self, col):
         Exporter.__init__(self, col)
@@ -56,7 +94,7 @@ class TextCardExporter(Exporter):
         def esc(s):
             # strip off the repeated question in answer if exists
             s = re.sub("(?si)^.*<hr id=answer>\n*", "", s)
-            return self.escapeText(s)
+            return self.processText(s)
         out = ""
         for cid in ids:
             c = self.col.getCard(cid)
@@ -72,6 +110,7 @@ class TextNoteExporter(Exporter):
     key = _("Notes in Plain Text")
     ext = ".txt"
     includeTags = True
+    includeHTML = True
 
     def __init__(self, col):
         Exporter.__init__(self, col)
@@ -90,7 +129,7 @@ where cards.id in %s)""" % ids2str(cardIds)):
             if self.includeID:
                 row.append(str(id))
             # fields
-            row.extend([self.escapeText(f) for f in splitFields(flds)])
+            row.extend([self.processText(f) for f in splitFields(flds)])
             # tags
             if self.includeTags:
                 row.append(tags.strip())
@@ -125,10 +164,7 @@ class AnkiExporter(Exporter):
         self.dst = Collection(path)
         self.src = self.col
         # find cards
-        if not self.did:
-            cids = self.src.db.list("select id from cards")
-        else:
-            cids = self.src.decks.cids(self.did, children=True)
+        cids = self.cardIds()
         # copy cards, noting used nids
         nids = {}
         data = []
@@ -233,7 +269,7 @@ class AnkiExporter(Exporter):
         # overwrite to apply customizations to the deck before it's closed,
         # such as update the deck description
         pass
-    
+
     def removeSystemTags(self, tags):
         return self.src.tags.remFromStr("marked leech", tags)
 
@@ -277,6 +313,7 @@ class AnkiPackageExporter(AnkiExporter):
             raise Exception("Please switch to the normal scheduler before exporting a single deck with scheduling information.")
 
             # prevent older clients from accessing
+            # pylint: disable=unreachable
             self._addDummyCollection(z)
             z.write(colfile, "collection.anki21")
 
@@ -300,7 +337,7 @@ class AnkiPackageExporter(AnkiExporter):
             if os.path.isdir(mpath):
                 continue
             if os.path.exists(mpath):
-                if re.search('\.svg$', file, re.IGNORECASE):
+                if re.search(r'\.svg$', file, re.IGNORECASE):
                     z.write(mpath, cStr, zipfile.ZIP_DEFLATED)
                 else:
                     z.write(mpath, cStr, zipfile.ZIP_STORED)
@@ -362,6 +399,7 @@ class AnkiCollectionPackageExporter(AnkiPackageExporter):
 ##########################################################################
 
 def exporters():
+    """A list of pairs (description of an exporter class, the class)"""
     def id(obj):
         return ("%s (*%s)" % (obj.key, obj.ext), obj)
     exps = [

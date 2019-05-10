@@ -1,6 +1,7 @@
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # -*- coding: utf-8 -*-
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
+"""The window obtained from main by pressing A, or clicking on "Add"."""
 from anki.lang import _
 
 from aqt.qt import *
@@ -9,7 +10,7 @@ from aqt.utils import saveGeom, restoreGeom, showWarning, askUser, shortcut, \
     tooltip, openHelp, addCloseShortcut, downArrow
 from anki.sound import clearAudioQueue
 from anki.hooks import addHook, remHook, runHook
-from anki.utils import stripHTMLMedia, htmlToTextLine, isMac
+from anki.utils import htmlToTextLine, isMac
 import aqt.editor, aqt.modelchooser, aqt.deckchooser
 
 class AddCards(QDialog):
@@ -78,6 +79,7 @@ class AddCards(QDialog):
         self.historyButton = b
 
     def setAndFocusNote(self, note):
+        """Add note as the content of the editor. Focus in the first element."""
         self.editor.setNote(note, focusTo=0)
 
     def onModelChange(self):
@@ -105,6 +107,17 @@ class AddCards(QDialog):
         self.editor.setNote(note)
 
     def onReset(self, model=None, keep=False):
+        """Create a new note and set it with the current field values.
+
+        keyword arguments
+        model -- not used
+        keep -- Whether the old note was saved in the collection. In
+        this case, remove non sticky fields. Otherwise remove the last
+        temporary note (it is replaced by a new one).
+        """
+        #Called with keep set to True from  _addCards
+        #Called with default keep __init__, from hook "reset"
+        #Meaning of the word keep guessed. Not clear.
         oldNote = self.editor.note
         note = self.mw.col.newNote()
         flds = note.model()['flds']
@@ -179,9 +192,14 @@ question on all cards."""), help="AddItems")
         return note
 
     def addCards(self):
+        """Adding the content of the fields as a new note"""
+        #Save edits in the fields, and call _addCards
         self.editor.saveNow(self._addCards)
 
     def _addCards(self):
+        """Adding the content of the fields as a new note.
+
+        Assume that the content of the GUI saved in the model."""
         self.editor.saveAddModeVars()
         note = self.editor.note
         note = self.addNote(note)
@@ -202,9 +220,15 @@ question on all cards."""), help="AddItems")
         return QDialog.keyPressEvent(self, evt)
 
     def reject(self):
+        """Close the window.
+
+        If data would be lost, ask for confirmation"""
         self.ifCanClose(self._reject)
 
     def _reject(self):
+        """Close the window.
+
+        Don't check whether data will be lost"""
         remHook('reset', self.onReset)
         remHook('currentModelChanged', self.onModelChange)
         clearAudioQueue()

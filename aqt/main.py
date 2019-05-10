@@ -1,4 +1,4 @@
-# Copyright: Damien Elmes <anki@ichi2.net>
+# Copyright: Ankitects Pty Ltd and contributors
 # -*- coding: utf-8 -*-
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
@@ -8,6 +8,7 @@ import zipfile
 import gc
 import time
 import faulthandler
+import platform
 from threading import Thread
 
 from send2trash import send2trash
@@ -15,26 +16,41 @@ from aqt.qt import *
 from anki import Collection
 from anki.utils import  isWin, isMac, intTime, splitFields, ids2str, \
         devMode
-from anki.hooks import runHook, addHook
+from anki.hooks import runHook, addHook, runFilter
 import aqt
 import aqt.progress
 import aqt.webview
 import aqt.toolbar
 import aqt.stats
 import aqt.mediasrv
-from aqt.utils import showWarning
 import anki.sound
 import anki.mpv
 from aqt.utils import saveGeom, restoreGeom, showInfo, showWarning, \
-    restoreState, getOnlyText, askUser, applyStyles, showText, tooltip, \
+    restoreState, getOnlyText, askUser, showText, tooltip, \
     openHelp, openLink, checkInvalidFilename, getFile
-import sip
+from aqt.qt import sip
+from anki.lang import _, ngettext
 
 """
 self.stateShortcuts -- the list of QShortcut elements due to the actual state of the main window (i.e. reviewer or overwiew).
 """
 
 class AnkiQt(QMainWindow):
+    """
+    col -- The collection
+    state -- It's states which kind of content main shows. Either:
+      -- startup
+      -- resetRequired: during review, when edit or browser is opened, the window show "waiting for editing to finish. Resume now
+      -- sync
+      -- overview
+      -- review
+      -- profileManager
+      -- deckBrowser
+    stateShortcuts -- shortcuts related to the kind of window currently in main.
+    bottomWeb -- a ankiwebview, with the bottom of the main window. Shown unless for reset required.
+    app -- an object of class AnkiApp.
+    """
+
     def __init__(self, app, profileManager, opts, args):
         QMainWindow.__init__(self)
         self.state = "startup"
@@ -42,12 +58,6 @@ class AnkiQt(QMainWindow):
         aqt.mw = self
         self.app = app
         self.pm = profileManager
-        # running 2.0 for the first time?
-        if self.pm.meta['firstRun']:
-            # load the new deck user profile
-            self.pm.load(self.pm.profiles()[0])
-            self.pm.meta['firstRun'] = False
-            self.pm.save()
         # init rest of app
         self.safeMode = self.app.queryKeyboardModifiers() & Qt.ShiftModifier
         try:
@@ -63,9 +73,13 @@ class AnkiQt(QMainWindow):
         # were we given a file to import?
         if args and args[0]:
             self.onAppMsg(args[0])
-        # Load profile in a timer so we can let the window finish init and not
+       # Load profile in a timer so we can let the window finish init and not
         # close on profile load error.
-        self.progress.timer(10, self.setupProfile, False)
+        if isWin:
+            fn = self.setupProfileAfterWebviewsLoaded
+        else:
+            fn = self.setupProfile
+        self.progress.timer(10, fn, False, requiresCollection=False)
 
     def setupUI(self):
         self.col = None
@@ -76,6 +90,7 @@ class AnkiQt(QMainWindow):
         self.setupThreads()
         self.setupMediaServer()
         self.setupSound()
+        self.setupSpellCheck()
         self.setupMainWindow()
         self.setupSystemSpecific()
         self.setupStyle()
@@ -91,6 +106,16 @@ class AnkiQt(QMainWindow):
         self.setupDeckBrowser()
         self.setupOverview()
         self.setupReviewer()
+
+    def setupProfileAfterWebviewsLoaded(self):
+        for w in (self.web, self.bottomWeb):
+            if not w._domDone:
+                self.progress.timer(10, self.setupProfileAfterWebviewsLoaded, False, requiresCollection=False)
+                return
+            else:
+                w.requiresCol = True
+
+        self.setupProfile()
 
     # Profiles
     ##########################################################################
@@ -110,6 +135,12 @@ class AnkiQt(QMainWindow):
             self.closeFires = True
 
     def setupProfile(self):
+        if self.pm.meta['firstRun']:
+            # load the new deck user profile
+            self.pm.load(self.pm.profiles()[0])
+            self.pm.meta['firstRun'] = False
+            self.pm.save()
+
         self.pendingImport = None
         self.restoringBackup = False
         # profile not provided on command line?
@@ -294,7 +325,7 @@ close the profile or restart Anki."""))
                 if getattr(w, "silentlyClose", None):
                     w.close()
                 else:
-                    showWarning("Window should have been closed: {}".format(w))
+                    print("Window should have been closed: {}".format(w))
 
     def unloadProfileAndExit(self):
         self.unloadProfile(self.cleanupAndExit)
@@ -328,13 +359,15 @@ close the profile or restart Anki."""))
         try:
             return self._loadCollection()
         except Exception as e:
-            showWarning(_("""\
+            t=_("""\
 Anki was unable to open your collection file. If problems persist after \
 restarting your computer, please use the Open Backup button in the profile \
 manager.
 
 Debug info:
-""")+traceback.format_exc())
+""")+traceback.format_exc()
+            showWarning(t)
+            print(t, file = sys.stderr)
             # clean up open collection if possible
             if self.col:
                 try:
@@ -461,10 +494,17 @@ from the profile screen."))
     ##########################################################################
 
     def moveToState(self, state, *args):
+        """Call self._oldStateCleanup(state) if it exists for oldState. It seems it's the
+        case only for review.
+        remove shortcut related to this state
+        run hooks beforeStateChange and afterStateChange. By default they are empty.
+        show the bottom, unless its reset required.
+        """
         #print("-> move from", self.state, "to", state)
         oldState = self.state or "dummy"
         cleanup = getattr(self, "_"+oldState+"Cleanup", None)
         if cleanup:
+            # pylint: disable=not-callable
             cleanup(state)
         self.clearStateShortcuts()
         self.state = state
@@ -502,6 +542,7 @@ from the profile screen."))
         self.reviewer.show()
 
     def _reviewCleanup(self, newState):
+        """Run hook "reviewCleanup". Unless new state is resetRequired or review."""
         if newState != "resetRequired" and newState != "review":
             self.reviewer.cleanup()
 
@@ -513,7 +554,23 @@ from the profile screen."))
     ##########################################################################
 
     def reset(self, guiOnly=False):
-        "Called for non-trivial edits. Rebuilds queue and updates UI."
+        """Called for non-trivial edits. Rebuilds queue and updates UI.
+
+        set Edit>undo
+        change state (show the bottom bar, remove shortcut from last state)
+        run hooks beforeStateChange and afterStateChange. By default they are empty.
+        call cleanup of last state.
+        call the hook "reset". It contains at least the onReset method
+        from the current window if it is browser, (and its
+        changeModel), editCurrent, addCard, studyDeck,
+        modelChooser. Reset reinitialize those window without closing
+        them.
+
+        unless guiOnly:
+        Deal with the fact that it's potentially a new day.
+        Reset number of learning, review, new cards according to current decks
+        empty queues. Set haveQueues to true.
+        """
         if self.col:
             if not guiOnly:
                 self.col.reset()
@@ -608,6 +665,13 @@ title="%s" %s>%s</button>''' % (
         self.mainLayout.addWidget(sweb)
         self.form.centralwidget.setLayout(self.mainLayout)
 
+        # force webengine processes to load before cwd is changed
+        if isWin:
+            for o in self.web, self.bottomWeb:
+                o.requiresCol = False
+                o._domReady = False
+                o._page.setContent(bytes("", "ascii"))
+
     def closeAllWindows(self, onsuccess):
         aqt.dialogs.closeAll(onsuccess)
 
@@ -638,6 +702,10 @@ title="%s" %s>%s</button>''' % (
         self.addonManager = aqt.addons.AddonManager(self)
         if not self.safeMode:
             self.addonManager.loadAddons()
+
+    def setupSpellCheck(self):
+        os.environ["QTWEBENGINE_DICTIONARIES_PATH"] = (
+            os.path.join(self.pm.base, "dictionaries"))
 
     def setupThreads(self):
         self._mainThread = QThread.currentThread()
@@ -696,11 +764,34 @@ title="%s" %s>%s</button>''' % (
             self.setWindowState(self.windowState() & ~Qt.WindowMinimized)
         return True
 
-    def setStatus(self, text, timeout=3000):
-        self.form.statusbar.showMessage(text, timeout)
-
     def setupStyle(self):
-        applyStyles(self)
+        buf = ""
+
+        if isWin and platform.release() == '10':
+            # add missing bottom border to menubar
+            buf += """
+QMenuBar {
+  border-bottom: 1px solid #aaa;
+  background: white;
+}
+"""
+            # qt bug? setting the above changes the browser sidebar
+            # to white as well, so set it back
+            buf += """
+QTreeWidget {
+  background: #eee;
+}
+            """
+
+        # allow addons to modify the styling
+        buf = runFilter("setupStyle", buf)
+
+        # allow users to extend styling
+        p = os.path.join(aqt.mw.pm.base, "style.css")
+        if os.path.exists(p):
+            buf += open(p).read()
+
+        self.app.setStyleSheet(buf)
 
     # Key handling
     ##########################################################################
@@ -777,14 +868,19 @@ title="%s" %s>%s</button>''' % (
         cid = self.col.undo()
         if cid and self.state == "review":
             card = self.col.getCard(cid)
+            self.col.sched.reset()
             self.reviewer.cardQueue.append(card)
-        else:
-            tooltip(_("Reverted to state prior to '%s'.") % n.lower())
+            self.reviewer.nextCard()
+            self.maybeEnableUndo()
+            return
+
+        tooltip(_("Reverted to state prior to '%s'.") % n.lower())
         self.reset()
         self.maybeEnableUndo()
 
     def maybeEnableUndo(self):
-        if self.col and self.col.undoName():
+        """Enable undo in the GUI if something can be undone. Call the hook undoState(somethingCanBeUndone)."""
+        if self.col and self.col.undoName():#Whether something can be undone
             self.form.actionUndo.setText(_("Undo %s") %
                                             self.col.undoName())
             self.form.actionUndo.setEnabled(True)
@@ -808,15 +904,23 @@ title="%s" %s>%s</button>''' % (
     ##########################################################################
 
     def onAddCard(self):
+        """Open the addCards window."""
         aqt.dialogs.open("AddCards", self)
 
     def onBrowse(self):
+        """Open the browser window."""
         aqt.dialogs.open("Browser", self)
 
     def onEditCurrent(self):
+        """Open the editing window."""
         aqt.dialogs.open("EditCurrent", self)
 
     def onDeckConf(self, deck=None):
+        """Open the deck editor.
+
+        According to whether the deck is dynamic or not, open distinct window
+        keyword arguments:
+        deck -- The deck to edit. If not give, current Deck"""
         if not deck:
             deck = self.col.decks.current()
         if deck['dyn']:
@@ -831,12 +935,16 @@ title="%s" %s>%s</button>''' % (
         self.moveToState("overview")
 
     def onStats(self):
+        """Open stats for selected decks
+
+        If there are no selected deck, don't do anything."""
         deck = self._selectedDeck()
         if not deck:
             return
         aqt.dialogs.open("DeckStats", self)
 
     def onPrefs(self):
+        """Open preference window"""
         aqt.dialogs.open("Preferences", self)
 
     def onNoteTypes(self):
@@ -844,12 +952,15 @@ title="%s" %s>%s</button>''' % (
         aqt.models.Models(self, self, fromMain=True)
 
     def onAbout(self):
+        """Open the about window"""
         aqt.dialogs.open("About", self)
 
     def onDonate(self):
+        """Ask the OS to open the donate web page"""
         openLink(aqt.appDonate)
 
     def onDocumentation(self):
+        """Ask the OS to open the documentation web page"""
         openHelp("")
 
     # Importing & exporting
@@ -867,6 +978,7 @@ title="%s" %s>%s</button>''' % (
         aqt.importing.onImport(self)
 
     def onExport(self, did=None):
+        """Open exporting window, with did as in its argument."""
         import aqt.exporting
         aqt.exporting.ExportDialog(self, did=did)
 
@@ -1010,7 +1122,7 @@ and if the problem comes up again, please ask on the support site."""))
     def onRemNotes(self, col, nids):
         """Append (id, model id and fields) to the end of deleted.txt
 
-        This is done for each id of nids.        
+        This is done for each id of nids.
         This method is added to the hook remNotes; and executed on note deletion.
         """
         path = os.path.join(self.pm.profileFolder(), "deleted.txt")
@@ -1048,7 +1160,17 @@ will be lost. Continue?"""))
             showText(ret)
         else:
             tooltip(ret)
-        self.reset()
+
+        # if an error has directed the user to check the database,
+        # silently clean up any broken reset hooks which distract from
+        # the underlying issue
+        while True:
+            try:
+                self.reset()
+                break
+            except Exception as e:
+                print("swallowed exception in reset hook:", e)
+                continue
         return ret
 
     def onCheckMediaDB(self):
@@ -1121,7 +1243,7 @@ will be lost. Continue?"""))
 
     def onEmptyCards(self):
         """Method called by Tools>Empty Cards..."""
-        
+
         self.progress.start(immediate=True)
         cids = self.col.emptyCids()
         if not cids:
@@ -1154,11 +1276,19 @@ will be lost. Continue?"""))
         d.silentlyClose = True
         frm = aqt.forms.debug.Ui_Dialog()
         frm.setupUi(d)
+        font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
+        font.setPointSize(frm.text.font().pointSize() + 1)
+        frm.text.setFont(font)
+        frm.log.setFont(font)
         s = self.debugDiagShort = QShortcut(QKeySequence("ctrl+return"), d)
         s.activated.connect(lambda: self.onDebugRet(frm))
         s = self.debugDiagShort = QShortcut(
             QKeySequence("ctrl+shift+return"), d)
         s.activated.connect(lambda: self.onDebugPrint(frm))
+        s = self.debugDiagShort = QShortcut(QKeySequence("ctrl+l"), d)
+        s.activated.connect(frm.log.clear)
+        s = self.debugDiagShort = QShortcut(QKeySequence("ctrl+shift+l"), d)
+        s.activated.connect(frm.text.clear)
         d.show()
 
     def _captureOutput(self, on):
@@ -1184,7 +1314,16 @@ will be lost. Continue?"""))
         return aqt.dialogs._dialogs['Browser'][1].card.__dict__
 
     def onDebugPrint(self, frm):
-        frm.text.setPlainText("pp(%s)" % frm.text.toPlainText())
+        cursor = frm.text.textCursor()
+        position = cursor.position()
+        cursor.select(QTextCursor.LineUnderCursor)
+        line = cursor.selectedText()
+        pfx, sfx = "pp(", ")"
+        if not line.startswith(pfx):
+            line = "{}{}{}".format(pfx, line, sfx)
+            cursor.insertText(line)
+            cursor.setPosition(position + len(pfx))
+            frm.text.setTextCursor(cursor)
         self.onDebugRet(frm)
 
     def onDebugRet(self, frm):
@@ -1196,6 +1335,7 @@ will be lost. Continue?"""))
         pp = pprint.pprint
         self._captureOutput(True)
         try:
+            # pylint: disable=exec-used
             exec(text)
         except:
             self._output += traceback.format_exc()
@@ -1294,7 +1434,7 @@ Please ensure a profile is open and Anki is not busy, then try again."""),
 
     def gcWindow(self, obj):
         obj.deleteLater()
-        self.progress.timer(1000, self.doGC, False)
+        self.progress.timer(1000, self.doGC, False, requiresCollection=False)
 
     def disableGC(self):
         gc.collect()
@@ -1316,7 +1456,7 @@ Please ensure a profile is open and Anki is not busy, then try again."""),
     ##########################################################################
 
     def setupMediaServer(self):
-        self.mediaServer = aqt.mediasrv.MediaServer()
+        self.mediaServer = aqt.mediasrv.MediaServer(self)
         self.mediaServer.start()
 
     def baseHTML(self):
