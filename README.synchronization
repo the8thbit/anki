@@ -1,0 +1,9 @@
+Every table in anki contains a column named USN.
+
+This usn is -1 if this object has been changed since the last
+synchronization. In this case, this object must be synchronized toward
+the server again.
+
+Otherwise, the usn is an identifier of the date of the last
+synchronization. If the usn of the same object is higher in ankiweb,
+then this object is downloaded from ankiweb.

@@ -2,6 +2,9 @@
 # Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
+"""The window used to:
+* edit a note type
+* preview the different cards of a note."""
 import collections
 import re
 
@@ -19,6 +22,21 @@ from anki.hooks import runFilter
 from anki.lang import _, ngettext
 
 class CardLayout(QDialog):
+    """TODO
+
+    An object of class CardLayout contains:
+    nw -- the main window
+    parent -- the parent of the caller, by default the main window
+    note -- the note object considered
+    ord -- the order of the card considered
+    col -- the current collection
+    mm -- The model manager
+    model -- the model of the note
+    addMode -- if the card layout is called for a new card (in this case, it is temporary added to the db). True if its called from models.py, false if its called from edit.py
+    emptyFields -- the list of fields which are empty. Used only if addMode is true
+    redrawing -- is it currently redrawing (forbid savecard and onCardSeleceted)
+    cards -- the list of cards of the current note, each with their template.
+    """
 
     def __init__(self, mw, note, ord=0, parent=None, addMode=False):
         QDialog.__init__(self, parent or mw, Qt.Window)
@@ -61,10 +79,14 @@ class CardLayout(QDialog):
         self.setFocus()
 
     def redraw(self):
+        """TODO
+        update the list of card
+        """
         did = None
         if hasattr(self.parent,"deckChooser"):
             did = self.parent.deckChooser.selectedId()
         self.cards = self.col.previewCards(self.note, 2, did=did)
+        #the list of cards of this note, with all templates
         idx = self.ord
         if idx >= len(self.cards):
             self.ord = len(self.cards) - 1
@@ -80,6 +102,7 @@ class CardLayout(QDialog):
             QShortcut(QKeySequence("Ctrl+%d" % i), self, activated=lambda i=i: self.selectCard(i))
 
     def selectCard(self, n):
+        """Change ord to n-1 and redraw."""
         self.ord = n-1
         self.redraw()
 
@@ -93,6 +116,7 @@ class CardLayout(QDialog):
 
     def updateTopArea(self):
         cnt = self.mw.col.models.useCount(self.model)
+        #number of notes using this model
         self.topAreaForm.changesLabel.setText(ngettext(
             "Changes below will affect the %(cnt)d note that uses this card type.",
             "Changes below will affect the %(cnt)d notes that use this card type.",
@@ -109,12 +133,19 @@ class CardLayout(QDialog):
         self.redrawing = False
 
     def _summarizedName(self, tmpl):
+        """Compute the text appearing in the list of templates, on top of the window
+
+        tmpl -- a template object
+        """
         return "{}: {} -> {}".format(
             tmpl['name'],
             self._fieldsOnTemplate(tmpl['qfmt']),
             self._fieldsOnTemplate(tmpl['afmt']))
 
     def _fieldsOnTemplate(self, fmt):
+        """List of tags found in fmt, separated by +, limited to 30 characters
+        (not counting the +), in lexicographic order, with +... if some are
+        missings."""
         matches = re.findall("{{[^#/}]+?}}", fmt)
         charsAllowed = 30
         result = collections.OrderedDict()
@@ -203,6 +234,7 @@ class CardLayout(QDialog):
                 g.setTitle(g.title() + _(" (1 of %d)") % max(cnt, 1))
 
     def onRemove(self):
+        """ Remove the current template, except if it would leave a note without card. Ask user for confirmation"""
         if len(self.model['tmpls']) < 2:
             return showInfo(_("At least one card type is required."))
         idx = self.ord
@@ -354,6 +386,7 @@ Please create a new card type first."""))
         self.redraw()
 
     def onReorder(self):
+        """Asks user for a new position for current template. Move to this position if it is a valid position."""
         n = len(self.cards)
         cur = self.card.template()['ord']+1
         pos = getOnlyText(
@@ -384,6 +417,7 @@ Please create a new card type first."""))
         return name
 
     def onAddCard(self):
+        """Ask for confirmation and create a copy of current card as the last template"""
         cnt = self.mw.col.models.useCount(self.model)
         txt = ngettext("This will create %d card. Proceed?",
                        "This will create %d cards. Proceed?", cnt) % cnt
@@ -538,9 +572,11 @@ Enter deck to place new %s cards in, or leave blank:""") %
     ######################################################################
 
     def accept(self):
+        """Same as reject."""
         self.reject()
 
     def reject(self):
+        """ Close the window and save the current version of the model"""
         self.cancelPreviewTimer()
         clearAudioQueue()
         if self.addMode:

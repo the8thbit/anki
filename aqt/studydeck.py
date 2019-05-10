@@ -1,6 +1,9 @@
 # Copyright: Ankitects Pty Ltd and contributors
 # -*- coding: utf-8 -*-
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
+"""
+The window obtained, from main window "Tools>Study deck"
+"""
 
 from aqt.qt import *
 import aqt
@@ -9,6 +12,13 @@ from anki.hooks import addHook, remHook
 from anki.lang import _
 
 class StudyDeck(QDialog):
+    """
+    nameFunc -- names, a function or none. Called to compute the new name on reset. Currently, it's always the list of all decks or None.
+    origNames -- the names ? Either computed from nameFunc, or the list of all name of decks.
+    filt -- the text written in the window, to filter the decks shown
+    names -- set of decks to be shown. Subset of origname
+    name -- the selected deck, only after accepting
+    """
     def __init__(self, mw, names=None, accept=None, title=None,
                  help="studydeck", current=None, cancel=True,
                  parent=None, dyn=False, buttons=None, geomKey="default"):
@@ -75,6 +85,9 @@ class StudyDeck(QDialog):
         return False
 
     def redraw(self, filt, focus=None):
+        """filt -- text already entered
+        focus -- the name on which to focus if its in the list of deck names
+        """
         self.filt = filt
         self.focus = focus
         self.names = [n for n in self.origNames if self._matches(n, filt)]
@@ -89,6 +102,8 @@ class StudyDeck(QDialog):
         l.scrollToItem(l.item(idx), QAbstractItemView.PositionAtCenter)
 
     def _matches(self, name, filt):
+        """whether all words of filt, separated by spaces, appear in
+        name. This is how filter works."""
         name = name.lower()
         filt = filt.lower()
         if not filt:
@@ -99,6 +114,8 @@ class StudyDeck(QDialog):
         return True
 
     def onReset(self):
+        """Recompute the set of decks, show the new deck with same
+        filter, same focus, but new name"""
         # model updated?
         if self.nameFunc:
             self.origNames = self.nameFunc()
