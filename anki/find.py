@@ -15,6 +15,10 @@ from anki.hooks import *
 ##########################################################################
 
 class Finder:
+    """
+    col: the collection used for opening this Finder.
+    search: a dictionnary such that the query key:value is evaluated by self.search[key]((value,args)), with args a list of tag. This function potentially add tags (in _findTag) and return a sql part to put after the where
+    """
 
     def __init__(self, col):
         self.col = col
@@ -187,6 +191,9 @@ select distinct(n.id) from cards c, notes n where c.nid=n.id and """+preds
         return s['q'], args
 
     def _query(self, preds, order):
+        """Return the set of card ids, of card satisfying predicate preds,
+        where c is a card and n its note, ordered according to the sql
+        `order`"""
         # can we skip the note table?
         if "n." not in preds and "n." not in order:
             sql = "select c.id from cards c where "
@@ -243,6 +250,7 @@ select distinct(n.id) from cards c, notes n where c.nid=n.id and """+preds
     ######################################################################
 
     def _findTag(self, args):
+        """Add the tag val to args. Returns a query which, given a tag, search it."""
         (val, args) = args
         if val == "none":
             return 'n.tags = ""'
