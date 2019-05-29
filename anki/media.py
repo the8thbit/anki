@@ -341,7 +341,7 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
     ##########################################################################
 
     def check(self, local=None):
-        "Return (missingFiles, unusedFiles)."
+        "Return (missingFiles, unusedFiles, warnings)."
         mdir = self.dir()
         # gather all media references in NFC form
         allRefs = set()
