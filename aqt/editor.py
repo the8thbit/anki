@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
 # Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
+"""
+The part of the window used to edit notes. It is used for adding
+note, editing existing note, and as the lower part of the browser.
+
+"""
+
 import re
 import urllib.request, urllib.parse, urllib.error
 import warnings
@@ -41,6 +47,9 @@ html { background: %s; }
 # caller is responsible for resetting note on reset
 class Editor:
     def __init__(self, mw, widget, parentWindow, addMode=False):
+        """TODO
+
+        addMode -- Whether editor is called from addcard.py"""
         self.mw = mw
         self.widget = widget
         self.parentWindow = parentWindow
@@ -71,6 +80,7 @@ class Editor:
         self.web.onBridgeCmd = self.onBridgeCmd
         self.outerLayout.addWidget(self.web, 1)
 
+        # List of buttons on top right of editor
         righttopbtns = list()
         righttopbtns.append(self._addButton('text_bold', 'bold', _("Bold text (Ctrl+B)"), id='bold'))
         righttopbtns.append(self._addButton('text_italic', 'italic', _("Italic text (Ctrl+I)"), id='italic'))
@@ -94,23 +104,29 @@ class Editor:
         righttopbtns.append(self._addButton('media-record', 'record', _("Record audio (F5)")))
         righttopbtns.append(self._addButton('more', 'more'))
         righttopbtns = runFilter("setupEditorButtons", righttopbtns, self)
-        topbuts = """
-            <div id="topbutsleft" style="float:left;">
+
+        # Fields... and Cards... button on top lefts, and
+        lefttopbtns = """
                 <button title='%(fldsTitle)s' onclick="pycmd('fields')">%(flds)s...</button>
                 <button title='%(cardsTitle)s' onclick="pycmd('cards')">%(cards)s...</button>
+        """%dict(flds=_("Fields"), cards=_("Cards"),
+                   fldsTitle=_("Customize Fields"),
+                   cardsTitle=shortcut(_("Customize Card Templates (Ctrl+L)")))
+        topbuts= """
+            <div id="topbutsleft" style="float:left;">
+                %(lefttopbtns)s
             </div>
             <div id="topbutsright" style="float:right;">
                 %(rightbts)s
             </div>
-        """ % dict(flds=_("Fields"), cards=_("Cards"), rightbts="".join(righttopbtns),
-                   fldsTitle=_("Customize Fields"),
-                   cardsTitle=shortcut(_("Customize Card Templates (Ctrl+L)")))
+        """ % dict(lefttopbtns = lefttopbtns, rightbts="".join(righttopbtns))
         bgcol = self.mw.app.palette().window().color().name()
         # then load page
-        self.web.stdHtml(_html % (
+        html = _html % (
             bgcol, bgcol,
             topbuts,
-            _("Show Duplicates")),
+            _("Show Duplicates"))
+        self.web.stdHtml(html,
                          css=["editor.css"],
                          js=["jquery.js", "editor.js"])
 
@@ -128,7 +144,7 @@ class Editor:
             return 'data:%s;base64,%s' % (mime, data64.decode('ascii'))
 
 
-    def addButton(self, icon, cmd, func, tip="", label="", 
+    def addButton(self, icon, cmd, func, tip="", label="",
                   id=None, toggleable=False, keys=None, disables=True):
         """Assign func to bridge cmd, register shortcut, return button"""
         if cmd not in self._links:
@@ -142,6 +158,17 @@ class Editor:
 
     def _addButton(self, icon, cmd, tip="", label="", id=None, toggleable=False,
                    disables=True):
+        """Create a button, with the image icon, or the text of the label, or
+        of the cmd. It send the python command cmd.
+
+        icon -- url to the icon. Potentially falsy
+        cmd -- python command to call when the button is pressed
+        tip -- text to show when the mouse is on the button
+        id -- an identifier for the html button
+        toggleable -- whether pressing the button should call the js function toggleEditorButton
+        disables -- if true, add class "perm" to the btuton
+
+        """
         if icon:
             if icon.startswith("qrc:/"):
                 iconstr = icon
@@ -298,7 +325,17 @@ class Editor:
     ######################################################################
 
     def setNote(self, note, hide=True, focusTo=None):
-        "Make NOTE the current note."
+        """Make `note` the current note.
+
+        if note is Falsy:
+        Remove tags's line.
+
+
+        keyword arguments:
+        note -- the new note in the editor
+        hide -- whether to hide the current widget
+        focusTo -- in which field should the focus appear
+        """
         self.note = note
         self.currentField = None
         if self.note:
@@ -312,10 +349,13 @@ class Editor:
         self.loadNote(self.currentField)
 
     def loadNote(self, focusTo=None):
+        """Todo
+
+        focusTo -- Whether focus should be set to some field."""
         if not self.note:
             return
 
-        data = []
+        data = []# field name, field content modified so that it's image's url can be used locally.
         for fld, val in list(self.note.items()):
             data.append((fld, self.mw.col.media.escapeImages(val)))
         self.widget.show()
@@ -448,6 +488,7 @@ class Editor:
         runHook("tagsUpdated", self.note)
 
     def saveAddModeVars(self):
+        """During creation of new notes, save tags to the note's model"""
         if self.addMode:
             # save tags to model
             m = self.note.model()
@@ -455,6 +496,7 @@ class Editor:
             self.mw.col.models.save(m)
 
     def hideCompleters(self):
+        "Remove tags's line"
         self.tags.hideCompleter()
 
     def onFocusTags(self):

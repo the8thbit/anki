@@ -24,6 +24,7 @@ def allSounds(text):
     return re.findall(_soundReg, text)
 
 def stripSounds(text):
+    """The text without its sound field."""
     return re.sub(_soundReg, "", text)
 
 def hasSound(text):

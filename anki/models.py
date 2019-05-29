@@ -2,6 +2,64 @@
 # Copyright: Ankitects Pty Ltd and contributors
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
+"""This module deals with models, known as note type in Anki's documentation.
+
+A model is composed of:
+css -- CSS, shared for all templates of the model
+did -- Long specifying the id of the deck that cards are added to by
+default
+flds -- JSONArray containing object for each field in the model. See flds
+id -- model ID, matches notes.mid
+latexPost -- String added to end of LaTeX expressions (usually \\end{document}),
+latexPre -- preamble for LaTeX expressions,
+mod -- modification time in milliseconds,
+name -- the name of the model,
+req -- Array of arrays describing which fields are required. See req
+sortf -- Integer specifying which field is used for sorting in the
+browser,
+tags -- Anki saves the tags of the last added note to the current
+model, use an empty array [],
+tmpls -- The list of templates. See below
+      -- In db:JSONArray containing object of CardTemplate for each card in
+model.
+type -- Integer specifying what type of model. 0 for standard, 1 for
+cloze,
+usn -- Update sequence number: used in same way as other usn vales in
+db,
+vers -- Legacy version number (unused), use an empty array []
+changed -- Whether the Model has been changed and should be written in
+the database."""
+
+
+"""A field object (flds) is an array composed of:
+font -- "display font",
+media -- "array of media. appears to be unused",
+name -- "field name",
+ord -- "ordinal of the field - goes from 0 to num fields -1",
+rtl -- "boolean, right-to-left script",
+size -- "font size",
+sticky -- "sticky fields retain the value that was last added
+when adding new notes" """
+
+"""req' fields are:
+"the 'ord' value of the template object from the 'tmpls' array you are setting the required fields of",
+'? string, "all" or "any"',
+["? another array of 'ord' values from field object you
+want to require from the 'flds' array"]"""
+
+
+"""tmpls (a template): a dict with
+afmt -- "answer template string",
+bafmt -- "browser answer format:
+used for displaying answer in browser",
+bqfmt -- "browser question format:
+used for displaying question in browser",
+did -- "deck override (null by default)",
+name -- "template name",
+ord -- "template number, see flds",
+qfmt -- "question format string"
+"""
+
 import copy, re, json
 from anki.utils import intTime, joinFields, splitFields, ids2str,\
     checksum
@@ -70,11 +128,13 @@ defaultTemplate = {
 }
 
 class ModelManager:
-
+    """This object is usually denoted mm as a variable. Or .models in
+    collection."""
     # Saving/loading registry
     #############################################################
 
     def __init__(self, col):
+        """Returns a ModelManager whose collection is col."""
         self.col = col
 
     def load(self, json_):
@@ -83,7 +143,15 @@ class ModelManager:
         self.models = json.loads(json_)
 
     def save(self, m=None, templates=False):
-        "Mark M modified if provided, and schedule registry flush."
+        """
+        * Mark m modified if provided.
+        * Schedule registry flush.
+        * Calls hook newModel
+
+        Keyword arguments:
+        m -- A Model
+        templates -- whether to check for cards not generated in this model
+        """
         if m and m['id']:
             m['mod'] = intTime()
             m['usn'] = self.col.usn()
@@ -91,7 +159,7 @@ class ModelManager:
             if templates:
                 self._syncTemplates(m)
         self.changed = True
-        runHook("newModel")
+        runHook("newModel") # By default, only refresh side bar of browser
 
     def flush(self):
         "Flush the registry if any models were changed."
@@ -111,31 +179,46 @@ class ModelManager:
     #############################################################
 
     def current(self, forDeck=True):
-        "Get current model."
+        """Get current model.
+
+        This mode is first considered using the current deck's mid, if
+        forDeck is true(default).
+
+        Otherwise, the curModel configuration value is used.
+
+        Otherwise, the first model is used.
+
+        Keyword arguments:
+        forDeck -- Whether ther model of the deck should be considered; assuming it exists."""
         m = self.get(self.col.decks.current().get('mid'))
         if not forDeck or not m:
             m = self.get(self.col.conf['curModel'])
         return m or list(self.models.values())[0]
 
     def setCurrent(self, m):
+        """Change curModel value and marks the collection as modified."""
         self.col.conf['curModel'] = m['id']
         self.col.setMod()
 
     def get(self, id):
-        "Get model with ID, or None."
+        "Get model object with ID, or None."
         id = str(id)
         if id in self.models:
             return self.models[id]
 
     def all(self):
-        "Get all models."
+        "Get all model objects."
         return list(self.models.values())
 
     def allNames(self):
+        "Get all model names."
         return [m['name'] for m in self.all()]
 
     def byName(self, name):
-        "Get model with NAME."
+        """Get model whose name is name.
+
+        keyword arguments
+        name -- the name of the wanted model."""
         for m in list(self.models.values()):
             if m['name'] == name:
                 return m
@@ -168,12 +251,20 @@ select id from cards where nid in (select id from notes where mid = ?)""",
             self.setCurrent(list(self.models.values())[0])
 
     def add(self, m):
+        """Add a new model m in the database of models"""
         self._setID(m)
         self.update(m)
         self.setCurrent(m)
         self.save(m)
 
     def ensureNameUnique(self, m):
+        """Transform the name of m into a new name.
+
+        If a model with this name but a distinct id exists in the
+        manager, the name of this object is appended by - and by a
+        5 random digits generated using the current time.
+        Keyword arguments
+        m -- a model object"""
         for mcur in self.all():
             if (mcur['name'] == m['name'] and mcur['id'] != m['id']):
                 m['name'] += "-" + checksum(str(time.time()))[:5]
@@ -187,6 +278,7 @@ select id from cards where nid in (select id from notes where mid = ?)""",
         self.save()
 
     def _setID(self, m):
+        """Set the id of m to a new unique value."""
         while 1:
             id = str(intTime(1000))
             if id not in self.models:
@@ -194,25 +286,38 @@ select id from cards where nid in (select id from notes where mid = ?)""",
         m['id'] = id
 
     def have(self, id):
+        """Whether there exists a model whose id is did."""
         return str(id) in self.models
 
     def ids(self):
+        """The list of id of models"""
         return list(self.models.keys())
 
     # Tools
     ##################################################
 
     def nids(self, m):
-        "Note ids for M."
+        """The ids of notes whose model is m.
+
+        Keyword arguments
+        m -- a model object."""
         return self.col.db.list(
             "select id from notes where mid = ?", m['id'])
 
     def useCount(self, m):
-        "Number of note using M."
+        """Number of note using the model m.
+
+        Keyword arguments
+        m -- a model object."""
         return self.col.db.scalar(
             "select count() from notes where mid = ?", m['id'])
 
     def tmplUseCount(self, m, ord):
+        """The number of cards which used template number ord of the
+        model obj.
+
+        Keyword arguments
+        m -- a model object."""
         return self.col.db.scalar("""
 select count() from cards, notes where cards.nid = notes.id
 and notes.mid = ? and cards.ord = ?""", m['id'], ord)
@@ -221,7 +326,7 @@ and notes.mid = ? and cards.ord = ?""", m['id'], ord)
     ##################################################
 
     def copy(self, m):
-        "Copy, save and return."
+        "A copy of m, already in the collection."
         m2 = copy.deepcopy(m)
         m2['name'] = _("%s copy") % m2['name']
         self.add(m2)
@@ -231,21 +336,35 @@ and notes.mid = ? and cards.ord = ?""", m['id'], ord)
     ##################################################
 
     def newField(self, name):
+        """A new field, similar to the default one, whose name is name."""
         f = defaultField.copy()
         f['name'] = name
         return f
 
     def fieldMap(self, m):
-        "Mapping of field name -> (ord, field)."
+        """Mapping of (field name) -> (ord, field object).
+
+        keyword arguments:
+        m : a model
+        """
         return dict((f['name'], (f['ord'], f)) for f in m['flds'])
 
     def fieldNames(self, m):
+        """The list of names of fields of this model."""
         return [f['name'] for f in m['flds']]
 
     def sortIdx(self, m):
+        """The index of the field used for sorting."""
         return m['sortf']
 
     def setSortIdx(self, m, idx):
+        """State that the id of the sorting field of the model is idx.
+
+        Mark the model as modified, change the cache.
+        Keyword arguments
+        m -- a model
+        idx -- the identifier of a field
+        """
         assert 0 <= idx < len(m['flds'])
         self.col.modSchema(check=True)
         m['sortf'] = idx
@@ -253,6 +372,14 @@ and notes.mid = ? and cards.ord = ?""", m['id'], ord)
         self.save(m)
 
     def addField(self, m, field):
+        """Append the field field as last element of the model m.
+
+        todo
+
+        Keyword arguments
+        m -- a model
+        field -- a field object
+        """
         # only mod schema if model isn't new
         if m['id']:
             self.col.modSchema(check=True)
@@ -265,6 +392,14 @@ and notes.mid = ? and cards.ord = ?""", m['id'], ord)
         self._transformFields(m, add)
 
     def remField(self, m, field):
+        """Remove a field from a model.
+        Also remove it from each note of this model
+        Move the position of the sortfield. Update the position of each field.
+
+        Modify the template
+
+        m -- the model
+        field -- the field object"""
         self.col.modSchema(check=True)
         # save old sort field
         sortFldName = m['flds'][m['sortf']]['name']
@@ -288,6 +423,11 @@ and notes.mid = ? and cards.ord = ?""", m['id'], ord)
         self.renameField(m, field, None)
 
     def moveField(self, m, field, idx):
+        """Move the field to position idx
+
+        idx -- new position, integer
+        field -- a field object
+        """
         self.col.modSchema(check=True)
         oldidx = m['flds'].index(field)
         if oldidx == idx:
@@ -309,7 +449,16 @@ and notes.mid = ? and cards.ord = ?""", m['id'], ord)
         self._transformFields(m, move)
 
     def renameField(self, m, field, newName):
+        """Rename the field. In each template, find the mustache related to
+        this field and change them.
+
+        m -- the model dictionnary
+        field -- the field dictionnary
+        newName -- either a name. Or None if the field is deleted.
+
+        """
         self.col.modSchema(check=True)
+        #Regexp associating to a mustache the name of its field
         pat = r'{{([^{}]*)([:#^/]|[^:#/^}][^:}]*?:|)%s}}'
         def wrap(txt):
             def repl(match):
@@ -327,10 +476,20 @@ and notes.mid = ? and cards.ord = ?""", m['id'], ord)
         self.save(m)
 
     def _updateFieldOrds(self, m):
+        """
+        Change the order of the field of the model in order to copy
+        the order in m['flds'].
+
+        Keyword arguments
+        m -- a model"""
         for c, f in enumerate(m['flds']):
             f['ord'] = c
 
     def _transformFields(self, m, fn):
+        """For each note of the model m, apply m to the set of field's value,
+        and save the note modified.
+
+        fn -- a function taking and returning a list of field."""
         # model hasn't been added yet?
         if not m['id']:
             return
@@ -346,12 +505,22 @@ and notes.mid = ? and cards.ord = ?""", m['id'], ord)
     ##################################################
 
     def newTemplate(self, name):
+        """A new template, whose content is the one of
+        defaultTemplate, and name is name.
+
+        It's used in order to import mnemosyn, and create the standard
+        model during anki's first initialization. It's not used in day to day anki.
+        """
         t = defaultTemplate.copy()
         t['name'] = name
         return t
 
     def addTemplate(self, m, template):
-        "Note: should col.genCards() afterwards."
+        """Add a new template in m, as last element. This template is a copy
+        of the input template
+        """
+
+        "Note: should call col.genCards() afterwards."
         if m['id']:
             self.col.modSchema(check=True)
         m['tmpls'].append(template)
@@ -359,7 +528,11 @@ and notes.mid = ? and cards.ord = ?""", m['id'], ord)
         self.save(m)
 
     def remTemplate(self, m, template):
-        "False if removing template would leave orphan notes."
+        """Remove the input template from the model m.
+
+        Return False if removing template would leave orphan
+        notes. Otherwise True
+        """
         assert len(m['tmpls']) > 1
         # find cards using this template
         ord = m['tmpls'].index(template)
@@ -389,10 +562,17 @@ update cards set ord = ord - 1, usn = ?, mod = ?
         return True
 
     def _updateTemplOrds(self, m):
+        """Change the value of 'ord' in each template of this model to reflect its new position"""
         for c, t in enumerate(m['tmpls']):
             t['ord'] = c
 
     def moveTemplate(self, m, template, idx):
+        """Move input template to position idx in m.
+
+        Move also every other template to make this consistent.
+
+        Comment again after that TODODODO
+        """
         oldidx = m['tmpls'].index(template)
         if oldidx == idx:
             return
@@ -412,6 +592,9 @@ select id from notes where mid = ?)""" % " ".join(map),
                              self.col.usn(), intTime(), m['id'])
 
     def _syncTemplates(self, m):
+        """Generate all cards not yet generated, whose note's model is m.
+
+        It's called only when model is saved, a new model is given and template is asked to be computed"""
         rem = self.col.genCards(self.nids(m))
 
     # Model changing
@@ -420,6 +603,17 @@ select id from notes where mid = ?)""" % " ".join(map),
     # - newModel should be self if model is not changing
 
     def change(self, m, nids, newModel, fmap, cmap):
+        """Change the model of the nodes in nids to newModel
+
+        currently, fmap and cmap are null only for tests.
+
+        keyword arguments
+        m -- the previous model of the notes
+        nids -- a list of id of notes whose model is m
+        newModel -- the model to which the cards must be converted
+        fmap -- the dictionnary sending to each fields'ord of the old model a field'ord of the new model
+        cmap -- the dictionnary sending to each card type's ord of the old model a card type's ord of the new model
+        """
         self.col.modSchema(check=True)
         assert newModel['id'] == m['id'] or (fmap and cmap)
         if fmap:
@@ -429,7 +623,17 @@ select id from notes where mid = ?)""" % " ".join(map),
         self.col.genCards(nids)
 
     def _changeNotes(self, nids, newModel, map):
-        d = []
+        """Change the note whose ids are nid to the model newModel, reorder
+        fields according to map. Write the change in the database
+
+        Note that if a field is mapped to nothing, it is lost
+
+        keyword arguments:
+        nids -- the list of id of notes to change
+        newmodel -- the model of destination of the note
+        map -- the dictionnary sending to each fields'ord of the old model a field'ord of the new model
+        """
+        d = [] #The list of dictionnaries, containing the information relating to the new cards
         nfields = len(newModel['flds'])
         for (nid, flds) in self.col.db.execute(
             "select id, flds from notes where id in "+ids2str(nids)):
@@ -448,6 +652,20 @@ select id from notes where mid = ?)""" % " ".join(map),
         self.col.updateFieldCache(nids)
 
     def _changeCards(self, nids, oldModel, newModel, map):
+        """Change the note whose ids are nid to the model newModel, reorder
+        fields according to map. Write the change in the database
+
+        Remove the cards mapped to nothing
+
+        If the source is a cloze, it is (currently?) mapped to the
+        card of same order in newModel, independtly of map.
+
+        keyword arguments:
+        nids -- the list of id of notes to change
+        oldModel -- the soruce model of the notes
+        newmodel -- the model of destination of the notes
+        map -- the dictionnary sending to each card 'ord of the old model a card'ord of the new model or to None
+        """
         d = []
         deleted = []
         for (cid, ord) in self.col.db.execute(
@@ -490,6 +708,7 @@ select id from notes where mid = ?)""" % " ".join(map),
     ##########################################################################
 
     def _updateRequired(self, m):
+        """Entirely recompute the model's req value"""
         if m['type'] == MODEL_CLOZE:
             # nothing to do
             return
@@ -501,15 +720,24 @@ select id from notes where mid = ?)""" % " ".join(map),
         m['req'] = req
 
     def _reqForTemplate(self, m, flds, t):
+        """A rule which is supposed to determine whether a card should be
+        generated or not according to its fields.
+
+        See ../documentation/templates_generation_rules.md
+
+        """
         a = []
         b = []
         for f in flds:
             a.append("ankiflag")
             b.append("")
         data = [1, 1, m['id'], 1, t['ord'], "", joinFields(a), 0]
+        # The html of the card at position ord where each field's content is "ankiflag"
         full = self.col._renderQA(data)['q']
         data = [1, 1, m['id'], 1, t['ord'], "", joinFields(b), 0]
+        # The html of the card at position ord where each field's content is the empty string ""
         empty = self.col._renderQA(data)['q']
+
         # if full and empty are the same, the template is invalid and there is
         # no way to satisfy it
         if full == empty:
@@ -538,13 +766,17 @@ select id from notes where mid = ?)""" % " ".join(map),
         return type, req
 
     def availOrds(self, m, flds):
-        "Given a joined field string, return available template ordinals."
+        """Given a joined field string, return ordinal of card type which
+        should be generated. See
+        ../documentation/templates_generation_rules.md for the detail
+
+        """
         if m['type'] == MODEL_CLOZE:
             return self._availClozeOrds(m, flds)
         fields = {}
         for c, f in enumerate(splitFields(flds)):
             fields[c] = f.strip()
-        avail = []
+        avail = []#List of ord of cards which would be generated
         for ord, type, req in m['req']:
             # unsatisfiable template
             if type == "none":
@@ -572,18 +804,27 @@ select id from notes where mid = ?)""" % " ".join(map),
         return avail
 
     def _availClozeOrds(self, m, flds, allowEmpty=True):
+        """The list of fields F which are used in some {{cloze:F}} in a template
+
+        keyword arguments:
+        m: a model
+        flds: a list of fields as in the database
+        allowEmpty: allows to treat a note without cloze field as a note with a cloze number 1
+        """
         sflds = splitFields(flds)
-        map = self.fieldMap(m)
-        ords = set()
+        map = self.fieldMap(m)#dictionnary (field name) -> (ord, field object)
+        ords = set()#Will eventually contain the set of number of
+                    #clozes in cloze fields (whether a field is a
+                    #cloze field is determined according to template)
         matches = re.findall("{{[^}]*?cloze:(?:[^}]?:)*(.+?)}}", m['tmpls'][0]['qfmt'])
         matches += re.findall("<%cloze:(.+?)%>", m['tmpls'][0]['qfmt'])
         for fname in matches:
             if fname not in map:
-                continue
+                continue#Do not consider cloze not related to an existing field
             ord = map[fname][0]
             ords.update([int(m)-1 for m in re.findall(
-                r"(?s){{c(\d+)::.+?}}", sflds[ord])])
-        if -1 in ords:
+                r"(?s){{c(\d+)::.+?}}", sflds[ord])])#The number of the cloze of this field, minus one
+        if -1 in ords:#remove cloze 0
             ords.remove(-1)
         if not ords and allowEmpty:
             # empty clozes use first ord
