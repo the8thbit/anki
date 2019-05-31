@@ -1,10 +1,10 @@
 # Database check
 
 In this document, we consider the processing of checking of the
-database. We actually consider four different checkings:
+database. We actually consider three different checkings:
 * The one which cause anki to tell that the database has
 inconsistencies and that we should use run «Check Database».
-* The action which occur when «Check Database is run».
+* The action which occur when «Check Database» is run.
 * The kind of database error which are not repaired nor fixed by anki.
 (but they are fixed by the add-on [Database checker/fixer explained,
 more fixers](https://ankiweb.net/shared/info/1135180054)).
