@@ -6,7 +6,7 @@ version). I then describe each step.
 # Protocol
 Each transmission uses post. The method ```foo``` send its request to
 either https://l1sync.ankiweb.net/{m}sync/foo, or
-https://sync{d}.ankiweb.net/{m}sync/foo, where %s is a value provided by the
+https://sync{d}.ankiweb.net/{m}sync/foo, where `{d}` is a value provided by the
 server during the previous sync (initially the empty string), and {m}
 is "m" if and only if it's a media synchronization, otherwise, it is
 the empty string.
