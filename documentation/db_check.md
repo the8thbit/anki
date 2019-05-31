@@ -144,6 +144,8 @@ number so big that it will be decreased during the next fixing of the
 database.
 
 ### Reviews should have a reasonable due
+TODO. a part of this has been changed since this text was written. below I explain how anki used to deal with due position.
+
 Similarly to New cards can't have a due position > 32 bits, it is
 assumed that the due value of review card (i.e. cards which are not
 new anymore, and not in learning) is at most 100000 (there is one zero
