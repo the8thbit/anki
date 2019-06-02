@@ -1,10 +1,10 @@
 # Database check
 
 In this document, we consider the processing of checking of the
-database. We actually consider four different checkings:
+database. We actually consider three different checkings:
 * The one which cause anki to tell that the database has
 inconsistencies and that we should use run «Check Database».
-* The action which occur when «Check Database is run».
+* The action which occur when «Check Database» is run.
 * The kind of database error which are not repaired nor fixed by anki.
 (but they are fixed by the add-on [Database checker/fixer explained,
 more fixers](https://ankiweb.net/shared/info/1135180054)).
@@ -144,6 +144,8 @@ number so big that it will be decreased during the next fixing of the
 database.
 
 ### Reviews should have a reasonable due
+TODO. a part of this has been changed since this text was written. below I explain how anki used to deal with due position.
+
 Similarly to New cards can't have a due position > 32 bits, it is
 assumed that the due value of review card (i.e. cards which are not
 new anymore, and not in learning) is at most 100000 (there is one zero

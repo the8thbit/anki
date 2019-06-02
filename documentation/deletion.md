@@ -17,7 +17,7 @@ Here are the following way to delete a card.
 * deleting a deck
 * deletion requested by a synchronization.
 
-It should be noted that, in the two last cases, if the note still
+It should be noted that, in those two cases, if the note still
 exists and the card is not empty, the next «check database» will
 regenerate those cards, but they'll be considered to be brand new
 cards.
@@ -52,7 +52,7 @@ to a synchronization. In this case, the note may stay in your
 collection, with no card. I believe that the reason for this choice is
 that some cards may be downloaded later in the synchronization for
 this note, thus this note should be keep. And anyway, if there are
-really no card at all, then the note should be deleted and the server,
+really no card at all, then the note should also be deleted in the server,
 and thus the synchronization will eventually request the deletion of
 the note. (See [synchronization.md] for more details)
 
