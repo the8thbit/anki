@@ -390,7 +390,10 @@ class StatusDelegate(QItemDelegate):
 # fixme: respond to reset+edit hooks
 
 class Browser(QMainWindow):
-    """model: the data model (and not a card model !)"""
+    """model: the data model (and not a card model !)
+
+    card: the card in the reviewer when the browser was opened, or the last selected card.
+    """
 
     def __init__(self, mw):
         QMainWindow.__init__(self, None, Qt.Window)
@@ -1256,15 +1259,18 @@ where id in %s""" % ids2str(sf))
     def onChangeModel(self):
         """Starts a GUI letting the user change the model of notes.
 
-        Assuming a single note model is selected.
-        Save before using it."""
+        If multiple note type are selected, then show a warning
+        instead.  It saves the editor content before doing any other
+        change it.
+
+        """
         self.editor.saveNow(self._onChangeModel)
 
     def _onChangeModel(self):
         """Starts a GUI letting the user change the model of notes.
 
-        onChangeModel should be used instead of this function
-        Assuming a single note model is selected. """
+        If multiple note type are selected, then show a warning instead.
+        Don't call this directly, call onChangeModel. """
         nids = self.oneModelNotes()
         if nids:
             ChangeModel(self, nids)
@@ -1949,6 +1955,11 @@ update cards set usn=?, mod=?, did=? where id in """ + scids,
 
 class ChangeModel(QDialog):
 
+    """The dialog window, obtained in the browser by selecting cards and
+    Cards>Change Note Type. It allows to change the type of a note
+    from one type to another.
+
+    """
     def __init__(self, browser, nids):
         """Create and open a dialog for changing model"""
         QDialog.__init__(self, browser)
@@ -2005,9 +2016,12 @@ class ChangeModel(QDialog):
         self.rebuildFieldMap()
 
     def rebuildTemplateMap(self, key=None, attr=None):
-        if not key:
-            key = "t"
-            attr = "tmpls"
+        return self.rebuildMap(key="t", attr="tmpls")
+
+    def rebuildFieldMap(self):
+        return self.rebuildMap(key="f", attr="flds")
+
+    def rebuildMap(self, key=None, attr=None):
         map = getattr(self, key + "widg")
         lay = getattr(self, key + "layout")
         src = self.oldModel[attr]
@@ -2039,8 +2053,6 @@ class ChangeModel(QDialog):
         setattr(self, key + "combos", combos)
         setattr(self, key + "indices", indices)
 
-    def rebuildFieldMap(self):
-        return self.rebuildTemplateMap(key="f", attr="flds")
 
     def onComboChanged(self, i, cb, key):
         indices = getattr(self, key + "indices")

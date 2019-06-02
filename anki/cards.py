@@ -51,7 +51,7 @@ class Card:
       -- a the number of reps left today
     odue -- original due: only used when the card is currently in filtered deck
     odid -- original did: only used when the card is currently in filtered deck
-    flags -- a number, representing a "flag", which can be see in browser and while reviewing a note. Red 1, Orange 2, Green 3, Blue 4, no flag: 0
+    flags -- an integer. This integer mod 8 represents a "flag", which can be see in browser and while reviewing a note. Red 1, Orange 2, Green 3, Blue 4, no flag: 0. This integer divided by 8 represents currently nothing
     data -- currently unused
 
     Values not in the database:

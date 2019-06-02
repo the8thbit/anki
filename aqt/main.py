@@ -825,7 +825,7 @@ QTreeWidget {
 
     def setStateShortcuts(self, shortcuts):
         """set stateShortcuts to QShortcut from shortcuts
-        
+
         run hook CURRENTSTATEStateShorcuts
         """
         runHook(self.state+"StateShortcuts", shortcuts)

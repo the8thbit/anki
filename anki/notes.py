@@ -84,7 +84,7 @@ from notes where id = ?""", self.id)
         If there exists a note with same id, tags and fields, and mod is not set, do nothing.
         Change the mod to given argument or current time
         Change the USNk
-        If the not is not new, according to _preFlush, generate the cards
+        If the note is not new, according to _preFlush, generate the cards
         Add its tag to the collection
         Add the note in the db
 

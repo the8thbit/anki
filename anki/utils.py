@@ -135,6 +135,7 @@ reEnts = re.compile(r"&#?\w+;")
 reMedia = re.compile("(?i)<img[^>]+src=[\"']?([^\"'>]+)[\"']?[^>]*>")
 
 def stripHTML(s):
+    """Removes comment, style, script, and all tags. Replace entities by their unicode value"""
     s = reComment.sub("", s)
     s = reStyle.sub("", s)
     s = reScript.sub("", s)
@@ -143,7 +144,8 @@ def stripHTML(s):
     return s
 
 def stripHTMLMedia(s):
-    "Strip HTML but keep media filenames"
+    """Removes comment, style, script, and all tags. Replace images by
+their url. Replace entities by their unicode value"""
     s = reMedia.sub(" \\1 ", s)
     return stripHTML(s)
 
@@ -158,6 +160,7 @@ def minimizeHTML(s):
     return s
 
 def htmlToTextLine(s):
+    """Transform a field into a html value to show in the browser list of cards."""
     s = s.replace("<br>", " ")
     s = s.replace("<br />", " ")
     s = s.replace("<div>", " ")
@@ -169,6 +172,7 @@ def htmlToTextLine(s):
     return s
 
 def entsToTxt(html):
+    """html, where entities are replaced by their unicode character."""
     # entitydefs defines nbsp as \xa0 instead of a standard space, so we
     # replace it first
     html = html.replace("&nbsp;", " ")

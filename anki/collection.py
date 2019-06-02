@@ -1113,6 +1113,7 @@ and type=0""", [intTime(), self.usn()])
         newSize = os.stat(self.path)[stat.ST_SIZE]
         txt = _("Database rebuilt and optimized.")
         ok = not problems
+        print("Adding in collection.py")
         problems.append(txt)
         # if any problems were found, force a full sync
         if not ok:
