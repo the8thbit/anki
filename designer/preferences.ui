@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>423</width>
-    <height>508</height>
+    <height>552</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,12 +15,15 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <item>
-    <widget class="QTabWidget" name="tabWidget">
+    <widget class="QTabWidget" name="tab_4">
      <property name="focusPolicy">
       <enum>Qt::StrongFocus</enum>
      </property>
+     <property name="whatsThis">
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Extra&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+     </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>2</number>
      </property>
      <widget class="QWidget" name="tab_1">
       <attribute name="title">
@@ -465,6 +468,11 @@
        </item>
       </layout>
      </widget>
+     <widget class="QWidget" name="tab_3">
+      <attribute name="title">
+       <string>Extra</string>
+      </attribute>
+     </widget>
     </widget>
    </item>
    <item>
@@ -495,7 +503,7 @@
   <tabstop>timeLimit</tabstop>
   <tabstop>numBackups</tabstop>
   <tabstop>syncOnProgramOpen</tabstop>
-  <tabstop>tabWidget</tabstop>
+  <tabstop>tab_4</tabstop>
   <tabstop>fullSync</tabstop>
   <tabstop>syncMedia</tabstop>
   <tabstop>syncDeauth</tabstop>
@@ -509,8 +517,8 @@
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>285</x>
-     <y>439</y>
+     <x>294</x>
+     <y>542</y>
     </hint>
     <hint type="destinationlabel">
      <x>157</x>
@@ -525,8 +533,8 @@
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>332</x>
-     <y>439</y>
+     <x>341</x>
+     <y>542</y>
     </hint>
     <hint type="destinationlabel">
      <x>286</x>
