@@ -92,7 +92,7 @@ def wrap(old, new, pos="after"):
         elif pos == "before":
             new(*args, **kwargs)
             return old(*args, **kwargs)
-        else:
+        else:# around
             return new(_old=old, *args, **kwargs)
 
     def decorator_wrapper(f, *args, **kwargs):
