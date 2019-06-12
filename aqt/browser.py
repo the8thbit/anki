@@ -2016,12 +2016,14 @@ class ChangeModel(QDialog):
         self.rebuildFieldMap()
 
     def rebuildTemplateMap(self, key=None, attr=None):
-        return self.rebuildMap(key="t", attr="tmpls")
+        """Change the "Cards" subwindow of the Change Note Type.
 
-    def rebuildFieldMap(self):
-        return self.rebuildMap(key="f", attr="flds")
-
-    def rebuildMap(self, key=None, attr=None):
+        Actually, if key and attr are given, it may change another
+        subwindow, so the same code is reused for fields.
+        """
+        if not key:
+            key = "t"
+            attr = "tmpls"
         map = getattr(self, key + "widg")
         lay = getattr(self, key + "layout")
         src = self.oldModel[attr]
@@ -2053,6 +2055,9 @@ class ChangeModel(QDialog):
         setattr(self, key + "combos", combos)
         setattr(self, key + "indices", indices)
 
+    def rebuildFieldMap(self):
+        """Change the "Fields" subwindow of the Change Note Type."""
+        return self.rebuildTemplateMap(key="f", attr="flds")
 
     def onComboChanged(self, i, cb, key):
         indices = getattr(self, key + "indices")
