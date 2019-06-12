@@ -46,6 +46,12 @@ html { background: %s; }
 
 # caller is responsible for resetting note on reset
 class Editor:
+    """
+    _links -- associate to each javascript command an action to do. ATTENTION: it is directly a function, and not a method from this class. Thus if you override the method, the function is not automatically modified.
+    addMode -- Whether editor is called from addcard.py
+    currentField -- The index of the field currently selected. Or None if no fiel is selected.
+    card -- the card selected in the browser/in the edit window
+    """
     def __init__(self, mw, widget, parentWindow, addMode=False):
         """TODO
 
