@@ -69,15 +69,20 @@ However, this property may get lost in at least two cases:
 * if siblings belong to different deck, and one deck gets reordered
 
 ### Uniqueness
-Each card with the same ```due``` value belongs to the same note. This is
-ensured because each time a ```due``` value is required, (i.e. when adding a
-card or reordering a deck), the ```due``` value chosen are greater than the
-maximal ```due``` value already present in the collection.
+Normally, each card with the same ```due``` value belongs to the same
+note. This is ensured because each time a ```due``` value is required,
+(i.e. when adding a card or reordering a deck), the ```due``` value
+chosen are greater than the maximal ```due``` value already present in
+the collection.
 
 This property is true almost all the time, at least unless you or an
 add-on change the database directly. However, there is one case where
 this became false, if the ```due``` value of a card is 1,000,000 or
-greater. In this case, all cards have ```due``` value 1,000,000.
+greater. In this case:
+* until april 2019 (anki 2.1.12): all cards have ```due``` value 1,000,000.
+* since april 2019 (anki 2.1.13): the due values are computed modulo
+  1,000,000, which means that you may have a lot of cards with due
+  value 0, 1, ...
 
 ### Order of adding cards
 If a deck has «new card in order added», then the ```due``` card
@@ -145,10 +150,14 @@ is expected.
 
 ### ```Due``` 1,000,000
 As explained above, the ```due``` of a card is a 32 bits integer. To
-ensure that it remains so, every ```due``` greater than 1,000,00 is
-changed to 1,000,000 when database is checked. This mean that as soon
-as a single card has value 1,000,000, all new cards have this
-```due``` value. Thus ```due``` becomes totally useless.
+ensure that it remains so, when database is checked, every ```due```
+greater than 1,000,00 is:
+* until april 2019 (anki 2.1.12): changed to 1,000,000 . This mean
+  that as soon as a single card has value 1,000,000, all new cards
+  have this ```due``` value. Thus ```due``` becomes totally useless.
+* since april 2019 (anki 2.1.13): changed to their value modulo
+  1,000,000. Thus the last card added will have due value 0, 1,
+  ... and will become the first card to be reviewed.
 
 According to
 (lovac42)[https://anki.tenderapp.com/discussions/ankidesktop/33664-due-value-of-new-card-being-1000000#comment_47198513],
