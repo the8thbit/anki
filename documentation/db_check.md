@@ -11,7 +11,7 @@ more fixers](https://ankiweb.net/shared/info/1135180054)).
 
 ## Warning of database inconsistency
 
-We consider ```anki.collection._Collection.basicCheck```. Note that,
+We consider `anki.collection._Collection.basicCheck`. Note that,
 contrary to what the name hints, this is not what occurs when you
 press «Check Database». Instead, this is run twice during the
 synchronization process to check whether the database is still
@@ -32,7 +32,7 @@ if you want to have more details, you should use add-on [Database
 checker/fixer explained, more
 fixers](https://ankiweb.net/shared/info/1135180054).
 
-The method described here is ```anki.collection._Collection.fixIntegrity```.
+The method described here is `anki.collection._Collection.fixIntegrity`.
 
 ### Checking whether the database is ok
 The first test is checking whether sqlite find a problem in the
@@ -54,9 +54,9 @@ In this occur, anki prints "Deleted %d card(s) with missing template."
 with %d being the number of card deleted.
 
 ### AnkiDroid deck override bug
-A card type ```t``` (a.k.a. template) has a key 'did'. When you create
+A card type `t` (a.k.a. template) has a key 'did'. When you create
 a new note, the card with this card type are sent to the deck whose id
-is ```t['did']``` if its not None.  Its entry may be "None" instead of
+is `t['did']` if its not None.  Its entry may be "None" instead of
 None. If it is the case, it is corrected. In this case, Anki prints
 "Fixed AnkiDroid deck override bug."
 
@@ -68,9 +68,9 @@ missing, it is computed and anki prints "Fixed note type: %s" with %s
 the name of the model.
 
 ### Card with invalid ordinal
-Each card ```c``` is associated to a card type. More precisely, to an integer,
+Each card `c` is associated to a card type. More precisely, to an integer,
 which represents the position of the card type in the note type. This
-is saved as ```c.ord```. If ```c.ord``` does not correspond to a
+is saved as `c.ord`. If `c.ord` does not correspond to a
 position of a card type, this card should not exists. Thus, it is
 deleted. Anki prints "Deleted %d card with missing template.", with %d
 the number of cards deleted.

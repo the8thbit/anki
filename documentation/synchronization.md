@@ -4,7 +4,7 @@ version). I then describe each step.
 
 
 # Protocol
-Each transmission uses post. The method ```foo``` send its request to
+Each transmission uses post. The method `foo` send its request to
 either https://l1sync.ankiweb.net/{m}sync/foo, or
 https://sync{d}.ankiweb.net/{m}sync/foo, where `{d}` is a value provided by the
 server during the previous sync (initially the empty string), and {m}
@@ -103,7 +103,7 @@ Hook ("sync","meta") is now called, but seems to have absolutly no
 effect.
 
 ### Start
-The post request ```start``` is sent with object a dictionnary:
+The post request `start` is sent with object a dictionnary:
 * 'minUsn': the collection's value USN. I.e. the last number sent by
   the server (plus one). It represents the minimal USN of change that
   need to be downloaded.
@@ -115,14 +115,14 @@ deleted deck is not deleted, nor are the children of the deck if it
 has any.
 
 ### applyGraves
-The post request ```start``` is sent with object a dictionnary with a
+The post request `start` is sent with object a dictionnary with a
 unique key 'changes' whose value is a dict with keys "notes", "cards",
 and "decks", each containing ids of object deleted since last
 synchronization. At most 250 are sent, the command may be sent
 multiple time if required.
 
 ### applyChanges
-The post request ```start``` is sent with object a dictionnary with a
+The post request `start` is sent with object a dictionnary with a
 unique entry "changes", whose value is a dict with keys 'models',
 'decks', 'tags' as they are saved as dict in the database. If mod is
 newer here than on server, then the dict in the dict also contains key
@@ -144,7 +144,7 @@ that the time of this modification is after the time of the
 modification saved on the server.
 
 ### chunk
-The post request ```chunk``` does not send anything. It receive a
+The post request `chunk` does not send anything. It receive a
 dictionnary (the chunks) containing some keys in  'revlog', 'cards'
 and 'notes', containing lines to enter in the table of database with
 the same name (unless an entry with the same id is already here).
@@ -155,8 +155,8 @@ This post request is repeated until chunk['done'] is truthy. Each time,
 hook ("sync","server") is called. But seems to have absolutly no effect.
 
 ### stream
-The post request ```applyChunk``` takes as input a dictionnary, similar
-to the one receveide by the ```chunk``` method. I.e. containing
+The post request `applyChunk` takes as input a dictionnary, similar
+to the one receveide by the `chunk` method. I.e. containing
 keys `revlog`, `cards`, `notes` and `done`. This dic contains at most
 250 elements.
 
@@ -176,7 +176,7 @@ return a string giving the name of the table not satisfying it.
 If a non-root deck has no parent, it is created.
 
 
-It computes the list ```c```
+It computes the list `c`
 * three numbers to show in anki
 * list/footer. I.e. Number of new cards, learning repetition,
 * review card. (for selected deck),
@@ -189,12 +189,12 @@ It computes the list ```c```
 * number of deck's options.
 
 ### sanityCheck2
-The method ```sanityCheck2``` is now called. It sends as objects
-result ```c``` from sanityCheck. It returns a dictionnary ```dic```
+The method `sanityCheck2` is now called. It sends as objects
+result `c` from sanityCheck. It returns a dictionnary `dic`
 which contains a key 'status'. Two paths are then taken, depending on
-whether ```dic['sync']``` is the string 'ok' or not.
+whether `dic['sync']` is the string 'ok' or not.
 
-I assume taht ```ok``` occurs if the server, doing the same
+I assume taht `ok` occurs if the server, doing the same
 computation, finds the same result. If so, it is possible that a sync
 fail if it is done almost at time of new day, since the number of card
 to review would be distinct on server and on computer.
@@ -202,8 +202,8 @@ to review would be distinct on server and on computer.
 #### Finish (If it's 'ok')
 runHook("sync", "finalize") is called. It does nothing.
 
-The method ```finish``` does not sent any object. It returns a number,
-which will become collections's ```ls``` value.
+The method `finish` does not sent any object. It returns a number,
+which will become collections's `ls` value.
 
 Collection _usn value is incremented to be maxUsn+1.
 
@@ -217,7 +217,7 @@ Collection is rollback. State schema is modified. Save the collection
 A special method exists for test. We do not consider it in this
 document.
 
-Except for the ```begin``` command,  the dictionnary of value sent contains a single element:
+Except for the `begin` command,  the dictionnary of value sent contains a single element:
 * 'sk': whose value is an identification number returned by the server
   to be used during this connexion.
 
@@ -225,7 +225,7 @@ Except for the ```begin``` command,  the dictionnary of value sent contains a si
 hook("sync","findMedia") is run. The window's text become "Checking media...".
 
 ### begin
-The first method used id ```begin```. Its dictionnary is:
+The first method used id `begin`. Its dictionnary is:
 * 'k': the hostkey
 * 'v': "ankidesktop,{anki's version number},{platform}:{platform's
   version}", with platform being either win, lin, mac or unknown. In
@@ -239,7 +239,7 @@ It receive a json utf8 dictionnary with:
 if server's usn is equal to collection's greatest usn, no change are
 found and the sync halts.
 ### mediaChanges
-The method ```mediaChanges``` send the last USN of medias in the
+The method `mediaChanges` send the last USN of medias in the
 collection.
 
 It returns a list. Each element of the list is a triple:
@@ -252,7 +252,7 @@ It returns a list. Each element of the list is a triple:
 Those elements are probably in non-decreasing order of USN.
 
 Each such media is logged. If the media is new or changed on server,
-it is added to the list ```need```. If the media existed and was
+it is added to the list `need`. If the media existed and was
 dirty, it is cleaned.
 
 If the media is deleted on the server and not dirty, then it is also
@@ -262,7 +262,7 @@ deleted in the collection. Otherwise, if it is dirty, it log
 If both sides see the data as deleted, log this information and clean
 it on the collection side.
 ### downloadFiles
-The method ```downloadFiles``` sends a dict with a unique key 'files',
+The method `downloadFiles` sends a dict with a unique key 'files',
 whose value is the first 25 files which must be downloaded.
 
 Returns a zip file containing:
@@ -283,7 +283,7 @@ This step occurs as long as media must be sent.
 Hook ("syncMsg") is run and state how many media still need to be
 sent.
 
-The post method ```uploadChange``` contains as object a zip file,
+The post method `uploadChange` contains as object a zip file,
 containing:
 * from 1 to 25 files
 * a file _meta, associating to each file name in the zip directory
@@ -306,11 +306,11 @@ logged. When the entire syncing process ended, it is entirely
 restarted.
 
 ### mediaSanity
-The post request ```mediaSanity``` sends a dic with a unique key
-```local``` whose value is the number of media. It returns a
+The post request `mediaSanity` sends a dic with a unique key
+`local` whose value is the number of media. It returns a
 string. This string is returned by the method sync. If the string is
 not "OK", the media database is emptied by method
-```anki.media.MediaManager.forceResync```.
+`anki.media.MediaManager.forceResync`.
 
 ## Full upload
 
@@ -328,14 +328,14 @@ It check whether the database is in correct state, and basic check
 * Save or rollback collection's db according to save.
 * Close collection's db, media's db and log.
 
-The method is ```upload```, it contains as object the collection database.
+The method is `upload`, it contains as object the collection database.
 
 ## Full download
 
 run hook ("sync", "upload"). It change the text to "Downloading for
 AnkiWeb...".
 
-The post method ```download``` takes no deal argument. It may returns
+The post method `download` takes no deal argument. It may returns
 the string is "upgradeRequired", the hook is called ("sync",
 "upgradeRequired") and halts. It show the message "Please visit
 AnkiWeb, upgrade your deck, then try again."

@@ -237,16 +237,16 @@ card, using the note in the editor.
 ##### undoState:
 Contains aqt.browser.Browser.onUndoState(on) if a browser is
 opened. This method turn the undo action on or off according to the
-Boolean value of ```on```. It change the text of this action.
+Boolean value of `on`. It change the text of this action.
 
 It is called from aqt.main.AnkiQt.maybeEnableUndo, which change the
 undo action from the main window.
 
 ##### showAnswer
-Called at the end of ```aqt.reviewer.Reviewer._showAnswer```.
+Called at the end of `aqt.reviewer.Reviewer._showAnswer`.
 
 ##### showQuestion
-Called at the end of ```aqt.reviewer.Reviewer._showQuestion```.
+Called at the end of `aqt.reviewer.Reviewer._showQuestion`.
 
 ### Unknown
 Those hooks are called in a part of code I don't understand yet. Help
@@ -292,7 +292,7 @@ removed when the download ended.
 The download may be either an add-on, or a synchronization.
 
 This method takes as argument a number of byt, add it to some count
-```self.recvTotal``` and then emitting something as a QT object. In
+`self.recvTotal` and then emitting something as a QT object. In
 the case of synchronization, if the sync is aborted, it raises an
 exception.
 
@@ -366,13 +366,13 @@ function to this list.
 ### fmod
 The following four filters are called from
 anki.template.template.Template.render_unescaped. When a field start
-by ```{{foo:```, i.e. it is ```{{foo:bar}}```, the filter fmod_foo is
+by `{{foo:`, i.e. it is `{{foo:bar}}`, the filter fmod_foo is
 called on the content of the field bar. This may occur multiple time,
 since multiple modifier may begin a mustache.
 
 For example, the add-on [Edit Field During
 Review](https://ankiweb.net/shared/info/1549412677) add a hook
-fmod_edit, so that you can use ```{{edit:``` in card type.
+fmod_edit, so that you can use `{{edit:` in card type.
 
 ##### fmod_kanji
 ##### fmod_kana

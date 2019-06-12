@@ -7,8 +7,8 @@ the code. So, here is the exact rules.
 
 
 For the new cards (in learning
-cards), it is in method ```_answerLrncard```. For the review cards, it
-is in methods ```_answerRevCard``` and ```_rescheduleRev```.
+cards), it is in method `_answerLrncard`. For the review cards, it
+is in methods `_answerRevCard` and `_rescheduleRev`.
 
 ## Fuzzyness
 Below, we explain how to compute a number of day for the new
@@ -18,19 +18,19 @@ is slightly increased or decreased, in order to add randomnes, as
 manual](https://apps.ankiweb.net/docs/manual.html#what-spaced-repetition-algorithm-does-anki-use).
 
 We now explain the fuzzy function. The code described here is in
-method ```_fuzzedIvlRange```.
+method `_fuzzedIvlRange`.
 
 * If the interval is 1, then its fuzzy version is 1.
 * If the interval is 2, its fuzzy version is 2 or 3.
 * If the interval is at least three days, it's fuzzy version is a
-  number between ```interval-fuzz``` and ```interval+fuzz```. That is,
-  a few days may be added or removed. We now explain how ```fuzz```
+  number between `interval-fuzz` and `interval+fuzz`. That is,
+  a few days may be added or removed. We now explain how `fuzz`
   is computed.
-  * If the interval is less than a week, then ```fuzz``` is 1.
-  * If the interval is between 7 and 19 days, ```fuzz``` is 2
-  * If the interval is between 20 and 26 days, ```fuzz``` is 3.
-  * If the interval is between 27 and 09 days, ```fuzz``` is 4.
-  * If the interval is at least a hundrad days, ```fuzz``` is 5
+  * If the interval is less than a week, then `fuzz` is 1.
+  * If the interval is between 7 and 19 days, `fuzz` is 2
+  * If the interval is between 20 and 26 days, `fuzz` is 3.
+  * If the interval is between 27 and 09 days, `fuzz` is 4.
+  * If the interval is at least a hundrad days, `fuzz` is 5
     percent of the interval.
 
 ## Parameters
@@ -70,7 +70,7 @@ If you are late reviewing your card, we also take into account how
 late you are. This is called the delay of the card.
 
 ## The formulas
-The methods mentionned below appear in ```anki.sched.Scheduler```.
+The methods mentionned below appear in `anki.sched.Scheduler`.
 
 ### Filtered deck
 If the card is in filtered deck, if the filter option "reschedule
@@ -98,10 +98,10 @@ The new interval is the maximum between old interval and
 elapsed*((easyness factor/1000)+1.2)/2, with elapsed being the time
 between today and the last review.
 
-This number is constrained to be between 1 and the ```maxIvl``` of the
+This number is constrained to be between 1 and the `maxIvl` of the
 card's configuration. This number is not fuzzified.
 
-This formula is in the method ```_dynIvlBoost```.
+This formula is in the method `_dynIvlBoost`.
 
 ### Standard deck
 #### New card
@@ -118,7 +118,7 @@ list of successive steps.
 
 #### Review cards
 The new interval depends on which buttons is pressed. The main part of
-the computation is done in the method ```_nextRevIvl```.
+the computation is done in the method `_nextRevIvl`.
 
 Fuzziness is applied in the three cases. In all three case, the result
 is at most maximal interval set in the deck's option.
@@ -165,4 +165,4 @@ step. Then the difference of time between two steps is as in this
 list. When it graduates again, schedule for the day after.
 
 When graduating again, the new interval is tomorrow Its done in
-```_rescheduleAsRev```
+`_rescheduleAsRev`

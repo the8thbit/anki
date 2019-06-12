@@ -16,12 +16,12 @@ What code calls template is called «card type» in Anki's
 documentation.
 
 ## id's
-The idea of an object is often denoted as ```Oid```, with O the
+The idea of an object is often denoted as `Oid`, with O the
 initial of the kind of object. Thus cid, nid, mid, did and oid, for
 ids of card, note, model, deck, and original deck.
 
-However, in the object itself, the id is denoted as ```id``` and not
-as ```Oid```. For example, the id of a card is ```card.id```.
+However, in the object itself, the id is denoted as `id` and not
+as `Oid`. For example, the id of a card is `card.id`.
 
 
 # Main window
