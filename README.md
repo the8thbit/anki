@@ -2,7 +2,8 @@
 
 This is a forked version of Anki.
 
-For official Anki, please see https://apps.ankiweb.net.
+For official Anki, please see https://apps.ankiweb.net. To see the
+difference between this fork and anki, see [difference.md](difference.md).
 
 To run from source, please see README.development.
 
