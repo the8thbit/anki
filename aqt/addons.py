@@ -908,5 +908,5 @@ class Addon:
 
 """ Dictionnary, associating add-on id/name to Add-ons object"""
 addons = {
-    Addon("Change a notes type without requesting a database upload", 719871418, 1560313030, , "https://github.com/Arthur-Milchior/anki-change-note-type.git")
+    Addon("Change a notes type without requesting a database upload", 719871418, 1560313030, "8b97cfbea1b7d8bd7124d6ebe6553f36d1914823", "https://github.com/Arthur-Milchior/anki-change-note-type")
 }
