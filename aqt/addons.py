@@ -31,6 +31,7 @@ from aqt.downloader import download
 from anki.lang import _, ngettext
 from anki.utils import intTime
 from anki.sync import AnkiRequestsClient
+from addons import addons
 
 class AddonManager:
 
@@ -103,6 +104,14 @@ class AddonManager:
 
     def loadAddons(self):
         for dir in self.allAddons():
+            # If add-on is merged in the fork, don't import it.
+            if re.match(r"^\d+$", dir):
+                i = int(dir)
+                if i in addons:
+                    continue
+            if dir in addons:
+                continue
+
             meta = self.addonMeta(dir)
             if meta.get("disabled"):
                 continue
@@ -879,3 +888,21 @@ class ConfigEditor(QDialog):
 
         self.onClose()
         super().accept()
+
+## Add-ons incorporated in this fork.
+
+class Addon:
+    def __init__(self, name = None, id = None, mod = None, gitHash = None, gitRepo = None):
+        self.name = name
+        self.id = id
+        self.mod = mod
+        self.gitHash = gitHash
+        self.gitRepo = gitRepo
+
+    def __hash__(self):
+        return id or name
+
+""" Dictionnary, associating add-on id/name to Add-ons object"""
+addons = {
+
+}
