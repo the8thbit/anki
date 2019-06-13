@@ -134,25 +134,6 @@ class _Collection:
     server -- Whether to pretend to be the server. Only set to true during anki.sync.Syncer.remove; i.e. while removing what the server says to remove. When set to true:
     * the usn returned by self.usn is self._usn, otherwise -1.
     * media manager does not connect nor close database connexion (I've no idea why)
-
-=======
-
-    not in the db:
-    activeDecks -- The active decks, that is, the current deck and its descendent.
-    curDeck -- the current deck. That is, the last deck which was selected
-    for review or for adding cards.
-    newSpread -- ??
-    collapseTime --
-    timeLim --
-    estTimes --
-    dueCounts --
-    other --
-    curModel -- A model which is, right now, the default model
-    nextPos -- the highest due of new cards
-    sortType --
-    sortBackwards --
-    addToCur -- add new to currently selected deck?
->>>>>>> Merge
     """
     def __init__(self, db, server=False, log=False):
         self._debugLog = log
