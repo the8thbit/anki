@@ -33,6 +33,10 @@ from anki.utils import intTime
 from anki.sync import AnkiRequestsClient
 
 class AddonManager:
+    """
+    dirty -- whether an add-on is loaded
+    mw -- the main window
+    """
 
     ext = ".ankiaddon"
     _manifest_schema = {
