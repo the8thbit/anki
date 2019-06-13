@@ -231,5 +231,8 @@ Not currently enabled; click the sync button in the main window to enable."""))
     def updateOptions(self):
         self.prof['pastePNG'] = self.form.pastePNG.isChecked()
 
-    def extra(self):
+    def setupExtra
+        """Set in the GUI the preferences related to add-ons forked."""
+
+    def updateExtra(self):
         """Check the preferences related to add-ons forked."""
