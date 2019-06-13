@@ -31,7 +31,6 @@ from aqt.downloader import download
 from anki.lang import _, ngettext
 from anki.utils import intTime
 from anki.sync import AnkiRequestsClient
-from addons import addons
 
 class AddonManager:
     """
