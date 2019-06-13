@@ -42,6 +42,7 @@ class Preferences(QDialog):
         self.updateOptions()
         self.mw.pm.save()
         self.mw.reset()
+        self.extra()
         self.done(0)
         aqt.dialogs.markClosed("Preferences")
 
@@ -229,3 +230,6 @@ Not currently enabled; click the sync button in the main window to enable."""))
 
     def updateOptions(self):
         self.prof['pastePNG'] = self.form.pastePNG.isChecked()
+
+    def extra(self):
+        """Check the preferences related to add-ons forked."""
