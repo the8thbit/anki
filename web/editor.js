@@ -267,6 +267,7 @@ function maybeDisableButtons() {
 }
 
 function wrap(front, back) {
+	alert("calling wrap("+front+","+back+")");
     if (currentField.dir === "rtl") {
         front = "&#8235;" + front + "&#8236;";
         back = "&#8235;" + back + "&#8236;";

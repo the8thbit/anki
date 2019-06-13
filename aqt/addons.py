@@ -34,6 +34,10 @@ from anki.sync import AnkiRequestsClient
 from addons import addons
 
 class AddonManager:
+    """
+    dirty -- whether an add-on is loaded
+    mw -- the main window
+    """
 
     ext = ".ankiaddon"
     _manifest_schema = {
@@ -264,7 +268,7 @@ and have been disabled: %(found)s") % dict(name=self.addonName(dir), found=addon
         base = self.addonsFolder(dir)
         if os.path.exists(base):
             self.backupUserFiles(dir)
-            if not self.deleteAddon(dir):
+            if not self.deleteAddon(dir): # To install, previous version should be deleted. If it can't be deleted for an unkwown reason, we try to put everything back in previous state.
                 self.restoreUserFiles(dir)
                 return
 
@@ -283,8 +287,8 @@ and have been disabled: %(found)s") % dict(name=self.addonName(dir), found=addon
                 continue
             zfile.extract(n, base)
 
-    # true on success
     def deleteAddon(self, dir):
+        """Delete the add-on folder of add-on dir. Returns True on success"""
         try:
             send2trash(self.addonsFolder(dir))
             return True
