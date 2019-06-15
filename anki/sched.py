@@ -62,28 +62,28 @@ class Scheduler:
             self._burySiblings(card)
         card.reps += 1
         # former is for logging new cards, latter also covers filt. decks
-        card.wasNew = card.type == 0
-        wasNewQ = card.queue == 0
+        card.wasNew = card.type == CARD_NEW
+        wasNewQ = card.queue == QUEUE_NEW_CRAM
         if wasNewQ:
             # came from the new queue, move to learning
-            card.queue = 1
+            card.queue = QUEUE_LRN
             # if it was a new card, it's now a learning card
-            if card.type == 0:
-                card.type = 1
+            if card.type == CARD_NEW:
+                card.type = CARD_LRN
             # init reps to graduation
             card.left = self._startingLeft(card)
             # dynamic?
-            if card.odid and card.type == 2:
+            if card.odid and card.type == CARD_DUE:
                 if self._resched(card):
                     # reviews get their ivl boosted on first sight
                     card.ivl = self._dynIvlBoost(card)
                     card.odue = self.today + card.ivl
             self._updateStats(card, 'new')
-        if card.queue in (1, 3):
+        if card.queue in (QUEUE_LRN, QUEUE_DAY_LRN):
             self._answerLrnCard(card, ease)
             if not wasNewQ:
                 self._updateStats(card, 'lrn')
-        elif card.queue == 2:
+        elif card.queue == QUEUE_REV:
             self._answerRevCard(card, ease)
             self._updateStats(card, 'rev')
         else:
@@ -97,7 +97,7 @@ class Scheduler:
         counts = [self.newCount, self.lrnCount, self.revCount]
         if card:
             idx = self.countIdx(card)
-            if idx == 1:
+            if idx == QUEUE_LRN:
                 counts[1] += card.left // 1000
             else:
                 counts[idx] += 1
@@ -105,12 +105,12 @@ class Scheduler:
 
     def dueForecast(self, days=7):
         "Return counts over next DAYS. Includes today."
-        daysd = dict(self.col.db.all("""
+        daysd = dict(self.col.db.all(f"""
 select due, count() from cards
-where did in %s and queue = 2
+where did in %s and queue = {QUEUE_REV}
 and due between ? and ?
 group by due
-order by due""" % self._deckLimit(),
+order by due""" % (self._deckLimit()),
                             self.today,
                             self.today+days-1))
         for d in range(days):
@@ -122,40 +122,40 @@ order by due""" % self._deckLimit(),
         return ret
 
     def countIdx(self, card):
-        if card.queue == 3:
-            return 1
+        if card.queue == QUEUE_DAY_LRN:
+            return QUEUE_LRN
         return card.queue
 
     def answerButtons(self, card):
         if card.odue:
             # normal review in dyn deck?
-            if card.odid and card.queue == 2:
-                return 4
+            if card.odid and card.queue == QUEUE_REV:
+                return BUTTON_FOUR
             conf = self._lrnConf(card)
-            if card.type in (0,1) or len(conf['delays']) > 1:
-                return 3
-            return 2
-        elif card.queue == 2:
-            return 4
+            if card.type in (CARD_NEW,CARD_LRN) or len(conf['delays']) > 1:
+                return BUTTON_THREE
+            return BUTTON_TWO
+        elif card.queue == QUEUE_REV:
+            return BUTTON_FOUR
         else:
-            return 3
+            return BUTTON_THREE
 
     def unburyCards(self):
         "Unbury cards."
         self.col.conf['lastUnburied'] = self.today
         self.col.log(
-            self.col.db.list("select id from cards where queue = -2"))
+            self.col.db.list(f"select id from cards where queue = {QUEUE_USER_BURIED}"))
         self.col.db.execute(
-            "update cards set queue=type where queue = -2")
+            f"update cards set queue=type where queue = {QUEUE_USER_BURIED}")
 
     def unburyCardsForDeck(self):
         sids = ids2str(self.col.decks.active())
         self.col.log(
-            self.col.db.list("select id from cards where queue = -2 and did in %s"
-                             % sids))
+            self.col.db.list(f"select id from cards where queue = {QUEUE_USER_BURIED} and did in %s"
+                             % (sids)))
         self.col.db.execute(
-            "update cards set mod=?,usn=?,queue=type where queue = -2 and did in %s"
-            % sids, intTime(), self.col.usn())
+            f"update cards set mod=?,usn=?,queue=type where queue = {QUEUE_USER_BURIED} and did in %s"
+            % (sids), intTime(), self.col.usn())
 
     # Rev/lrn/time daily stats
     ##########################################################################
@@ -330,9 +330,9 @@ order by due""" % self._deckLimit(),
     ##########################################################################
 
     def _resetNewCount(self):
-        cntFn = lambda did, lim: self.col.db.scalar("""
+        cntFn = lambda did, lim: self.col.db.scalar(f"""
 select count() from (select 1 from cards where
-did = ? and queue = 0 limit ?)""", did, lim)
+did = ? and queue = {QUEUE_NEW_CRAM} limit ?)""", did, lim)
         self.newCount = self._walkingCount(self._deckNewLimitSingle, cntFn)
 
     def _resetNew(self):
@@ -352,7 +352,7 @@ did = ? and queue = 0 limit ?)""", did, lim)
             if lim:
                 # fill the queue with the current did
                 self._newQueue = self.col.db.list("""
-                select id from cards where did = ? and queue = 0 order by due,ord limit ?""", did, lim)
+                select id from cards where did = ? and queue = {QUEUE_NEW_CRAM} order by due,ord limit ?""" , did, lim)
                 if self._newQueue:
                     self._newQueue.reverse()
                     return True
@@ -413,7 +413,7 @@ did = ? and queue = 0 limit ?)""", did, lim)
         lim = min(lim, self.reportLimit)
         return self.col.db.scalar("""
 select count() from
-(select 1 from cards where did = ? and queue = 0 limit ?)""", did, lim)
+(select 1 from cards where did = ? and queue = {QUEUE_NEW_CRAM} limit ?)""", did, lim)
 
     def _deckNewLimitSingle(self, g):
         "Limit for deck without parent limits."
@@ -424,25 +424,25 @@ select count() from
 
     def totalNewForCurrentDeck(self):
         return self.col.db.scalar(
-            """
+            f"""
 select count() from cards where id in (
-select id from cards where did in %s and queue = 0 limit ?)"""
-            % ids2str(self.col.decks.active()), self.reportLimit)
+select id from cards where did in %s and queue = {QUEUE_NEW_CRAM} limit ?)"""
+            % (ids2str(self.col.decks.active()), self.reportLimit))
 
     # Learning queues
     ##########################################################################
 
     def _resetLrnCount(self):
         # sub-day
-        self.lrnCount = self.col.db.scalar("""
+        self.lrnCount = self.col.db.scalar(f"""
 select sum(left/1000) from (select left from cards where
-did in %s and queue = 1 and due < ? limit %d)""" % (
-            self._deckLimit(), self.reportLimit),
+did in %s and queue = {QUEUE_LRN} and due < ? limit %d)""" % (
+            self._deckLimit(), , self.reportLimit),
             self.dayCutoff) or 0
         # day
-        self.lrnCount += self.col.db.scalar("""
-select count() from cards where did in %s and queue = 3
-and due <= ? limit %d""" % (self._deckLimit(), self.reportLimit),
+        self.lrnCount += self.col.db.scalar(f"""
+select count() from cards where did in %s and queue = {QUEUE_DAY_LRN}
+and due <= ? limit %d""" % (self._deckLimit(),  self.reportLimit),
                                             self.today)
 
     def _resetLrn(self):
@@ -457,9 +457,9 @@ and due <= ? limit %d""" % (self._deckLimit(), self.reportLimit),
             return False
         if self._lrnQueue:
             return True
-        self._lrnQueue = self.col.db.all("""
+        self._lrnQueue = self.col.db.all(f"""
 select due, id from cards where
-did in %s and queue = 1 and due < :lim
+did in %s and queue = {QUEUE_LRN} and due < :lim
 limit %d""" % (self._deckLimit(), self.reportLimit), lim=self.dayCutoff)
         # as it arrives sorted by did first, we need to sort it
         self._lrnQueue.sort()
@@ -485,9 +485,9 @@ limit %d""" % (self._deckLimit(), self.reportLimit), lim=self.dayCutoff)
         while self._lrnDids:
             did = self._lrnDids[0]
             # fill the queue with the current did
-            self._lrnDayQueue = self.col.db.list("""
+            self._lrnDayQueue = self.col.db.list(f"""
 select id from cards where
-did = ? and queue = 3 and due <= ? limit ?""",
+did = ? and queue = {QUEUE_DAY_LRN} and due <= ? limit ?""",
                                     did, self.today, self.queueLimit)
             if self._lrnDayQueue:
                 # order
@@ -510,25 +510,25 @@ did = ? and queue = 3 and due <= ? limit ?""",
         # ease 1=no, 2=yes, 3=remove
         conf = self._lrnConf(card)
         if card.odid and not card.wasNew:
-            type = 3
-        elif card.type == 2:
-            type = 2
+            type = REVLOG_CRAM
+        elif card.type == CARD_DUE:
+            type = REVLOG_RELRN
         else:
-            type = 0
+            type = REVLOG_LRN
         leaving = False
         # lrnCount was decremented once when card was fetched
         lastLeft = card.left
         # immediate graduate?
-        if ease == 3:
+        if ease == BUTTON_THREE:
             self._rescheduleAsRev(card, conf, True)
             leaving = True
         # graduation time?
-        elif ease == 2 and (card.left%1000)-1 <= 0:
+        elif ease == BUTTON_TWO and (card.left%1000)-1 <= 0:
             self._rescheduleAsRev(card, conf, False)
             leaving = True
         else:
             # one step towards graduation
-            if ease == 2:
+            if ease == BUTTON_TWO:
                 # decrement real left count and recalculate left today
                 left = (card.left % 1000) - 1
                 card.left = self._leftToday(conf['delays'], left)*1000 + left
@@ -555,7 +555,7 @@ did = ? and queue = 3 and due <= ? limit ?""",
                 # if the queue is not empty and there's nothing else to do, make
                 # sure we don't put it at the head of the queue and end up showing
                 # it twice in a row
-                card.queue = 1
+                card.queue = QUEUE_LRN
                 if self._lrnQueue and not self.revCount and not self.newCount:
                     smallestDue = self._lrnQueue[0][0]
                     card.due = max(card.due, smallestDue+1)
@@ -565,7 +565,7 @@ did = ? and queue = 3 and due <= ? limit ?""",
                 # day learn queue
                 ahead = ((card.due - self.dayCutoff) // 86400) + 1
                 card.due = self.today + ahead
-                card.queue = 3
+                card.queue = QUEUE_DAY_LRN
         self._logLrn(card, ease, conf, leaving, type, lastLeft)
 
     def _delayForGrade(self, conf, left):
@@ -581,13 +581,13 @@ did = ? and queue = 3 and due <= ? limit ?""",
         return delay*60
 
     def _lrnConf(self, card):
-        if card.type == 2:
+        if card.type == CARD_DUE:
             return self._lapseConf(card)
         else:
             return self._newConf(card)
 
     def _rescheduleAsRev(self, card, conf, early):
-        lapse = card.type == 2
+        lapse = card.type == CARD_DUE
         if lapse:
             if self._resched(card):
                 card.due = max(self.today+1, card.odue)
@@ -596,8 +596,8 @@ did = ? and queue = 3 and due <= ? limit ?""",
             card.odue = 0
         else:
             self._rescheduleNew(card, conf, early)
-        card.queue = 2
-        card.type = 2
+        card.queue = QUEUE_REV
+        card.type = CARD_DUE
         # if we were dynamic, graduating means moving back to the old deck
         resched = self._resched(card)
         if card.odid:
@@ -606,11 +606,12 @@ did = ? and queue = 3 and due <= ? limit ?""",
             card.odid = 0
             # if rescheduling is off, it needs to be set back to a new card
             if not resched and not lapse:
-                card.queue = card.type = 0
+                card.queue = QUEUE_NEW_CRAM
+                card.type = CARD_NEW
                 card.due = self.col.nextID("pos")
 
     def _startingLeft(self, card):
-        if card.type == 2:
+        if card.type == CARD_DUE:
             conf = self._lapseConf(card)
         else:
             conf = self._lrnConf(card)
@@ -632,7 +633,7 @@ did = ? and queue = 3 and due <= ? limit ?""",
         return ok+1
 
     def _graduatingIvl(self, card, conf, early, adj=True):
-        if card.type == 2:
+        if card.type == CARD_DUE:
             # lapsed card being relearnt
             if card.odid:
                 if conf['resched']:
@@ -679,27 +680,27 @@ did = ? and queue = 3 and due <= ? limit ?""",
             # with the index than scan the table
             extra = " and did in "+ids2str(self.col.decks.allIds())
         # review cards in relearning
-        self.col.db.execute("""
+        self.col.db.execute(f"""
 update cards set
-due = odue, queue = 2, mod = %d, usn = %d, odue = 0
-where queue in (1,3) and type = 2
+due = odue, queue = {QUEUE_REV}, mod = %d, usn = %d, odue = 0
+where queue in (QUEUE_LRN,QUEUE_DAY_LRN) and type = CARD_DUE
 %s
 """ % (intTime(), self.col.usn(), extra))
         # new cards in learning
         self.forgetCards(self.col.db.list(
-            "select id from cards where queue in (1,3) %s" % extra))
+            f"select id from cards where queue in ({QUEUE_LRN}, {QUEUE_DAY_LRN}) %s" % extra))
 
     def _lrnForDeck(self, did):
         cnt = self.col.db.scalar(
-            """
+            f"""
 select sum(left/1000) from
-(select left from cards where did = ? and queue = 1 and due < ? limit ?)""",
+(select left from cards where did = ? and queue = {QUEUE_LRN} and due < ? limit ?)""",
             did, intTime() + self.col.conf['collapseTime'], self.reportLimit) or 0
         return cnt + self.col.db.scalar(
-            """
+            f"""
 select count() from
-(select 1 from cards where did = ? and queue = 3
-and due <= ? limit ?)""",
+(select 1 from cards where did = ? and queue = {QUEUE_DAY_LRN}
+and due <= ? limit ?)""" ,
             did, self.today, self.reportLimit)
 
     # Reviews
@@ -717,17 +718,17 @@ and due <= ? limit ?)""",
     def _revForDeck(self, did, lim):
         lim = min(lim, self.reportLimit)
         return self.col.db.scalar(
-            """
+            f"""
 select count() from
-(select 1 from cards where did = ? and queue = 2
+(select 1 from cards where did = ? and queue = {QUEUE_REV}
 and due <= ? limit ?)""",
             did, self.today, lim)
 
     def _resetRevCount(self):
         def cntFn(did, lim):
-            return self.col.db.scalar("""
+            return self.col.db.scalar(f"""
 select count() from (select id from cards where
-did = ? and queue = 2 and due <= ? limit %d)""" % lim,
+did = ? and queue = {QUEUE_REV} and due <= ? limit %d)""" % (lim),
                                       did, self.today)
         self.revCount = self._walkingCount(
             self._deckRevLimitSingle, cntFn)
@@ -749,7 +750,7 @@ did = ? and queue = 2 and due <= ? limit %d)""" % lim,
                 # fill the queue with the current did
                 self._revQueue = self.col.db.list("""
 select id from cards where
-did = ? and queue = 2 and due <= ? limit ?""",
+did = ? and queue = {QUEUE_REV} and due <= ? limit ?""",
                                                   did, self.today, lim)
                 if self._revQueue:
                     # ordering
@@ -783,15 +784,15 @@ did = ? and queue = 2 and due <= ? limit ?""",
         return self.col.db.scalar(
             """
 select count() from cards where id in (
-select id from cards where did in %s and queue = 2 and due <= ? limit ?)"""
-            % ids2str(self.col.decks.active()), self.today, self.reportLimit)
+select id from cards where did in %s and queue = {QUEUE_REV} and due <= ? limit ?)"""
+            % (ids2str(self.col.decks.active()), self.today, self.reportLimit))
 
     # Answering a review card
     ##########################################################################
 
     def _answerRevCard(self, card, ease):
         delay = 0
-        if ease == 1:
+        if ease == BUTTON_ONE:
             delay = self._rescheduleLapse(card)
         else:
             self._rescheduleRev(card, ease)
@@ -810,7 +811,7 @@ select id from cards where did in %s and queue = 2 and due <= ? limit ?)"""
                 card.odue = card.due
         # if suspended as a leech, nothing to do
         delay = 0
-        if self._checkLeech(card, conf) and card.queue == -1:
+        if self._checkLeech(card, conf) and card.queue == QUEUE_SUSPENDED:
             return delay
         # if no relearning steps, nothing to do
         if not conf['delays']:
@@ -821,16 +822,16 @@ select id from cards where did in %s and queue = 2 and due <= ? limit ?)"""
         delay = self._delayForGrade(conf, 0)
         card.due = int(delay + time.time())
         card.left = self._startingLeft(card)
-        # queue 1
+        # queue LRN
         if card.due < self.dayCutoff:
             self.lrnCount += card.left // 1000
-            card.queue = 1
+            card.queue = QUEUE_LRN
             heappush(self._lrnQueue, (card.due, card.id))
         else:
             # day learn queue
             ahead = ((card.due - self.dayCutoff) // 86400) + 1
             card.due = self.today + ahead
-            card.queue = 3
+            card.queue = QUEUE_DAY_LRN
         return delay
 
     def _nextLapseIvl(self, card, conf):
@@ -877,11 +878,11 @@ select id from cards where did in %s and queue = 2 and due <= ? limit ?)"""
         ivl3 = self._constrainedIvl((card.ivl + delay // 2) * fct, conf, ivl2)
         ivl4 = self._constrainedIvl(
             (card.ivl + delay) * fct * conf['ease4'], conf, ivl3)
-        if ease == 2:
+        if ease == BUTTON_TWO:
             interval = ivl2
-        elif ease == 3:
+        elif ease == BUTTON_THREE:
             interval = ivl3
-        elif ease == 4:
+        elif ease == BUTTON_FOUR:
             interval = ivl4
         # interval capped?
         return min(interval, conf['maxIvl'])
@@ -963,10 +964,10 @@ select id from cards where did in %s and queue = 2 and due <= ? limit ?)"""
             lim = "did = %s" % did
         self.col.log(self.col.db.list("select id from cards where %s" % lim))
         # move out of cram queue
-        self.col.db.execute("""
-update cards set did = odid, queue = (case when type = 1 then 0
-else type end), type = (case when type = 1 then 0 else type end),
-due = odue, odue = 0, odid = 0, usn = ? where %s""" % lim,
+        self.col.db.execute(f"""
+update cards set did = odid, queue = (case when type = {CARD_LRN} then {QUEUE_NEW_CRAM}
+else type end), type = (case when type = {CARD_LRN} then {CARD_NEW} else type end),
+due = odue, odue = 0, odid = 0, usn = ? where %s""" % (lim),
                             self.col.usn())
 
     def remFromDyn(self, cids):
@@ -990,7 +991,7 @@ due = odue, odue = 0, odid = 0, usn = ? where %s""" % lim,
         elif o == DYN_DUE:
             t = "c.due"
         elif o == DYN_DUEPRIORITY:
-            t = "(case when queue=2 and due <= %d then (ivl / cast(%d-due+0.001 as real)) else 100000+due end)" % (
+            t = "(case when queue=%d and due <= %d then (ivl / cast(%d-due+0.001 as real)) else 100000+due end)" % (QUEUE_REV,
                     self.today, self.today)
         else:
             # if we don't understand the term, default to due order
@@ -1006,9 +1007,9 @@ due = odue, odue = 0, odid = 0, usn = ? where %s""" % lim,
             data.append((did, -100000+c, u, id))
         # due reviews stay in the review queue. careful: can't use
         # "odid or did", as sqlite converts to boolean
-        queue = """
-(case when type=2 and (case when odue then odue <= %d else due <= %d end)
- then 2 else 0 end)"""
+        queue = f"""
+(case when type={CARD_DUE} and (case when odue then odue <= %d else due <= %d end)
+ then {QUEUE_REV} else {QUEUE_NEW_CRAM} end)"""
         queue %= (self.today, self.today)
         self.col.db.executemany("""
 update cards set
@@ -1017,7 +1018,7 @@ odue = (case when odue then odue else due end),
 did = ?, queue = %s, due = ?, usn = ? where id = ?""" % queue, data)
 
     def _dynIvlBoost(self, card):
-        assert card.odid and card.type == 2
+        assert card.odid and card.type == CARD_DUE
         assert card.factor
         elapsed = card.ivl - (card.odue - self.today)
         factor = ((card.factor/1000)+1.2)/2
@@ -1049,7 +1050,7 @@ did = ?, queue = %s, due = ?, usn = ? where id = ?""" % queue, data)
                 if card.odid:
                     card.did = card.odid
                 card.odue = card.odid = 0
-                card.queue = -1
+                card.queue = QUEUE_SUSPENDED
             # notify UI
             runHook("leech", card)
             return True
@@ -1184,20 +1185,20 @@ To study outside of the normal schedule, click the Custom Study button below."""
     def revDue(self):
         "True if there are any rev cards due."
         return self.col.db.scalar(
-            ("select 1 from cards where did in %s and queue = 2 "
-             "and due <= ? limit 1") % self._deckLimit(),
+            (f"select 1 from cards where did in %s and queue = {QUEUE_REV} "
+             "and due <= ? limit 1") % (self._deckLimit()),
             self.today)
 
     def newDue(self):
         "True if there are any new cards due."
         return self.col.db.scalar(
-            ("select 1 from cards where did in %s and queue = 0 "
-             "limit 1") % self._deckLimit())
+            (f"select 1 from cards where did in %s and queue = {QUEUE_NEW_CRAM} "
+             "limit 1") % (self._deckLimit(),))
 
     def haveBuried(self):
         sdids = ids2str(self.col.decks.active())
         cnt = self.col.db.scalar(
-            "select 1 from cards where queue = -2 and did in %s limit 1" % sdids)
+            f"select 1 from cards where queue = {QUEUE_USER_BURIED} and did in %s limit 1" % (sdids))
         return not not cnt
 
     # Next time reports
@@ -1215,9 +1216,9 @@ To study outside of the normal schedule, click the Custom Study button below."""
 
     def nextIvl(self, card, ease):
         "Return the next interval for CARD, in seconds."
-        if card.queue in (0,1,3):
+        if card.queue in (QUEUE_NEW_CRAM, QUEUE_LRN, QUEUE_DAY_LRN):
             return self._nextLrnIvl(card, ease)
-        elif ease == 1:
+        elif ease == BUTTON_ONE:
             # lapsed
             conf = self._lapseConf(card)
             if conf['delays']:
@@ -1229,13 +1230,13 @@ To study outside of the normal schedule, click the Custom Study button below."""
 
     # this isn't easily extracted from the learn code
     def _nextLrnIvl(self, card, ease):
-        if card.queue == 0:
+        if card.queue == QUEUE_NEW_CRAM:
             card.left = self._startingLeft(card)
         conf = self._lrnConf(card)
-        if ease == 1:
+        if ease == BUTTON_ONE:
             # fail
             return self._delayForGrade(conf, len(conf['delays']))
-        elif ease == 3:
+        elif ease == BUTTON_THREE:
             # early removal
             if not self._resched(card):
                 return 0
@@ -1259,23 +1260,23 @@ To study outside of the normal schedule, click the Custom Study button below."""
         self.remFromDyn(ids)
         self.removeLrn(ids)
         self.col.db.execute(
-            "update cards set queue=-1,mod=?,usn=? where id in "+
+            (f"update cards set queue={QUEUE_SUSPENDED},mod=?,usn=? where id in ")+
             ids2str(ids), intTime(), self.col.usn())
 
     def unsuspendCards(self, ids):
         "Unsuspend cards."
         self.col.log(ids)
         self.col.db.execute(
-            "update cards set queue=type,mod=?,usn=? "
-            "where queue = -1 and id in "+ ids2str(ids),
+            (f"update cards set queue=type,mod=?,usn=? "
+            "where queue = {QUEUE_SUSPENDED} and id in ")+ ids2str(ids),
             intTime(), self.col.usn())
 
     def buryCards(self, cids):
         self.col.log(cids)
         self.remFromDyn(cids)
         self.removeLrn(cids)
-        self.col.db.execute("""
-update cards set queue=-2,mod=?,usn=? where id in """+ids2str(cids),
+        self.col.db.execute((f"""
+        update cards set queue={QUEUE_USER_BURIED},mod=?,usn=? where id in """)+ids2str(cids),
                             intTime(), self.col.usn())
 
     def buryNote(self, nid):
@@ -1294,11 +1295,11 @@ update cards set queue=-2,mod=?,usn=? where id in """+ids2str(cids),
         rconf = self._revConf(card)
         buryRev = rconf.get("bury", True)
         # loop through and remove from queues
-        for cid,queue in self.col.db.execute("""
+        for cid,queue in self.col.db.execute(f"""
 select id, queue from cards where nid=? and id!=?
-and (queue=0 or (queue=2 and due<=?))""",
+and (queue={QUEUE_NEW_CRAM} or (queue={QUEUE_REV} and due<=?))""",
                 card.nid, card.id, self.today):
-            if queue == 2:
+            if queue == QUEUE_REV:
                 if buryRev:
                     toBury.append(cid)
                 # if bury disabled, we still discard to give same-day spacing
@@ -1306,7 +1307,7 @@ and (queue=0 or (queue=2 and due<=?))""",
                     self._revQueue.remove(cid)
                 except ValueError:
                     pass
-            else:
+            else:#Queue new Cram
                 # if bury disabled, we still discard to give same-day spacing
                 if buryNew:
                     toBury.append(cid)
@@ -1317,7 +1318,7 @@ and (queue=0 or (queue=2 and due<=?))""",
         # then bury
         if toBury:
             self.col.db.execute(
-                "update cards set queue=-2,mod=?,usn=? where id in "+ids2str(toBury),
+                (f"update cards set queue={QUEUE_USER_BURIED},mod=?,usn=? where id in ")+ids2str(toBury),
                 intTime(), self.col.usn())
             self.col.log(toBury)
 
@@ -1328,10 +1329,10 @@ and (queue=0 or (queue=2 and due<=?))""",
         "Put cards at the end of the new queue."
         self.remFromDyn(ids)
         self.col.db.execute(
-            "update cards set type=0,queue=0,ivl=0,due=0,odue=0,factor=?"
-            " where id in "+ids2str(ids), STARTING_FACTOR)
+            (f"update cards set type={CARD_NEW},queue={QUEUE_NEW_CRAM},ivl=0,due=0,odue=0,factor=?"
+             " where id in ")+ids2str(ids), STARTING_FACTOR)
         pmax = self.col.db.scalar(
-            "select max(due) from cards where type=0") or 0
+            f"select max(due) from cards where type={CARD_NEW}") or 0
         # takes care of mod + usn
         self.sortCards(ids, start=pmax+1)
         self.col.log(ids)
@@ -1346,8 +1347,8 @@ and (queue=0 or (queue=2 and due<=?))""",
             d.append(dict(id=id, due=r+t, ivl=max(1, r), mod=mod,
                           usn=self.col.usn(), fact=STARTING_FACTOR))
         self.remFromDyn(ids)
-        self.col.db.executemany("""
-update cards set type=2,queue=2,ivl=:ivl,due=:due,odue=0,
+        self.col.db.executemany(f"""
+update cards set type={CARD_DUE},queue={QUEUE_REV},ivl=:ivl,due=:due,odue=0,
 usn=:usn,mod=:mod,factor=:fact where id=:id""",
                                 d)
         self.col.log(ids)
@@ -1357,12 +1358,12 @@ usn=:usn,mod=:mod,factor=:fact where id=:id""",
         sids = ids2str(ids)
         # we want to avoid resetting due number of existing new cards on export
         nonNew = self.col.db.list(
-            "select id from cards where id in %s and (queue != 0 or type != 0)"
-            % sids)
+            f"select id from cards where id in %s and (queue != QUEUE_NEW_CRAM or type != CARD_NEW)"
+            % (sids))
         # reset all cards
         self.col.db.execute(
-            "update cards set reps=0,lapses=0,odid=0,odue=0,queue=0"
-            " where id in %s" % sids
+            f"update cards set reps=0,lapses=0,odid=0,odue=0,queue=QUEUE_NEW_CRAM"
+            " where id in %s" % (sids)
         )
         # and forget any non-new cards, changing their due numbers
         self.forgetCards(nonNew)
@@ -1395,18 +1396,18 @@ usn=:usn,mod=:mod,factor=:fact where id=:id""",
         # shift?
         if shift:
             low = self.col.db.scalar(
-                "select min(due) from cards where due >= ? and type = 0 "
-                "and id not in %s" % scids,
+                f"select min(due) from cards where due >= ? and type = {CARD_NEW} "
+                "and id not in %s" % (scids),
                 start)
             if low is not None:
                 shiftby = high - low + 1
-                self.col.db.execute("""
+                self.col.db.execute(f"""
 update cards set mod=?, usn=?, due=due+? where id not in %s
-and due >= ? and queue = 0""" % scids, now, self.col.usn(), shiftby, low)
+and due >= ? and queue = {QUEUE_NEW_CRAM}""" % (scids), now, self.col.usn(), shiftby, low)
         # reorder cards
         d = []
         for id, nid in self.col.db.execute(
-            "select id, nid from cards where type = 0 and id in "+scids):
+            (f"select id, nid from cards where type = {CARD_NEW} and id in ")+scids):
             d.append(dict(now=now, due=due[nid], usn=self.col.usn(), cid=id))
         self.col.db.executemany(
             "update cards set due=:due,mod=:now,usn=:usn where id = :cid", d)
@@ -1421,7 +1422,7 @@ and due >= ? and queue = 0""" % scids, now, self.col.usn(), shiftby, low)
 
     def resortConf(self, conf):
         for did in self.col.decks.didsForConf(conf):
-            if conf['new']['order'] == 0:
+            if conf['new']['order'] == NEW_CARDS_RANDOM:
                 self.randomizeCards(did)
             else:
                 self.orderCards(did)
