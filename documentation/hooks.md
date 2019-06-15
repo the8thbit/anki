@@ -427,7 +427,7 @@ Arguments are:
 * map sending fields to their value (and special name)
 * the model object
 * 8-tuple of data
-* the collection
+
 Called from anki.collection._Collection._renderQA
 
 ###### prepareQA
