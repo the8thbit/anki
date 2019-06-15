@@ -428,6 +428,7 @@ Arguments are:
 * the model object
 * 8-tuple of data
 * the collection
+Called from anki.collection._Collection._renderQA
 
 ###### prepareQA
 Called from aqt.reviewer.Reviewer._showQuestion, with the text of the
