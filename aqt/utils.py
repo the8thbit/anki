@@ -100,7 +100,15 @@ def showText(txt, parent=None, type="text", run=True, geomKey=None, \
 
 def askUser(text, parent=None, help="", defaultno=False, msgfunc=None, \
         title="Anki"):
-    "Show a yes/no question. Return true if yes."
+    """Show a yes/no question. Return true if yes.
+
+    Text -- the text displayed to the user
+    parent -- Add this window as parent to the question
+    help -- An help message, occuring if the user click on the help button
+    defaultno -- whether the default answer is no
+    msgfunc -- The kind of QMessageBox. By default, a question
+    title -- title of the question window
+    """
     if not parent:
         parent = aqt.mw.app.activeWindow()
     if not msgfunc:
@@ -215,6 +223,7 @@ def getText(prompt, parent=None, help=None, edit=None, default="",
     return (str(d.l.text()), ret)
 
 def getOnlyText(*args, **kwargs):
+    """A text asked to the user, or the empty string."""
     (s, r) = getText(*args, **kwargs)
     if r:
         return s
@@ -313,6 +322,7 @@ def getSaveFile(parent, title, dir_description, key, ext, fname=None):
     return file
 
 def saveGeom(widget, key):
+    """Associate to the key the geometry of the widget"""
     key += "Geom"
     if isMac and widget.windowState() & Qt.WindowFullScreen:
         geom = None
@@ -321,6 +331,11 @@ def saveGeom(widget, key):
     aqt.mw.pm.profile[key] = geom
 
 def restoreGeom(widget, key, offset=None, adjustSize=False):
+    """Gets from the collection profil the geometry associated to the widget named key.
+
+    keywords parameter:
+    offset -- whether a mac window must be resized, assuming qtminor >6 ???
+    adjustSize -- Whether to call widget.adjustSize if the key does not belongs in the database """
     key += "Geom"
     if aqt.mw.pm.profile.get(key):
         widget.restoreGeometry(aqt.mw.pm.profile[key])
@@ -387,6 +402,10 @@ def restoreHeader(widget, key):
         widget.restoreState(aqt.mw.pm.profile[key])
 
 def mungeQA(col, txt):
+    """txt, without its sound, and Replace local image url by replacing
+        special character by the escape %xx
+
+    """
     txt = col.media.escapeImages(txt)
     txt = stripSounds(txt)
     return txt
@@ -399,11 +418,13 @@ def openFolder(path):
             QDesktopServices.openUrl(QUrl("file://" + path))
 
 def shortcut(key):
+    """On mac: ctrl is replaced by command. Otherwise identity"""
     if isMac:
         return re.sub("(?i)ctrl", "Command", key)
     return key
 
 def maybeHideClose(bbox):
+    """On mac only, remove the bbox's close buton."""
     if isMac:
         b = bbox.button(QDialogButtonBox.Close)
         if b:
@@ -428,6 +449,8 @@ _tooltipTimer = None
 _tooltipLabel = None
 
 def tooltip(msg, period=3000, parent=None):
+    """Show a small yellow box for period milliseconds, containing the
+text msg."""
     global _tooltipTimer, _tooltipLabel
     class CustomLabel(QLabel):
         silentlyClose = True

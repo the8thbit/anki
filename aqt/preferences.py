@@ -11,6 +11,10 @@ from anki.lang import _
 
 class Preferences(QDialog):
 
+    """
+    startdate -- datetime where collection was created. Only in schedV1
+    """
+
     def __init__(self, mw):
         QDialog.__init__(self, mw, Qt.Window)
         self.mw = mw
@@ -225,4 +229,3 @@ Not currently enabled; click the sync button in the main window to enable."""))
 
     def updateOptions(self):
         self.prof['pastePNG'] = self.form.pastePNG.isChecked()
-

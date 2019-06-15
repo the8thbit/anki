@@ -6,6 +6,13 @@ from anki.hooks import addHook
 from anki.lang import _
 
 def hint(txt, extra, context, tag, fullname):
+    """Some HTML which show «show tag» (with show localized). When it is clicked, this text is replaced by txt.
+
+    keyword arguments:
+    txt -- the hint
+    tag -- the name of the thing which is shown or not
+    extra, context, fullname not used.
+    """
     if not txt.strip():
         return ""
     # random id
@@ -18,3 +25,4 @@ onclick="this.style.display='none';document.getElementById('%s').style.display='
 
 def install():
     addHook('fmod_hint', hint)
+#This hook is never called in the current code
