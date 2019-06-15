@@ -33,6 +33,12 @@ from anki.sound import clearAudioQueue, allSounds, play
 
 class DataModel(QAbstractTableModel):
 
+    """
+    sortKey -- never used
+    activeCols -- the list of columns to display in the browser
+    cards -- the set of cards corresponding to current browser's search
+    cardObjs -- dictionnady from card's id to the card object.
+    """
     def __init__(self, browser):
         QAbstractTableModel.__init__(self)
         self.browser = browser
@@ -384,6 +390,10 @@ class StatusDelegate(QItemDelegate):
 # fixme: respond to reset+edit hooks
 
 class Browser(QMainWindow):
+    """model: the data model (and not a card model !)
+
+    card: the card in the reviewer when the browser was opened, or the last selected card.
+    """
 
     def __init__(self, mw):
         QMainWindow.__init__(self, None, Qt.Window)
@@ -623,6 +633,7 @@ class Browser(QMainWindow):
         return selected
 
     def onReset(self):
+        """Remove the note from the browser. Redo the search"""
         self.editor.setNote(None)
         self.search()
 
@@ -1211,6 +1222,7 @@ please see the browser documentation.""")
     ######################################################################
 
     def selectedCards(self):
+        """The list of selected card's id"""
         return [self.model.cards[idx.row()] for idx in
                 self.form.tableView.selectionModel().selectedRows()]
 
@@ -1245,9 +1257,20 @@ where id in %s""" % ids2str(sf))
     ######################################################################
 
     def onChangeModel(self):
+        """Starts a GUI letting the user change the model of notes.
+
+        If multiple note type are selected, then show a warning
+        instead.  It saves the editor content before doing any other
+        change it.
+
+        """
         self.editor.saveNow(self._onChangeModel)
 
     def _onChangeModel(self):
+        """Starts a GUI letting the user change the model of notes.
+
+        If multiple note type are selected, then show a warning instead.
+        Don't call this directly, call onChangeModel. """
         nids = self.oneModelNotes()
         if nids:
             ChangeModel(self, nids)
@@ -1932,7 +1955,13 @@ update cards set usn=?, mod=?, did=? where id in """ + scids,
 
 class ChangeModel(QDialog):
 
+    """The dialog window, obtained in the browser by selecting cards and
+    Cards>Change Note Type. It allows to change the type of a note
+    from one type to another.
+
+    """
     def __init__(self, browser, nids):
+        """Create and open a dialog for changing model"""
         QDialog.__init__(self, browser)
         self.browser = browser
         self.nids = nids
@@ -1974,14 +2003,24 @@ class ChangeModel(QDialog):
         self.pauseUpdate = False
 
     def onReset(self):
+        """Change the model changer GUI to the current note type."""
         self.modelChanged(self.browser.col.models.current())
 
     def modelChanged(self, model):
+        """Change the model changer GUI to model
+
+        This should be used if the destination model has been changed.
+        """
         self.targetModel = model
         self.rebuildTemplateMap()
         self.rebuildFieldMap()
 
     def rebuildTemplateMap(self, key=None, attr=None):
+        """Change the "Cards" subwindow of the Change Note Type.
+
+        Actually, if key and attr are given, it may change another
+        subwindow, so the same code is reused for fields.
+        """
         if not key:
             key = "t"
             attr = "tmpls"
@@ -2017,6 +2056,7 @@ class ChangeModel(QDialog):
         setattr(self, key + "indices", indices)
 
     def rebuildFieldMap(self):
+        """Change the "Fields" subwindow of the Change Note Type."""
         return self.rebuildTemplateMap(key="f", attr="flds")
 
     def onComboChanged(self, i, cb, key):
@@ -2040,6 +2080,18 @@ class ChangeModel(QDialog):
         indices[cb] = i
 
     def getTemplateMap(self, old=None, combos=None, new=None):
+        """A map from template's ord of the old model to template's ord of the new
+        model. Or None if no template
+
+        Contrary to what this name indicates, the method may be used
+        without templates. In getFieldMap it is used for fields
+
+        keywords parameter:
+        old -- the list of templates of the old model
+        combos -- the python list of gui's list of template
+        new -- the list of templates of the new model
+        If old is not given, the other two arguments are not used.
+        """
         if not old:
             old = self.oldModel['tmpls']
             combos = self.tcombos
@@ -2048,7 +2100,7 @@ class ChangeModel(QDialog):
         for i, f in enumerate(old):
             idx = combos[i].currentIndex()
             if idx == len(new):
-                # ignore
+                # ignore. len(new) corresponds probably to nothing in the list
                 map[f['ord']] = None
             else:
                 f2 = new[idx]
@@ -2056,25 +2108,37 @@ class ChangeModel(QDialog):
         return map
 
     def getFieldMap(self):
+        """Associating to each field's ord of the source model a field's
+        ord (or None) of the new model."""
         return self.getTemplateMap(
             old=self.oldModel['flds'],
             combos=self.fcombos,
             new=self.targetModel['flds'])
 
     def cleanup(self):
+        """Actions to end this gui.
+
+        Remove hook related to this window, and potentially its model chooser.
+        Save the geometry of the current window in order to keep it for a new reordering
+        """
         remHook("reset", self.onReset)
         remHook("currentModelChanged", self.onReset)
         self.modelChooser.cleanup()
         saveGeom(self, "changeModel")
 
     def reject(self):
+        """Cancelling the changes."""
         self.cleanup()
         return QDialog.reject(self)
 
     def accept(self):
+        """Procede to changing the model, according to the content of the GUI.
+
+        TODO"""
         # check maps
         fmap = self.getFieldMap()
         cmap = self.getTemplateMap()
+        #If there are cards which are sent to nothing:
         if any(True for c in list(cmap.values()) if c is None):
             if not askUser(_("""\
 Any cards mapped to nothing will be deleted. \

@@ -37,7 +37,11 @@ class TagManager:
     #############################################################
 
     def register(self, tags, usn=None):
-        "Given a list of tags, add any missing ones to tag registry."
+        """Given a list/set of tags, add any tag missing in the registry to
+        the registry. If there is such a new tag, call the hook
+        newTag.
+
+        """
         found = False
         for t in tags:
             if t not in self.tags:
@@ -85,7 +89,13 @@ class TagManager:
     #############################################################
 
     def bulkAdd(self, ids, tags, add=True):
-        "Add tags in bulk. TAGS is space-separated."
+        """Add tags in bulk. TAGS is space-separated.
+
+        keyword arguments
+        ids -- a list of id
+        tags -- a string of space-separated tag
+        add -- whether to add (True) or to remove (False)
+        """
         newTags = self.split(tags)
         if not newTags:
             return
@@ -102,8 +112,8 @@ class TagManager:
         lim = " or ".join(
             [l+"like :_%d" % c for c, t in enumerate(newTags)])
         res = self.col.db.all(
-            "select id, tags from notes where id in %s and (%s)" % (
-                ids2str(ids), lim),
+            f"""select id, tags from notes where id in
+            {ids2str(ids)} and ({lim})""" ,
             **dict([("_%d" % x, '%% %s %%' % y.replace('*', '%'))
                     for x, y in enumerate(newTags)]))
         # update tags
@@ -127,7 +137,8 @@ class TagManager:
         return [t for t in tags.replace('\u3000', ' ').split(" ") if t]
 
     def join(self, tags):
-        "Join tags into a single string, with leading and trailing spaces."
+        """Join tags into a single string, separated by whitespace, with leading
+and trailing spaces."""
         if not tags:
             return ""
         return " %s " % " ".join(tags)
@@ -172,7 +183,7 @@ class TagManager:
         return sorted(set(strippedTags))
 
     def inList(self, tag, tags):
-        "True if TAG is in TAGS. Ignore case."
+        """Whether tag is in tags. Ignore case."""
         return tag.lower() in [t.lower() for t in tags]
 
     # Sync handling
