@@ -30,8 +30,7 @@ class AddCards(QDialog):
         self.onReset()
         self.history = []
         restoreGeom(self, "add")
-        addHook('reset', self.onReset)
-        addHook('currentModelChanged', self.onModelChange)
+        addHook("reset",lambda: self.onResetSameModel)
         addCloseShortcut(self)
         self.show()
 
@@ -41,7 +40,7 @@ class AddCards(QDialog):
 
     def setupChoosers(self):
         self.modelChooser = aqt.modelchooser.ModelChooser(
-            self.mw, self.form.modelArea)
+            self.mw, self.form.modelArea, addCardWindow = self)
         self.deckChooser = aqt.deckchooser.DeckChooser(
             self.mw, self.form.deckArea)
 
@@ -106,6 +105,9 @@ class AddCards(QDialog):
             self.removeTempNote(oldNote)
         self.editor.setNote(note)
 
+    def onResetSameModel(self,keep=False):
+        return self.onReset(model=self.editor.note._model, keep=keep)
+
     def onReset(self, model=None, keep=False):
         """Create a new note and set it with the current field values.
 
@@ -119,7 +121,10 @@ class AddCards(QDialog):
         #Called with default keep __init__, from hook "reset"
         #Meaning of the word keep guessed. Not clear.
         oldNote = self.editor.note
-        note = self.mw.col.newNote()
+        if model is None:
+            note = self.mw.col.newNote()
+        else:#Difference is here. If model given as argument, it is used
+            note = Note(self.mw.col, model=model)
         flds = note.model()['flds']
         # copy fields from old note
         if oldNote:
@@ -208,7 +213,7 @@ question on all cards."""), help="AddItems")
         tooltip(_("Added"), period=500)
         # stop anything playing
         clearAudioQueue()
-        self.onReset(keep=True)
+        self.onResetSameModel(keep=True)
         self.mw.col.autosave()
 
     def keyPressEvent(self, evt):
@@ -229,7 +234,7 @@ question on all cards."""), help="AddItems")
         """Close the window.
 
         Don't check whether data will be lost"""
-        remHook('reset', self.onReset)
+        remHook('reset', self.onResetSameModel)
         remHook('currentModelChanged', self.onModelChange)
         clearAudioQueue()
         self.removeTempNote(self.editor.note)
