@@ -901,6 +901,7 @@ class Addon:
 
 """ Set of characteristic of Add-ons incorporated here"""
 incorporatedAddonsSet = {
+    Addon("Improve speed of change of note type", 115825506, 1551823299, "8b125aa55a490b276019d1a2e7f6f8c0767d65b3", "https://github.com/Arthur-Milchior/anki-better-card-generation"),
 }
 
 incorporatedAddonsDict = {**{addon.name: addon for addon in incorporatedAddonsSet if addon.name},
