@@ -1683,7 +1683,7 @@ usn=:usn,mod=:mod,factor=:fact where id=:id""",
         nids = []
         nidsSet = set()
         for id in cids:
-            nid = self.col.db.scalar("select nid from cards where id = ?", id)
+            nid = int(self.col.db.scalar("select nid from cards where id = ?", id))
             if nid not in nidsSet:
                 nids.append(nid)
                 nidsSet.add(nid)
@@ -1694,6 +1694,9 @@ usn=:usn,mod=:mod,factor=:fact where id=:id""",
         due = {}
         if shuffle:
             random.shuffle(nids)
+        else:#This is new. It ensures that due is sorted according to
+             #note creation and not card creation.
+            nids.sort()
         for c, nid in enumerate(nids):
             due[nid] = start+c*step
         # pylint: disable=undefined-loop-variable
@@ -1721,7 +1724,7 @@ and due >= ? and queue = {QUEUE_NEW_CRAM}""" % (scids), now, self.col.usn(), shi
         """Change the due value of new cards of deck `did`. The new due value
         is the same for every card of a note (as long as they are in the same
         deck.)"""
-        cids = self.col.db.list("select id from cards where did = ?", did)
+        cids = self.col.db.list(f"select id from cards where did = ? and type = {CARD_NEW}", did)
         self.sortCards(cids, shuffle=True)
 
     def orderCards(self, did):
@@ -1733,7 +1736,7 @@ and due >= ? and queue = {QUEUE_NEW_CRAM}""" % (scids), now, self.col.usn(), shi
         cards. It generally means they are ordered according to date
         creation.
         """
-        cids = self.col.db.list("select id from cards where did = ? order by id", did)
+        cids = self.col.db.list(f"select id from cards where did = ? and type = {CARD_NEW} order by id", did)
         self.sortCards(cids)
 
     def resortConf(self, conf):

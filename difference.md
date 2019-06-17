@@ -13,3 +13,7 @@ In the preferences, the button «Note with no card: create card 1
 instead of deleting the note» chage the behavior of anki when he finds
 a note which has no more card. This allow to lose the content of the
 note, and let you correct the note instead to generate cards.
+
+## Anki quicker (802285486)
+Those modification makes anki quicker. Technical details are on the
+add-on page.
