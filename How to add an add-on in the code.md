@@ -70,13 +70,13 @@ In `aqt.preferences` you should edit `setupExtra`, adding:
 ```
 and `updateExtra`, adding:
 ```
-        self.prof["XMLName"] = self.form.XMLName.isChecked()
+        self.prof["xMLName"] = self.form.xMLName.isChecked()
 ```
 
 You can access this value from anywhere in the code by
 ```Python
     from aqt import mw
-    mw.pm.profile.get("XMLName", DefaultVale)
+    mw.pm.profile.get("xMLName", DefaultVale)
 ```
 
 ## Git
