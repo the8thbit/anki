@@ -72,3 +72,9 @@ and `updateExtra`, adding:
 ```
 self.prof["xmlName"] = self.form.XMLName.isChecked()
 ```
+
+## Git
+Add baseFork as upstream of the branch.
+```bash
+git remote add upstream baseFork
+```
