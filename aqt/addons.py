@@ -883,7 +883,7 @@ class ConfigEditor(QDialog):
 
         self.onClose()
         super().accept()
-        
+
 ## Add-ons incorporated in this fork.
 
 class Addon:
@@ -899,4 +899,5 @@ class Addon:
 
 """ Dictionnary, associating add-on id/name to Add-ons object"""
 addons = {
+    Addon("Improving change note type", 513858554, 1560753393, "4ece9f1da85358bce05a75d3bbeffa91d8c17ad4", "https://github.com/Arthur-Milchior/anki-change-note-type-clozes"),
 }
