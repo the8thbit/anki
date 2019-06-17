@@ -12,3 +12,4 @@ tools/runanki.system
 aqt/buildhash.py
 /__main__.py
 anki/buildhash.py
+*autosave
