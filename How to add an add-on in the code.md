@@ -84,3 +84,9 @@ Add baseFork as upstream of the branch.
 ```bash
 git remote add upstream baseFork
 ```
+
+## Git
+Add baseFork as upstream of the branch.
+```bash
+git remote add upstream baseFork
+```
