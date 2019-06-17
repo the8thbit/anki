@@ -490,6 +490,13 @@
          </widget>
         </item>
         <item>
+         <widget class="QCheckBox" name="keepSeenCard">
+          <property name="text">
+           <string>Delete empty cards only if they are new</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <spacer name="verticalSpacer">
           <property name="orientation">
            <enum>Qt::Vertical</enum>

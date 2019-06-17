@@ -468,7 +468,7 @@ crt=?, mod=?, scm=?, dty=?, usn=?, ls=?, conf=?""",
                 ok.append(t)
         return ok
 
-    def genCards(self, nids):
+    def genCards(self, nids, keepSeenCard = True):
         """Ids of cards which needs to be removed.
 
         Generate missing cards of a note with id in nids.
@@ -531,9 +531,10 @@ crt=?, mod=?, scm=?, dty=?, usn=?, ls=?, conf=?""",
                     ts += 1
             # note any cards that need removing
             if nid in have:
-                for ord, id in list(have[nid].items()):
-                    if ord not in avail:
-                        rem.append(id)
+                for ord, cid in list(have[nid].items()):
+                    if (ord not in avail and
+                        ((not keepSeenCard) or self.db.scalar(f"select id from cards where id = ? and type = {CARD_NEW}", cid))):
+                        rem.append(cid)
         # bulk update
         self.db.executemany("""
 insert into cards values (?,?,?,?,?,?,0,0,?,0,0,0,0,0,0,0,0,"")""",
@@ -648,11 +649,11 @@ select id from notes where id in %s and id not in (select nid from cards)""" %
                      ids2str(nids))
         self._remNotes(nids)
 
-    def emptyCids(self):
+    def emptyCids(self, keepSeenCard = False):
         """The card id of empty cards of the collection"""
         rem = []
         for m in self.models.all():
-            rem += self.genCards(self.models.nids(m))
+            rem += self.genCards(self.models.nids(m), keepSeenCard = keepSeenCard)
         return rem
 
     def emptyCardReport(self, cids):
