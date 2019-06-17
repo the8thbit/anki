@@ -901,6 +901,7 @@ class Addon:
 
 """ Set of characteristic of Add-ons incorporated here"""
 incorporatedAddonsSet = {
+    Addon("Explain deletions", 12287769, 1556149013, "aa0d9485974fafd109ccd426f393a0d17aa94306", "https://github.com/Arthur-Milchior/anki-note-deletion"),
 }
 
 incorporatedAddonsDict = {**{addon.name: addon for addon in incorporatedAddonsSet if addon.name},

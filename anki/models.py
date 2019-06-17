@@ -240,9 +240,10 @@ class ModelManager:
         self.col.modSchema(check=True)
         current = self.current()['id'] == m['id']
         # delete notes/cards
-        self.col.remCards(self.col.db.list("""
+        cids = self.col.db.list("""
 select id from cards where nid in (select id from notes where mid = ?)""",
-                                      m['id']))
+                                      m['id'])
+        self.col.remCards(cids, reason=f"Deleting cards {cids} because we delete the model {m}")
         # then the model
         del self.models[str(m['id'])]
         self.save()
@@ -550,7 +551,7 @@ limit 1""" % ids2str(cids)):
             return False
         # ok to proceed; remove cards
         self.col.modSchema(check=True)
-        self.col.remCards(cids)
+        self.col.remCards(cids, reason=f"Removing card type {template} from model {m}")
         # shift ordinals
         self.col.db.execute("""
 update cards set ord = ord - 1, usn = ?, mod = ?
@@ -690,7 +691,7 @@ select id from notes where mid = ?)""" % " ".join(map),
         self.col.db.executemany(
             "update cards set ord=:new,usn=:u,mod=:m where id=:cid",
             d)
-        self.col.remCards(deleted)
+        self.col.remCards(deleted,reason=f"Changing notes {nids} from model {oldModel} to {newModel}, leading to deletion of {deleted}")
 
     # Schema hash
     ##########################################################################

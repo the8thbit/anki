@@ -427,19 +427,19 @@ crt=?, mod=?, scm=?, dty=?, usn=?, ls=?, conf=?""",
             ncards += 1
         return ncards
 
-    def remNotes(self, ids):
+    def remNotes(self, ids, reason = ""):
         """Removes all cards associated to the notes whose id is in ids"""
         self.remCards(self.db.list("select id from cards where nid in "+
-                                   ids2str(ids)))
+                                   ids2str(ids)), reason=reason or f"Removing notes  {ids}")
 
-    def _remNotes(self, ids):
+    def _remNotes(self, ids, reason=""):
         "Bulk delete notes by ID. Don't call this directly."
         if not ids:
             return
         strids = ids2str(ids)
         # we need to log these independently of cards, as one side may have
         # more card templates
-        runHook("remNotes", self, ids)
+        runHook("remNotes", self, ids, reason)
         self._logRem(ids, REM_NOTE)
         self.db.execute("delete from notes where id in %s" % strids)
 
@@ -628,7 +628,7 @@ insert into cards values (?,?,?,?,?,?,0,0,?,0,0,0,0,0,0,0,0,"")""",
     def cardCount(self):
         return self.db.scalar("select count() from cards")
 
-    def remCards(self, ids, notes=True):
+    def remCards(self, ids, notes=True, reason=None):
         """Bulk delete cards by ID.
 
         keyword arguments:
@@ -646,7 +646,7 @@ insert into cards values (?,?,?,?,?,?,0,0,?,0,0,0,0,0,0,0,0,"")""",
         nids = self.db.list("""
 select id from notes where id in %s and id not in (select nid from cards)""" %
                      ids2str(nids))
-        self._remNotes(nids)
+        self._remNotes(nids, reason or f"No cards remained for this note.")
 
     def emptyCids(self):
         """The card id of empty cards of the collection"""
