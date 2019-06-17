@@ -804,6 +804,47 @@ class GetAddons(QDialog):
 # Editing config
 ######################################################################
 
+def readableJson(text):
+    """Text, where \n are replaced with new line. Unless it's preceded by a odd number of \."""
+    l=[]
+    numberOfSlashOdd=False
+    numberOfQuoteOdd=False
+    for char in text:
+        if char == "n" and numberOfQuoteOdd and numberOfSlashOdd:
+            l[-1]="\n"
+            debug("replacing last slash by newline")
+        else:
+            l.append(char)
+            if char=="\n":
+                char="newline"
+            debug(f"adding {char}")
+
+        if char == "\"":
+            if not numberOfSlashOdd:
+                numberOfQuoteOdd = not numberOfQuoteOdd
+                debug(f"numberOfQuoteOdd is now {numberOfQuoteOdd}")
+
+        if char == "\\":
+            numberOfSlashOdd = not numberOfSlashOdd
+        else:
+            numberOfSlashOdd = False
+        debug(f"numberOfSlashOdd is now {numberOfSlashOdd}")
+    return "".join(l)
+
+def correctJson(text):
+    """Text, with new lines replaced by \n when inside quotes"""
+    if not isinstance(text,str):
+        return text
+    def correctQuotedString(match):
+        string = match[0]
+        debug("Found string «{string}»")
+        return string.replace("\n","\\n")
+    res= re.sub(r'"(?:(?<=[^\\])(?:\\\\)*\\"|[^"])*"',correctQuotedString,text,re.M)
+    if res is None:
+        debug("«{text}» was sent to None")
+    return res
+
+
 class ConfigEditor(QDialog):
 
     def __init__(self, dlg, addon, conf):
@@ -841,8 +882,7 @@ class ConfigEditor(QDialog):
 
     def updateText(self, conf):
         self.form.editor.setPlainText(
-            json.dumps(conf, ensure_ascii=False, sort_keys=True,
-                       indent=4, separators=(',', ': ')))
+            readableJson(json.dumps(conf,sort_keys=True,indent=4, separators=(',', ': '))))
 
     def onClose(self):
         saveGeom(self, "addonconf")
@@ -883,7 +923,7 @@ class ConfigEditor(QDialog):
 
         self.onClose()
         super().accept()
-        
+
 ## Add-ons incorporated in this fork.
 
 class Addon:
@@ -899,4 +939,5 @@ class Addon:
 
 """ Dictionnary, associating add-on id/name to Add-ons object"""
 addons = {
+    Addon("Newline in strings in add-ons configurations", 112201952, 1560116341, "c02ac9bbbc68212da3d2bccb65ad5599f9f5af97", "https://github.com/Arthur-Milchior/anki-json-new-line"),
 }

@@ -444,3 +444,18 @@ def versionWithBuild():
     except:
         build = "dev"
     return "%s (%s)" % (version, build)
+
+# JSon
+##############################################################################
+# Allow to have newline in strings in JSON
+
+oldLoads=json.loads
+def newLoads(t,*args,**kwargs):
+    t_=correctJson(t)
+    res = oldLoads(t_,*args,**kwargs)
+    # if res is None:
+    #     print(f"«{t}» led to None")
+    #print(f"From «{t}» to «{res}»")
+    return res
+
+json.loads=newLoads
