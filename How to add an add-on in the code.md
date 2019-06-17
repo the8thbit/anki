@@ -78,3 +78,15 @@ Add baseFork as upstream of the branch.
 ```bash
 git remote add upstream baseFork
 ```
+
+You can access this value from anywhere in the code by
+```Python
+	from aqt import mw
+	mw.pm.profile.get("XMLName", DefaultVale)
+```
+
+You can access this value from anywhere in the code by
+```Python
+	from aqt import mw
+	mw.pm.profile.get("XMLName", DefaultVale)
+```
