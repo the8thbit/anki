@@ -1174,9 +1174,9 @@ will be lost. Continue?"""))
         return ret
 
     def onCheckMediaDB(self):
-        self.progress.start(immediate=True)
+        #self.progress.start(immediate=True)#TODO: understand why finish raise an exception
         (nohave, unused, warnings) = self.col.media.check()
-        self.progress.finish()
+        #self.progress.finish()
         # generate report
         report = ""
         if warnings:
