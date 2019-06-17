@@ -2,6 +2,10 @@
 This files list the difference between regular anki and this forked
 version. It also lists the different options in the Preferences's extra page.
 
+## Multi column note editor (3491767031, 2064123047)
+Allow to have editors with multiple columns. Allow to keep some fields
+on their own line.
+
 ## Explain errors
 You obtain more detailled error message if a sync fail, and if you try
 do do a «Check database».
@@ -17,3 +21,14 @@ note, and let you correct the note instead to generate cards.
 ## Anki quicker (802285486)
 Those modification makes anki quicker. Technical details are on the
 add-on page.
+
+## Multi column note editor (3491767031, 2064123047)
+Allow to have editors with multiple columns. Allow to keep some fields
+on their own line.
+
+## Explain errors
+You obtain more detailled error message if a sync fail, and if you try
+do do a «Check database».
+
+It transform the very long method `fixIntegrity` into plenty of small
+function. It would helps to do add-ons for this forked version of anki.

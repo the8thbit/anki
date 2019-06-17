@@ -998,7 +998,6 @@ ooo
         ret = self.integrity()#If the database itself is broken, there is nothing else to do.
         if ret:
             return ret
-
         for f in self.listFix:#execute all methods required to fix something
             getattr(self,f)()
         # whether sqlite find a problem in its database

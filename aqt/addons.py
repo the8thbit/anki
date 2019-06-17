@@ -903,6 +903,8 @@ class Addon:
 incorporatedAddonsSet = {
     Addon("Adding note and changing note type become quicker", 802285486, gitHash = "f1b2df03f4040e7820454052a2088a7672d819b2", gitRepo = "https://github.com/Arthur-Milchior/anki-fast-note-type-editor"),
     Addon("«Check database» Explain errors and what is done to fix it", 1135180054, gitHash = "371c360e5611ad3eec5dcef400d969e7b1572141", gitRepo = "https://github.com/Arthur-Milchior/anki-database-check-explained"), #mod unkwon because it's not directly used by the author anymore
+    Addon("Multi-column note editor debugged", 2064123047, 1550534156, "70f92cd5f62bd4feda5422701bd01acb41ed48ce", "https://github.com/Arthur-Milchior/anki-Multi-column-edit-window"),
+    Addon("Multi-column note editor", 3491767031, 1560844854, "ad7a4014f184a1ec5d5d5c43a3fc4bab8bb8f6df", "https://github.com/hssm/anki-addons/tree/master/multi_column_editor"),
 }
 
 incorporatedAddonsDict = {**{addon.name: addon for addon in incorporatedAddonsSet if addon.name},
