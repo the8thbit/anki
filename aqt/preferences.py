@@ -234,6 +234,12 @@ Not currently enabled; click the sync button in the main window to enable."""))
 
     def setupExtra(self):
         """Set in the GUI the preferences related to add-ons forked."""
+        self.form.preserveCreation.setChecked(
+            self.prof.get("preserveCreation", True))
+        self.form.preserveReviewInfo.setChecked(
+            self.prof.get("preserveReviewInfo", True))
 
     def updateExtra(self):
         """Check the preferences related to add-ons forked."""
+        self.prof["preserveCreation"] = self.form.preserveCreation.isChecked()
+        self.prof["preserveReviewInfo"] = self.form.preserveReviewInfo.isChecked()

@@ -4,6 +4,7 @@
 
 from anki.utils import fieldChecksum, intTime, \
     joinFields, splitFields, stripHTMLMedia, timestampID, guid64
+from copy import copy
 
 class Note:
 
@@ -209,6 +210,36 @@ space, with an initial and a final white space."""
                 splitFields(flds)[0]) == stripHTMLMedia(self.fields[0]):
                 return 2
         return False
+
+    # Copy note
+    ##################################################
+    def copy(self, copy_review = True, copy_creation = True):
+        """A copy of the note.
+
+        Save it in the db.
+        copy_review -- if False, it's similar to a new card. Otherwise, keep every current properties
+        copy_creation -- whether to keep original creation date.
+        """
+        note = copy(self)
+        cards= note.cards()
+        note_date = note.id if copy_creation else None
+        note.id = timestampID(note.col.db, "notes", t = note_date)
+        for card in cards:
+            card_date = card.id if copy_creation else None
+            card.id = timestampID(note.col.db, "cards", t = note_date)
+            if not copy_review:
+                card.type = 0
+                card.ivl = 0
+                card.factor = 0
+                card.reps = 0
+                card.lapses = 0
+                card.left = 0
+                card.odue = 0
+            card.nid = note.id
+            card.flush()
+        note.flush()
+        return note
+
 
     # Flushing cloze notes
     ##################################################

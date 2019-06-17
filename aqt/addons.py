@@ -901,6 +901,7 @@ class Addon:
 
 """ Set of characteristic of Add-ons incorporated here"""
 incorporatedAddonsSet = {
+    Addon("Copy notes", 1566928056, 1560116343, "e12e62094211a8bf06d025ee0f325e8aa4489292", "https://github.com/Arthur-Milchior/anki-copy-note"),
 }
 
 incorporatedAddonsDict = {**{addon.name: addon for addon in incorporatedAddonsSet if addon.name},
