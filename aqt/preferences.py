@@ -234,6 +234,18 @@ Not currently enabled; click the sync button in the main window to enable."""))
 
     def setupExtra(self):
         """Set in the GUI the preferences related to add-ons forked."""
+        self.form.AddMultipleTime.setChecked(
+            self.prof.get("AddCardsMultipleTime", True))
+        self.form.EditMultipleTime.setChecked(
+            self.prof.get("EditCurrentMultipleTime", True))
+        self.form.BrowserMultipleTime.setChecked(
+            self.prof.get("BrowserMultipleTime", True))
+        self.form.OtherMultipleTime.setChecked(
+            self.prof.get("OtherMultipleTime", True))
 
     def updateExtra(self):
         """Check the preferences related to add-ons forked."""
+        self.prof["AddCardsMultipleTime"] = self.form.AddMultipleTime.isChecked()
+        self.prof["EditCurrentMultipleTime"] = self.form.EditMultipleTime.isChecked()
+        self.prof["BrowserMultipleTime"] = self.form.BrowserMultipleTime.isChecked()
+        self.prof["OtherMultipleTime"] = self.form.OtherMultipleTime.isChecked()
