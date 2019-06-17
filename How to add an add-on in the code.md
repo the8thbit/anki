@@ -12,7 +12,7 @@ was added to this folder.
 # differences.md
 
 List your add-on in the list of change between this fork and regular
-anki.
+anki. Add the add-on number after the title.
 
 # Configuration options
 
@@ -44,7 +44,7 @@ A text as follows:
         </item>
 ```
 
-They should be added between 
+They should be added between
 ```xml
            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;Extra&lt;/span&gt;&lt;br/&gt;Those options are not documented in anki's manual. They allow to configure the different add-ons incorporated in this special version of anki.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
@@ -54,7 +54,7 @@ They should be added between
          </widget>
         </item>
 ```
-and 
+and
 ```xml
         <item>
          <spacer name="verticalSpacer">
