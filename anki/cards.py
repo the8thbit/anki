@@ -5,7 +5,7 @@ import pprint
 
 import time
 from anki.hooks import runHook
-from anki.utils import intTime, timestampID, joinFields
+from anki.utils import intTime, timestampID, joinFields, ids2str
 from anki.consts import *
 
 # Cards
@@ -298,3 +298,8 @@ lapses=?, left=?, odue=?, odid=?, did=? where id = ?""",
     def setUserFlag(self, flag):
         assert 0 <= flag <= 7
         self.flags = (self.flags & ~0b111) | flag
+
+def siblings(cids):
+    """Return the siblings of cards whose id is in cids"""
+    siblings = mw.col.db.list(f"select id from cards where nid in (select nid from cards where id in {ids2str(cids)})")
+    return siblings

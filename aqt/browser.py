@@ -14,6 +14,7 @@ import json
 from aqt.qt import *
 import anki
 import aqt.forms
+from aqt.exporting import ExportDialog
 from anki.utils import fmtTimeSpan, ids2str, htmlToTextLine, \
     isWin, intTime, \
     isMac, bodyClass
@@ -458,6 +459,7 @@ class Browser(QMainWindow):
         f.actionOrange_Flag.triggered.connect(lambda: self.onSetFlag(2))
         f.actionGreen_Flag.triggered.connect(lambda: self.onSetFlag(3))
         f.actionBlue_Flag.triggered.connect(lambda: self.onSetFlag(4))
+        f.action_Export.triggered.connect(lambda: ExportDialog(self.mw, cids=self.selectedCards()))
         # jumps
         f.actionPreviousCard.triggered.connect(self.onPreviousCard)
         f.actionNextCard.triggered.connect(self.onNextCard)
