@@ -65,12 +65,12 @@ and
 ## Editing configuration
 In `aqt.preferences` you should edit `setupExtra`, adding:
 ``` python
-         self.form.compileLaTeX.setChecked(
-             self.prof.get(XMLName, DefaultVale))
+        self.form.XMLName.setChecked(
+            self.prof.get(XMLName, DefaultVale))
 ```
 and `updateExtra`, adding:
 ```
-self.prof["xmlName"] = self.form.XMLName.isChecked()
+        self.prof["xmlName"] = self.form.XMLName.isChecked()
 ```
 
 ## Git
