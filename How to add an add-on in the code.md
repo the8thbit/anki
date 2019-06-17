@@ -70,7 +70,7 @@ In `aqt.preferences` you should edit `setupExtra`, adding:
 ```
 and `updateExtra`, adding:
 ```
-        self.prof["xmlName"] = self.form.XMLName.isChecked()
+        self.prof["XMLName"] = self.form.XMLName.isChecked()
 ```
 
 ## Git
@@ -81,12 +81,6 @@ git remote add upstream baseFork
 
 You can access this value from anywhere in the code by
 ```Python
-	from aqt import mw
-	mw.pm.profile.get("XMLName", DefaultVale)
-```
-
-You can access this value from anywhere in the code by
-```Python
-	from aqt import mw
-	mw.pm.profile.get("XMLName", DefaultVale)
+    from aqt import mw
+    mw.pm.profile.get("XMLName", DefaultVale)
 ```
