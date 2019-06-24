@@ -1302,6 +1302,7 @@ To study outside of the normal schedule, click the Custom Study button below."""
     def haveManuallyBuried(self):
         sdids = ids2str(self.col.decks.active())
         cnt = self.col.db.scalar(
+
             f"select 1 from cards where queue = {QUEUE_SCHED_BURIED} and did in %s limit 1" % sdids)
         return not not cnt
 
