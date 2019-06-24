@@ -897,7 +897,7 @@ class Addon:
         self.gitRepo = gitRepo
 
     def __hash__(self):
-        return id or hash(name)
+        return self.id or hash(self.name)
 
 """ Set of characteristic of Add-ons incorporated here"""
 incorporatedAddonsSet = {
