@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
 
+import os
+os.system("./tools/build_ui.sh")
+
 import aqt
 aqt.run()
