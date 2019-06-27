@@ -901,6 +901,7 @@ class Addon:
 
 """ Set of characteristic of Add-ons incorporated here"""
 incorporatedAddonsSet = {
+    Addon("Postpone cards review", 1152543397, 1560126139, "27103fd69c19e0576c5df6e28b5687a8a3e3d905", "https://github.com/Arthur-Milchior/Anki-postpone-reviews"),
 }
 
 incorporatedAddonsDict = {**{addon.name: addon for addon in incorporatedAddonsSet if addon.name},

@@ -234,6 +234,12 @@ Not currently enabled; click the sync button in the main window to enable."""))
 
     def setupExtra(self):
         """Set in the GUI the preferences related to add-ons forked."""
+        self.form.factorAddDay.setValue(
+            self.prof.get("factorAddDay", 0.33))
+        self.form.factorRemoveDay.setValue(
+            self.prof.get("factorRemoveDay", 0.33))
 
     def updateExtra(self):
         """Check the preferences related to add-ons forked."""
+        self.prof["factorAddDay"] = self.form.factorAddDay.value()
+        self.prof["factorRemoveDay"] = self.form.factorRemoveDay.value()
