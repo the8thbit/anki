@@ -32,3 +32,6 @@ do do a «Check database».
 
 It transform the very long method `fixIntegrity` into plenty of small
 function. It would helps to do add-ons for this forked version of anki.
+
+## Frozen Fields (516643804)
+Add a small icon near the name of the field to make it sticky or not.

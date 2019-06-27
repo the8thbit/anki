@@ -60,7 +60,7 @@ function onKey() {
 	 If no other action is done in .6 seconds, tell Python what change did occur
 	 */
 
-
+	console.log("js: On key: "+window.event.which)
     // esc clears focus, allowing dialog to close
     if (window.event.which === 27) {
         currentField.blur();
@@ -120,6 +120,7 @@ function onInput() {
 
 	 This is checked on every input; i.e. when the text change.*/
     // empty field?
+	console.log("js: On input. Current field is : "+currentField.innerHTML)
     if (currentField.innerHTML === "") {
         currentField.innerHTML = "<br>";
     }
@@ -181,13 +182,16 @@ function onFocus(elem) {
 	   Change buttons.
 	   If the change is note made by mouse, then move caret to end of field, and move the window to show the field.
 
-	 */
+	*/
+	console.log("js: On focus: "+elem)
     if (currentField === elem) {
         // anki window refocused; current element unchanged
         return;
     }
     currentField = elem;
-    pycmd("focus:" + currentFieldOrdinal());
+	cmd = "focus:" + currentFieldOrdinal();
+    pycmd(cmd);
+	console.log("js: focus command sent " + cmd)
     enableButtons();
     // don't adjust cursor on mouse clicks
     if (mouseDown) {
@@ -268,11 +272,17 @@ function changeSize(fieldNumber){
 	pycmd("toggleLineAlone:"+fieldNumber);
 }
 
+function toggleFroze(fieldNumber){
+	saveNow(true);
+	pycmd("toggleFroze:"+fieldNumber);
+}
+
 function onBlur() {
 	/*Tells python that it must save. Either by key if current field
       is still active. Otherwise by blur.  If current field is not
       active, then disable buttons and state that there are no current
       fields */
+	console.log("js: onBlur. Current field is "+currentField);
 	if (!currentField) {
 		return;
     }
@@ -297,8 +307,10 @@ function saveField(type) {
         // no field has been focused yet
         return;
     }
+	cmd = type + ":" + currentFieldOrdinal() + ":" + currentNoteId + ":" + currentField.innerHTML;
     // type is either 'blur' or 'key'
-    pycmd(type + ":" + currentFieldOrdinal() + ":" + currentNoteId + ":" + currentField.innerHTML);
+	console.log("js: Save field: "+ cmd);
+    pycmd(cmd);
 }
 
 function currentFieldOrdinal() {
@@ -361,10 +373,13 @@ function createDiv(ord,  fieldContent, nbCol){
 }
 
 function createNameTd(ord, fieldName, nbColThisField, nbColTotal, sticky){
+	img = (sticky?"":"un")+"frozen.png";
+	title =(sticky?"Unf":"F")+"reeze field "+fieldName;
 	txt = "<td class='fname' colspan={0}><span>{1}</span>".format(nbColThisField, fieldName);
 	if (nbColTotal>1){
 		txt+= "<input type='button' tabIndex='-1' value='Change size' onClick='changeSize({0})'/>".format(ord);
 	}
+	txt+="<img width='15px' height='15px' title='{0}' src='/_anki/imgs/{1}' onClick='toggleFroze({2})'/></td>".format(title, img, ord);
 	return txt;
 }
 
@@ -383,13 +398,14 @@ function setFields(fields, nbCol) {
         var fieldName = fields[i][0];
         var fieldContent = fields[i][1];
 		var alone = fields[i][2];
+		var sticky = fields[i][3];
         if (!fieldContent) {
             fieldContent = "<br>";
         }
 		//console.log("fieldName: "+fieldName+", fieldContent: "+fieldContent+", alone: "+alone);
 		nbColThisField = (alone)?nbCol:1;
 		fieldContentHtml = createDiv(i, fieldContent, nbColThisField);
-		fieldNameHtml = createNameTd(i, fieldName, nbColThisField, nbCol)
+		fieldNameHtml = createNameTd(i, fieldName, nbColThisField, nbCol, sticky)
 		if (alone){
 			nameTd = fieldNameHtml
 			txt += "<tr>"+fieldNameHtml+"</tr><tr>"+fieldContentHtml+"</tr>";
@@ -734,6 +750,11 @@ function makeColumns2() {
     $('#fields').unbind('DOMNodeInserted')
     $("#fields").html("<table class='mceTable'>" + txt + "</table>");
     $('#fields').bind('DOMNodeInserted', makeColumns);
+}
+
+function onFrozen(elem) {
+    currentField = elem;
+    pycmd("frozen:" + currentField.id.substring(1));
 }
 
 // Attach event to restructure the table after it is populated

@@ -275,7 +275,6 @@ class Editor:
     ######################################################################
 
     def onBridgeCmd(self, cmd):
-        print(f"js tells python to «{cmd}»")
         if not self.note or not runHook:
             # shutdown
             return
@@ -377,7 +376,11 @@ class Editor:
         # Triple, for each fields, with (field name, field
         # content modified so that it's image's url can be
         # used locally, and whether it is on its own line)
-        data = [(fld, self.mw.col.media.escapeImages(val), self.model["flds"][ord].get("Line alone", False)) for ord, (fld, val) in enumerate(self.note.items())]
+        data = [(fld,
+                 self.mw.col.media.escapeImages(val),
+                 self.model["flds"][ord].get("Line alone", False),
+                 self.model["flds"][ord].get("sticky", False)
+        ) for ord, (fld, val) in enumerate(self.note.items())]
         self.widget.show()
         self.updateTags()
 
@@ -509,7 +512,13 @@ class Editor:
         self.mw.col.models.save(self.model, recomputeReq=False)
         fieldObject["Line alone"] = not fieldObject.get("Line alone", False)
         self.loadNote()
-        print(f"""Changing field number {fieldNumber} to {fieldObject["Line alone"]}""")
+
+    def onFroze(self, fieldNumber):
+        fieldNumber = int(fieldNumber)
+        fieldObject = self.model['flds'][fieldNumber]
+        fieldObject["sticky"] = not fieldObject.get("sticky", False)
+        self.mw.col.models.save(self.model)
+        self.loadNote()
 
     # Tag handling
     ######################################################################
@@ -923,6 +932,7 @@ to a cloze type first, via Edit>Change Note Type."""))
         key=onKey,
         blur=onBlur,
         toggleLineAlone=onToggleLineAlone,
+        toggleFroze=onFroze,
         #mceTrigger=onMceTrigger,
     )
 

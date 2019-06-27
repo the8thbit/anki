@@ -1166,7 +1166,6 @@ ooo
         if curs.rowcount:
             self.problems.append("Found %d new cards with a due number >= 1,000,000 - consider repositioning them in the Browse screen." % curs.rowcount)
 
-
     def setNextPos(self):
         # new card position
         self.conf['nextPos'] = self.db.scalar(
