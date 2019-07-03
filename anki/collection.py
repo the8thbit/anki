@@ -656,26 +656,26 @@ select id from notes where id in %s and id not in (select nid from cards)""" %
         return rem
 
     def emptyCardReport(self, cids):
-    col = mw.col
-    models = col.models
-    rep = ""
-    for ords, mid, flds in self.db.all("""
-    select group_concat(ord), mid, flds from cards c, notes n
-    where c.nid = n.id and c.id in %s group by nid order by mid""" % ids2str(cids)):
-        model = models.get(mid)
-        modelName  = model["name"]
-        templates = model["tmpls"]
-        isCloze = model["type"] == MODEL_CLOZE
-        rep += _("Empty cards")+" ("+modelName+"): "
-        if isCloze:
-             rep+=ords
-        else:
-            for ord in ords.split(","):
-                ord  = int(ord)
-                templateName = templates[ord]["name"]
-                rep += templateName+", "
-        rep +="\nFields: %(f)s\n\n" % dict(f=flds.replace("\x1f", " / "))
-    return rep
+        col = mw.col
+        models = col.models
+        rep = ""
+        for ords, mid, flds in self.db.all("""
+        select group_concat(ord), mid, flds from cards c, notes n
+        where c.nid = n.id and c.id in %s group by nid order by mid""" % ids2str(cids)):
+            model = models.get(mid)
+            modelName  = model["name"]
+            templates = model["tmpls"]
+            isCloze = model["type"] == MODEL_CLOZE
+            rep += _("Empty cards")+" ("+modelName+"): "
+            if isCloze:
+                 rep+=ords
+            else:
+                for ord in ords.split(","):
+                    ord  = int(ord)
+                    templateName = templates[ord]["name"]
+                    rep += templateName+", "
+            rep +="\nFields: %(f)s\n\n" % dict(f=flds.replace("\x1f", " / "))
+        return rep
 
     # Field checksums and sorting fields
     ##########################################################################
