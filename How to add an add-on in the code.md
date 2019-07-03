@@ -66,7 +66,7 @@ and
 In `aqt.preferences` you should edit `setupExtra`, adding:
 ``` python
         self.form.XMLName.setChecked(
-            self.prof.get(XMLName, DefaultVale))
+            self.prof.get("XMLName", DefaultVale))
 ```
 and `updateExtra`, adding:
 ```
