@@ -656,8 +656,7 @@ select id from notes where id in %s and id not in (select nid from cards)""" %
         return rem
 
     def emptyCardReport(self, cids):
-        col = mw.col
-        models = col.models
+        models = self.models
         rep = ""
         for ords, mid, flds in self.db.all("""
         select group_concat(ord), mid, flds from cards c, notes n
