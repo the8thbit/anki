@@ -38,8 +38,14 @@ def stripLatex(text):
         text = text.replace(match.group(), "")
     return text
 
-def mungeQA(html, type, fields, model, data, col):
-    """html, where LaTeX parts are replaced by some HTML.
+def mungeQA(*args, **kwargs):
+    """Same as mungeQAandErr, but with html only"""
+    return mungeQAandErr(*args, **kwargs)[0]
+
+def mungeQAandErr(html, type, fields, model, data, col):
+    """A pair:
+    * Html, where LaTeX parts are replaced by some HTML.
+    * Whether there is an error
 
     see _imgLink docstring regarding the rules for LaTeX media.
 
@@ -48,25 +54,27 @@ def mungeQA(html, type, fields, model, data, col):
     type -- not used. "q" or "a" for question and answer
     fields -- not used. A dictionnary containing Tags, Type(model
     name), Deck, Subdeck(part after last ::), card: template
-    name... TODO (see collection._renderQA for more info) 
+    name... TODO (see collection._renderQA for more info)
     model -- the model in which is compiled the note. It deals with
     the header/footer, and the image file format
     data -- not used. [cid, nid, mid, did, ord, tags, flds]
     col -- the current collection. It deals with media folder
     """
-    for match in regexps['standard'].finditer(html):
-        html = html.replace(match.group(), _imgLink(col, match.group(1), model))
-    for match in regexps['expression'].finditer(html):
-        html = html.replace(match.group(), _imgLink(
-            col, "$" + match.group(1) + "$", model))
-    for match in regexps['math'].finditer(html):
-        html = html.replace(match.group(), _imgLink(
-            col,
-            "\\begin{displaymath}" + match.group(1) + "\\end{displaymath}", model))
-    return html
+    error = False
+    for prefix, key, suffix in {("", "standard",""), ("$", "expression", "$"), ("\\begin{displaymath}", "math", "\\end{displaymath}")}:
+        for match in regexps[key].finditer(html):
+            textToCompile = prefix+match.group(1)+suffix
+            link, er = _imgLink(col, textToCompile, model)
+            html = html.replace(match.group(), link)
+            error = error or er
+    return (html, error)
+
+buggedLatex ={} # Ensure that the same image is never compiled twice with the same compiler
 
 def _imgLink(col, latex, model):
-    """Some HTML to display instead of the LaTeX code.
+    """A pair:
+    * Some HTML to display instead of the LaTeX code.
+    * whether there is an error during LaTeX compilation.
 
     If some image already exists, related to this LaTeX code, an HTML
     code showing this image is returned.
@@ -80,7 +88,7 @@ def _imgLink(col, latex, model):
     During the compilation the compiled file is in tmp.tex and its
     output (err and std) in latex_log.tex, replacing previous files of
     the same name. Both of those file are in the tmpdir as in
-    utils.py. 
+    utils.py.
 
     Keyword arguments:
     col -- the current collection. It is used for the media folder (and
@@ -91,6 +99,8 @@ def _imgLink(col, latex, model):
     """
     txt = _latexFromHtml(col, latex)
 
+    if txt in buggedLatex:
+        return (buggedLatex[txt],True)
     if model.get("latexsvg", False):
         ext = "svg"
     else:
@@ -100,20 +110,22 @@ def _imgLink(col, latex, model):
     fname = "latex-%s.%s" % (checksum(txt.encode("utf8")), ext)
     link = '<img class=latex src="%s">' % fname
     if os.path.exists(fname):
-        return link
+        return (link, False)
 
     # building disabled?
     if not build:
-        return "[latex]%s[/latex]" % latex
+        return ("[latex]%s[/latex]" % latex, False)
 
-    err = _buildImg(col, txt, fname, model)
+    err, compilationWasTried = _buildImg(col, txt, fname, model)
     if err:
-        return err
+        if compilationWasTried:
+            buggedLatex[txt]=err
+        return (err, True)
     else:
-        return link
+        return (link, False)
 
 def _latexFromHtml(col, latex):
-    """Convert entities and fix newlines. 
+    """Convert entities and fix newlines.
 
     First argument is not used.
     """
@@ -125,7 +137,7 @@ def _buildImg(col, latex, fname, model):
     """Generate an image file from latex code
 
     latex's header and foot is added as in the model. The image is
-    named fname and added to the media folder of this collection.    
+    named fname and added to the media folder of this collection.
 
     The compiled file is in tmp.tex and its output (err and std) in
     latex_log.tex, replacing previous files of the same name. Both of
@@ -134,9 +146,12 @@ def _buildImg(col, latex, fname, model):
     Compiles to svg if latexsvg is set to true in the model, otherwise
     to png. The compilation commands are given above.
 
-    In case of error, return an error message to be displayed instead
-    of the LaTeX document. (Note that this image is not displayed in
-    AnkiDroid. It is probably shown only in computer mode)
+    In case of error, return: * an error message to be displayed
+    instead of the LaTeX document. (Note that this image is not
+    displayed in AnkiDroid. It is probably shown only in computer
+    mode)
+    * whether it's a problem with the LaTeX (otherwise, it's a
+    compilation problem, and it may be worth trying again)
 
     Keyword arguments:
     col -- the current collection. It deals with media folder
@@ -144,6 +159,7 @@ def _buildImg(col, latex, fname, model):
     fname -- the name given to the generated png
     model -- the model in which is compiled the note. It deals with
     the header/footer, and the image file format
+
     """
     # add header/footer
     latex = (model["latexPre"] + "\n" +
@@ -157,10 +173,11 @@ def _buildImg(col, latex, fname, model):
         # don't mind if the sequence is only part of a command
         bad_re = "\\" + bad + "[^a-zA-Z]"
         if re.search(bad_re, tmplatex):
-            return _("""\
+            return (_("""\
+
 For security reasons, '%s' is not allowed on cards. You can still use \
 it by placing the command in a different package, and importing that \
-package in the LaTeX header instead.""") % bad
+package in the LaTeX header instead.""") % bad, True)
 
     # commands to use?
     if model.get("latexsvg", False):
@@ -187,19 +204,21 @@ package in the LaTeX header instead.""") % bad
                 return _errMsg(latexCmd[0], texpath)
         # add the image to the media folder
         shutil.copyfile(png, os.path.join(mdir, fname))
-        return
+        return "", True
     finally:
         os.chdir(oldcwd)
         log.close()
 
 def _errMsg(type, texpath):
-    """An error message, in html, concerning LaTeX compilation.
+    """A pair with:
+    * an error message, in html, concerning LaTeX compilation.
+    * whether compilation at least started
 
     This message contains LaTeX outputs if it exists, or a message
     asking whether the program latex and dvipng/dvisvgm are installed.
 
     Keyword arguments
-    type -- the (begin of the) executed command 
+    type -- the (begin of the) executed command
     texpath -- the path to the (temporary) file which was compiled
     """
     msg = (_("Error executing %s.") % type) + "<br>"
@@ -210,9 +229,11 @@ def _errMsg(type, texpath):
         if not log:
             raise Exception()
         msg += "<small><pre>" + html.escape(log) + "</pre></small>"
+        compilationWasTried = True
     except:
         msg += _("Have you installed latex and dvipng/dvisvgm?")
-    return msg
+        compilationWasTried = False
+    return msg, compilationWasTried
 
 # setup q/a filter
 addHook("mungeQA", mungeQA)

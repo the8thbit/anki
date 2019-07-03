@@ -78,6 +78,30 @@ from notes where id = ?""", self.id)
         self._fmap = self.col.models.fieldMap(self._model)
         self.scm = self.col.scm
 
+    def tagTex(self, mod = None):
+        """Add tag LaTeXError if the note has a LaTeX error. Remove it
+        otherwise.
+
+        Alert when an error appear, tooltip when it disappears.
+
+        """
+
+        print("calling tagTex")
+        someError=False
+        for field in self.fields:
+            error = self.col.media.filesInStrOrErr(self.mid, field)[1]
+            someError = someError or error
+        if someError:
+            if self.hasTag("LaTeXError"):
+                tooltip("Some LaTex compilation error remains.")
+            else:
+                self.addTag("LaTeXError")
+                tooltip("There was some LaTex compilation error.")
+        else:
+            if self.hasTag("LaTeXError"):
+                self.delTag("LaTeXError")
+                tooltip("There are no more LaTeX error.")
+
     def flush(self, mod=None):
         """If fields or tags have changed, write changes to disk.
 
@@ -92,6 +116,9 @@ from notes where id = ?""", self.id)
         mod -- A modification timestamp"""
         assert self.scm == self.col.scm
         self._preFlush()
+        from aqt import mw
+        if mw and mw.pm.profile.get("compileLaTeX", True):#mw may be None during test
+            self.tagTex(mod)
         sfld = stripHTMLMedia(self.fields[self.col.models.sortIdx(self._model)])
         tags = self.stringTags()
         fields = self.joinedFields()

@@ -30,7 +30,7 @@ import os
 from anki.utils import checksum, isWin, isMac
 from anki.db import DB, DBError
 from anki.consts import *
-from anki.latex import mungeQA
+from anki.latex import mungeQAandErr
 from anki.lang import _
 
 class MediaManager:
@@ -239,7 +239,11 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
     ##########################################################################
 
     def filesInStr(self, mid, string, includeRemote=False):
-        """The list of media's path in the string. 
+        """The list of media's path in the string."""
+        return self.filesInStrOrErr(*args, **kwargs)[0]
+
+    def filesInStrOrErr(self, mid, string, includeRemote=False):
+        """The list of media's path in the string.
 
         Medias starting with _ are treated as any media.
 
@@ -252,11 +256,13 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
         Keyword arguments:
         mid -- the id of the model of the note whose string is considered
         string -- A string, which corresponds to a field of a note
+        note -- the note
         includeRemote -- whether the list should include contents which is with http, https or ftp
         """
         l = []
         model = self.col.models.get(mid)
         strings = []
+        someError = False # whether a LaTeX error was found
         if model['type'] == MODEL_CLOZE and "{{c" in string:
             # if the field has clozes in it, we'll need to expand the
             # possibilities so we can render latex
@@ -265,7 +271,8 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
             strings = [string]
         for string in strings:
             # handle latex
-            string = mungeQA(string, None, None, model, None, self.col)
+            (string, error) = mungeQAandErr(string, None, None, model, None, self.col)
+            someError = error or someError
             # extract filenames
             for reg in self.regexps:
                 for match in re.finditer(reg, string):
@@ -273,7 +280,7 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
                     isLocal = not re.match("(https?|ftp)://", fname.lower())
                     if isLocal or includeRemote:
                         l.append(fname)
-        return l
+        return (l, someError)
 
     def _expandClozes(self, string):
         """The list of all strings, where the clozes are expanded.
