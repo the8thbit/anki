@@ -450,28 +450,43 @@ from the profile screen."))
             z.close()
 
     def backup(self):
-        nbacks = self.pm.profile['numBackups']
-        if not nbacks or devMode:
+        if devMode:
             return
+        self.createBackups()
+        self.cleanRecentBackup()
+        self.cleanLongTermBackup()
+
+    def createBackups(self):
         dir = self.pm.backupFolder()
         path = self.pm.collectionPath()
 
-        # do backup
-        fname = time.strftime("backup-%Y-%m-%d-%H.%M.%S.colpkg", time.localtime(time.time()))
-        newpath = os.path.join(dir, fname)
+        localTime = time.localtime(time.time())
+        patternsToCreate = {"backup-%Y-%m-%d-%H.%M.%S.colpkg"}
+        if self.pm.profile.get('longTermBackup', True):
+            patternsToCreate.update({"backup-yearly-%Y.colpkg",
+                                     "backup-monthly-%Y-%m.colpkg",
+                                     "backup-daily-%Y-%m-%d.colpkg",})
+        filesToCreate = {time.strftime(pattern, localTime) for pattern in patternsToCreate}
         with open(path, "rb") as f:
             data = f.read()
-        b = self.BackupThread(newpath, data)
-        b.start()
+        for fname in filesToCreate:
+            newpath = os.path.join(dir, fname)
+            if not os.path.exists(newpath):
+                b = self.BackupThread(newpath, data)
+                b.start()
+
+    def cleanRecentBackup(self):
+        nbacks = self.pm.profile['numBackups']
+        if not nbacks:
+            return
+        dir = self.pm.backupFolder()
 
         # find existing backups
         backups = []
         for file in os.listdir(dir):
             # only look for new-style format
-            m = re.match(r"backup-\d{4}-\d{2}-.+.colpkg", file)
-            if not m:
-                continue
-            backups.append(file)
+            if re.match(r"backup-\d{4}-\d{2}-.+.colpkg", file):
+                backups.append(file)
         backups.sort()
 
         # remove old ones
@@ -479,6 +494,40 @@ from the profile screen."))
             fname = backups.pop(0)
             path = os.path.join(dir, fname)
             os.unlink(path)
+
+    def cleanLonêgTermBackup(self):
+        dir = self.pm.backupFolder()
+        year = int(time.strftime("%Y",currentTime))
+        month = int(time.strftime("%m",currentTime))
+        day = int(time.strftime("%d",currentTime))
+
+        nbDayInMonth = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+        monthsToKeep = []
+        for nbMonth in range(12):
+            if nbMonth<month:
+                monthsToKeep.append((year, month-nbMonth))
+            else:
+                monthsToKeep.append((year-1, month-nbMonth+12))
+
+        nbDayThisMonth = nbDayInMonth[month-1]
+        nbDayPreviousMonth = nbDayInMonth[(month-2) % 12]
+
+        daysToKeep = []
+        for nbDay in range(nbDayThisMonth):
+            if nbDay<day:
+                daysToKeep.append((year, month, day-nbDay))
+            else:
+                if month == 1:
+                    daysToKeep.append((year-1, 12, day-nbDay+nbDayPreviousMonth))
+                else:
+                    daysToKeep.append((year, month-1, day-nbDay+nbDayPreviousMonth))
+        filesToKeep = ([f"backup-monthly-{yearToHave}-{monthToHave}" for yearToHave, monthToHave in monthsToKeep]+
+                       [f"backup-daily-{yearToHave}-{monthToHave}-{dayToHave}" for yearToHave, monthToHave, dayToHave in daysToKeep])
+    for file in os.listdir(dir):
+        if (file.startswith("backup-monthy-") or file.startswith("backup-daily-")) and file not in filesToKeep:
+            os.unlink(os.path.join(dir, file))
+
+
 
     def maybeOptimize(self):
         # have two weeks passed?

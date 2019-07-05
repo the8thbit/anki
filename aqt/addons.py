@@ -901,6 +901,7 @@ class Addon:
 
 """ Set of characteristic of Add-ons incorporated here"""
 incorporatedAddonsSet = {
+    Addon("Long term backups", 529955533, gitHash="fbcb76d75e92cd0a3e38e0ed0e8b92a1ce6eaf67", gitRepo = "https://github.com/Arthur-Milchior/anki-old-backup"),
 }
 
 incorporatedAddonsDict = {**{addon.name: addon for addon in incorporatedAddonsSet if addon.name},
