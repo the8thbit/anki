@@ -238,8 +238,11 @@ Not currently enabled; click the sync button in the main window to enable."""))
             self.prof.get("noteWithoutCard", True))
         self.form.newLineInBatchEdit.setChecked(
             self.prof.get("newLineInBatchEdit", False))
+        self.form.changeModelWithoutFullSync.setChecked(
+            self.prof.get("changeModelWithoutFullSync", False))
 
     def updateExtra(self):
         """Check the preferences related to add-ons forked."""
         self.prof["noteWithoutCard"] = self.form.noteWithoutCard.isChecked()
         self.prof["newLineInBatchEdit"] = self.form.newLineInBatchEdit.isChecked()
+        self.prof["changeModelWithoutFullSync"] = self.form.changeModelWithoutFullSync.isChecked()

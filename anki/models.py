@@ -614,7 +614,9 @@ select id from notes where mid = ?)""" % " ".join(map),
         fmap -- the dictionnary sending to each fields'ord of the old model a field'ord of the new model
         cmap -- the dictionnary sending to each card type's ord of the old model a card type's ord of the new model
         """
-        self.col.modSchema(check=True)
+        from aqt import mw
+        if not mw.pm.profile.get("changeModelWithoutFullSync", False):
+            self.col.modSchema(check=True)
         assert newModel['id'] == m['id'] or (fmap and cmap)
         if fmap:
             self._changeNotes(nids, newModel, fmap)
