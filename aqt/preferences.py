@@ -240,6 +240,8 @@ Not currently enabled; click the sync button in the main window to enable."""))
             self.prof.get("compileLaTeX", False))
         self.form.exportSiblings.setChecked(
             self.prof.get("exportSiblings", False))
+        self.form.EmptyNote.setChecked(
+            self.prof.get("keepEmptyNote", True))
         self.form.keepSeenCard.setChecked(
             self.prof.get("keepSeenCard", False))
         self.form.noteWithoutCard.setChecked(
@@ -258,6 +260,7 @@ Not currently enabled; click the sync button in the main window to enable."""))
         self.prof["changeModelWithoutFullSync"] = self.form.changeModelWithoutFullSync.isChecked()
         self.prof["compileLaTeX"] = self.form.xMLName.isChecked()
         self.prof["keepSeenCard"] = self.form.keepSeenCard.isChecked()
+        self.prof["keepEmptyNote"] = self.form.keepEmptyNote.isChecked()
         self.prof["newLineInBatchEdit"] = self.form.newLineInBatchEdit.isChecked()
         self.prof["noteWithoutCard"] = self.form.noteWithoutCard.isChecked()
         self.prof["preserveName"] = self.form.preserveName.isChecked()
