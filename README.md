@@ -3,7 +3,8 @@ Anki
 
 This is the development branch of Anki.
 
-For stable builds, please see https://apps.ankiweb.net.
+For official Anki, please see https://apps.ankiweb.net. To see the
+difference between this fork and anki, see [difference.md](difference.md).
 
 For non-developers who want to try this development code,
 the easiest way is to use a binary package - please see
