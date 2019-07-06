@@ -236,7 +236,10 @@ Not currently enabled; click the sync button in the main window to enable."""))
         """Set in the GUI the preferences related to add-ons forked."""
         self.form.noteWithoutCard.setChecked(
             self.prof.get("noteWithoutCard", True))
+        self.form.newLineInBatchEdit.setChecked(
+            self.prof.get("newLineInBatchEdit", False))
 
     def updateExtra(self):
         """Check the preferences related to add-ons forked."""
         self.prof["noteWithoutCard"] = self.form.noteWithoutCard.isChecked()
+        self.prof["newLineInBatchEdit"] = self.form.newLineInBatchEdit.isChecked()

@@ -132,6 +132,13 @@ def askUser(text, parent=None, help="", defaultno=False, msgfunc=None, \
 class ButtonedDialog(QMessageBox):
 
     def __init__(self, text, buttons, parent=None, help="", title="Anki"):
+        """
+        text -- Question to explain the user what they can answer
+        buttons -- A list of message to show on each buttons
+        parent -- The window from which this is opens
+        help -- A message to show if user click on «help»
+        title -- Title of the window
+        """
         QMessageBox.__init__(self, parent)
         self.buttons = []
         self.setWindowTitle(title)
@@ -164,6 +171,16 @@ class ButtonedDialog(QMessageBox):
         self.setDefaultButton(self.buttons[idx])
 
 def askUserDialog(text, buttons, parent=None, help="", title="Anki"):
+    """
+    Return a window asking the user to click on one of the buttons of Buttons.
+    You should use .run to open it, and it returns the text of the button pressed or None.
+
+    text -- Question to explain the user what they can answer
+    buttons -- A list of message to show on each buttons
+    parent -- The window from which this is opens
+    help -- A message to show if user click on «help»
+    title -- Title of the window
+    """
     if not parent:
         parent = aqt.mw
     diag = ButtonedDialog(text, buttons, parent, help, title=title)
@@ -210,6 +227,18 @@ class GetTextDialog(QDialog):
 
 def getText(prompt, parent=None, help=None, edit=None, default="",
             title="Anki", geomKey=None, **kwargs):
+    """
+    A pair, with:
+    * a text, entered by the user (or empty string)
+    * value returned by the window. It's falsy if the window was closed and not validated.
+
+    text -- Text to explain the user what they can answer
+    parent -- The window from which this is opens. By default, aqt.mw
+    help -- A message to show if user click on «help»
+    edit -- Which editor to use. By default QLineEdit. No other is used in anki's code.
+    default -- Default value of the text
+    title -- Title of the window
+    """
     if not parent:
         parent = aqt.mw.app.activeWindow() or aqt.mw
     d = GetTextDialog(parent, prompt, help=help, edit=edit,
@@ -223,7 +252,8 @@ def getText(prompt, parent=None, help=None, edit=None, default="",
     return (str(d.l.text()), ret)
 
 def getOnlyText(*args, **kwargs):
-    """A text asked to the user, or the empty string."""
+    """A text asked to the user, or the empty string. Same as getText,
+    without second element."""
     (s, r) = getText(*args, **kwargs)
     if r:
         return s

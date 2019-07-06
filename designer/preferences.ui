@@ -489,6 +489,23 @@
           </property>
          </widget>
         </item>
+		<item>
+         <widget class="QCheckBox" name="noteWithoutCard">
+          <property name="text">
+           <string>Note with no card: create card 1 instead of deleting the note</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="newLineInBatchEdit">
+          <property name="text">
+           <string>Add new line when batch editing fields</string>
+          </property>
+         </widget>
+        </item>
         <item>
          <widget class="QCheckBox" name="noteWithoutCard">
           <property name="text">
