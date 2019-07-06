@@ -592,6 +592,8 @@ def fieldNames(col, downcase=True):
     return names
 
 def fieldNamesForNotes(col, nids):
+    """The list of field names of models of notes whose id belongs to
+    nids."""
     downcasedNames = set()
     origNames = []
     mids = col.db.list("select distinct mid from notes where id in %s" % ids2str(nids))

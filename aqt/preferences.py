@@ -234,6 +234,9 @@ Not currently enabled; click the sync button in the main window to enable."""))
 
     def setupExtra(self):
         """Set in the GUI the preferences related to add-ons forked."""
+        self.form.newLineInBatchEdit.setChecked(
+            self.prof.get("newLineInBatchEdit", False))
 
     def updateExtra(self):
         """Check the preferences related to add-ons forked."""
+        self.prof["newLineInBatchEdit"] = self.form.newLineInBatchEdit.isChecked()
