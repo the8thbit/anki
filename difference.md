@@ -2,6 +2,10 @@
 This files list the difference between regular anki and this forked
 version. It also lists the different options in the Preferences's extra page.
 
+## Add card: change note only if you ask for it (424778276)
+Yeah, this description seems ridiculous. But actually, anki does not
+respect this.
+
 ## Added today (861864770)
 From the add window page, you can see the list of cardes added today
 in the browser.
