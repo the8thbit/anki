@@ -238,7 +238,7 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
     # String manipulation
     ##########################################################################
 
-    def filesInStr(self, mid, string, includeRemote=False):
+    def filesInStr(self, *args, **kwargs):
         """The list of media's path in the string."""
         return self.filesInStrOrErr(*args, **kwargs)[0]
 
