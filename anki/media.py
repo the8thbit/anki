@@ -449,7 +449,7 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
             warnings.append(
                 _("Anki does not support files in subfolders of the collection.media folder."))
         from aqt import mw, dialogs #TODO Try to avoid using import here if possible.
-        if allRefs and mw.pm.profile.get("browserOnMissingMedia", True): # open browser with missing medias
+        if allRefs and mw and mw.pm.profile.get("browserOnMissingMedia", True): # open browser with missing medias
             browser = dialogs.open("Browser", mw)
             browser.form.searchEdit.lineEdit().setText("tag:MissingMedia")
             browser.onSearchActivated()
