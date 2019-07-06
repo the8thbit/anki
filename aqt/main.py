@@ -526,9 +526,9 @@ from the profile screen."))
                     daysToKeep.append((year, month-1, day-nbDay+nbDayPreviousMonth))
         filesToKeep = ([f"backup-monthly-{yearToHave}-{monthToHave}" for yearToHave, monthToHave in monthsToKeep]+
                        [f"backup-daily-{yearToHave}-{monthToHave}-{dayToHave}" for yearToHave, monthToHave, dayToHave in daysToKeep])
-    for file in os.listdir(dir):
-        if (file.startswith("backup-monthy-") or file.startswith("backup-daily-")) and file not in filesToKeep:
-            os.unlink(os.path.join(dir, file))
+        for file in os.listdir(dir):
+            if (file.startswith("backup-monthy-") or file.startswith("backup-daily-")) and file not in filesToKeep:
+                os.unlink(os.path.join(dir, file))
 
 
 
