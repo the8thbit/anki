@@ -242,8 +242,12 @@ Not currently enabled; click the sync button in the main window to enable."""))
             self.prof.get("noteWithoutCard", True))
         self.form.newLineInBatchEdit.setChecked(
             self.prof.get("newLineInBatchEdit", False))
+        self.form.preserveCreation.setChecked(
+            self.prof.get("preserveCreation", True))
         self.form.preserveName.setChecked(
             self.prof.get("preserveName", True))
+        self.form.preserveReviewInfo.setChecked(
+            self.prof.get("preserveReviewInfo", True))
 
     def updateExtra(self):
         """Check the preferences related to add-ons forked."""
@@ -252,3 +256,5 @@ Not currently enabled; click the sync button in the main window to enable."""))
         self.prof["newLineInBatchEdit"] = self.form.newLineInBatchEdit.isChecked()
         self.prof["noteWithoutCard"] = self.form.noteWithoutCard.isChecked()
         self.prof["preserveName"] = self.form.preserveName.isChecked()
+        self.prof["preserveCreation"] = self.form.preserveCreation.isChecked()
+        self.prof["preserveReviewInfo"] = self.form.preserveReviewInfo.isChecked()

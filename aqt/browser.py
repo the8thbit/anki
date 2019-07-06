@@ -26,6 +26,7 @@ from anki.hooks import runHook, addHook, remHook, runFilter
 from aqt.webview import AnkiWebView
 from anki.consts import *
 from anki.sound import clearAudioQueue, allSounds, play
+from anki.notes import Note
 
 
 # Data model
@@ -449,6 +450,7 @@ class Browser(QMainWindow):
         f.actionBatchEdit.triggered.connect(self.onBatchEdit)
         f.actionManage_Note_Types.triggered.connect(self.mw.onNoteTypes)
         f.actionDelete.triggered.connect(self.deleteNotes)
+        f.actionCopy.triggered.connect(self.actionCopy)
         # cards
         f.actionChange_Deck.triggered.connect(self.setDeck)
         f.action_Info.triggered.connect(self.showCardInfo)
@@ -1477,6 +1479,24 @@ where id in %s""" % ids2str(sf))
         n = c.note()
         n.load()
         return (self._previewState, c.id, n.mod)
+
+    # Card Copy
+    ######################################################################
+
+    def actionCopy(self):
+        nids = self.selectedNotes()
+        self.mw.checkpoint("Copy Notes")
+        copy_review = self.mw.pm.profile.get("preserveReviewInfo", True)
+        copy_creation = self.mw.pm.profile.get("preserveCreation", True)
+        #self.mw.progress.start()
+        for nid in nids:
+            note = Note(self.col, id = nid)
+            note.copy(copy_review = copy_review, copy_creation = copy_creation)
+        # Reset collection and main window
+        self.mw.progress.finish()
+        self.mw.col.reset()
+        self.mw.reset()
+        tooltip(_("""Cards copied."""))
 
     # Card deletion
     ######################################################################
