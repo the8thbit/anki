@@ -274,7 +274,6 @@ class DeckManager:
     def rem(self, did, cardsToo=False, childrenToo=True):
         #difference:simplifying a little bit the code
         # adding a reason to remCards
-        debug("rem")
         """Remove the deck whose id is did.
 
         Does not delete the default deck, but rename it.
