@@ -1171,12 +1171,21 @@ ooo
 
     def atMost1000000Due(self):
         # new cards can't have a due position > 32 bits
-            curs = self.db.cursor()
-            curs.execute("""
-    update cards set due = 1000000, mod = ?, usn = ? where due > 1000000
-            and type = {CARD_NEW}""", intTime(), self.usn())
-            if curs.rowcount:
-                self.problems.append("Fixed %d cards with due greater than 1000000 due." % curs.rowcount)
+        cids = self.db.list(f"select id from cards order by id and type = {CARD_NEW} and due > 1000000")
+        if not cids:
+            return
+
+        self.sched.sortCards(cids)
+        col.conf['nextPos'] = col.db.scalar(
+            f"select max(due)+1 from cards where type = {CARD_NEW}") or 0
+        dconfs = col.decks.dconf
+
+        random_dconfs = [dconf for dconf in dconfs.values() if dconf["new"]['order'] == NEW_CARDS_RANDOM]
+        for dconf in random_dconfs:
+            sched.resortConf(dconf)
+
+        if cids:
+            self.problems.append("Fixed %d cards with due greater than 1000000 due." % len(cids))
 
     def setNextPos(self):
         # new card position
