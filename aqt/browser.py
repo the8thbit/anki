@@ -471,7 +471,7 @@ class Browser(QMainWindow):
         # decks
         f.addPrefix.triggered.connect(self.addPrefix)
         self.addPrefixShortcut = QShortcut(QKeySequence("Ctrl+Alt+P"), self)
-        self.addPrefixShortcut.activated.connect(self.appPrefix)
+        self.addPrefixShortcut.activated.connect(self.addPrefix)
         self.removePrefixShortcut = QShortcut(QKeySequence("Ctrl+Alt+Shift+P"), self)
         self.removePrefixShortcut.activated.connect(self.removePrefix)
         f.removePrefix.triggered.connect(self.removePrefix)
