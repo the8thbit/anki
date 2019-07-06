@@ -73,6 +73,18 @@ class Template:
         self.compile_regexps()
 
     def render(self, template=None, context=None, encoding=None):
+        """Turns a Mustache template into something wonderful."""
+        template = template or self.template
+        context = context or self.context
+
+        self.showAField = False
+        template = self.render_sections(template, context)
+        result = self.render_tags(template, context)
+        if encoding is not None:
+            result = result.encode(encoding)
+        return result, self.showAField
+
+    def renderAndIsFieldPresent(self, template=None, context=None, encoding=None):
         """A pair with:
         * Turns a Mustache template into something wonderful.
         * whether a field was shown"""

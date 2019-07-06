@@ -112,7 +112,7 @@ def test_cloze_ordinals():
     d = getEmptyCol()
     d.models.setCurrent(d.models.byName("Cloze"))
     m = d.models.current(); mm = d.models
-    
+
     #We replace the default Cloze template
     t = mm.newTemplate("ChainedCloze")
     t['qfmt'] = "{{text:cloze:Text}}"
@@ -120,7 +120,7 @@ def test_cloze_ordinals():
     mm.addTemplate(m, t)
     mm.save(m)
     d.models.remTemplate(m, m['tmpls'][0])
-    
+
     f = d.newNote()
     f['Text'] = '{{c1::firstQ::firstA}}{{c2::secondQ::secondA}}'
     d.addNote(f)
@@ -129,7 +129,7 @@ def test_cloze_ordinals():
     # first card should have first ord
     assert c.ord == 0
     assert c2.ord == 1
-    
+
 
 def test_text():
     d = getEmptyCol()
@@ -204,7 +204,7 @@ def test_chained_mods():
     d = getEmptyCol()
     d.models.setCurrent(d.models.byName("Cloze"))
     m = d.models.current(); mm = d.models
-    
+
     #We replace the default Cloze template
     t = mm.newTemplate("ChainedCloze")
     t['qfmt'] = "{{cloze:text:Text}}"
@@ -212,7 +212,7 @@ def test_chained_mods():
     mm.addTemplate(m, t)
     mm.save(m)
     d.models.remTemplate(m, m['tmpls'][0])
-    
+
     f = d.newNote()
     q1 = '<span style=\"color:red\">phrase</span>'
     a1 = '<b>sentence</b>'
