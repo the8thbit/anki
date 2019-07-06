@@ -17,6 +17,8 @@ cards. This ensure that they all belong to a same deck, while keeping
 the same deck hierarchy. `Decks > Remove prefix` allows to remove this
 common prefix and thus cancel the action `Add prefix`.
 
+## Allow to keep first field empty (46741504)
+
 ## Allowing complex card template (1713990897)
 All version of anki bugs if you have a complex card template. For example,
 if your template is enclosed in {{^field}} and {{/field}}. This option

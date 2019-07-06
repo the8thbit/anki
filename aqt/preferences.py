@@ -236,6 +236,8 @@ Not currently enabled; click the sync button in the main window to enable."""))
         """Set in the GUI the preferences related to add-ons forked."""
         self.form.AddMultipleTime.setChecked(
             self.prof.get("AddCardsMultipleTime", True))
+        self.form.allowEmptyFirstField.setChecked(
+            self.prof.get("allowEmptyFirstField", True))
         self.form.browserOnMissingMedia.setChecked(
             self.prof.get("browserOnMissingMedia", True))
         self.form.EditMultipleTime.setChecked(
@@ -262,6 +264,8 @@ Not currently enabled; click the sync button in the main window to enable."""))
             self.prof.get("factorRemoveDay", 0.33))
         self.form.noteWithoutCard.setChecked(
             self.prof.get("noteWithoutCard", True))
+        self.form.multipleNoteWithSameFirstFieldInImport.setChecked(
+            self.prof.get("multipleNoteWithSameFirstFieldInImport", False))
         self.form.newLineInBatchEdit.setChecked(
             self.prof.get("newLineInBatchEdit", False))
         self.form.preserveCreation.setChecked(
@@ -274,6 +278,7 @@ Not currently enabled; click the sync button in the main window to enable."""))
     def updateExtra(self):
         """Check the preferences related to add-ons forked."""
         self.prof["AddCardsMultipleTime"] = self.form.AddMultipleTime.isChecked()
+        self.prof["allowEmptyFirstField"] = self.form.allowEmptyFirstField.isChecked()
         self.prof["browserOnMissingMedia"] = self.form.browserOnMissingMedia.isChecked()
         self.prof["EditCurrentMultipleTime"] = self.form.EditMultipleTime.isChecked()
         self.prof["BrowserMultipleTime"] = self.form.BrowserMultipleTime.isChecked()
@@ -286,6 +291,7 @@ Not currently enabled; click the sync button in the main window to enable."""))
         self.prof["keepEmptyNote"] = self.form.keepEmptyNote.isChecked()
         self.prof["newLineInBatchEdit"] = self.form.newLineInBatchEdit.isChecked()
         self.prof["noteWithoutCard"] = self.form.noteWithoutCard.isChecked()
+        self.prof["multipleNoteWithSameFirstFieldInImport"] = self.form.multipleNoteWithSameFirstFieldInImport.isChecked()
         self.prof["preserveName"] = self.form.preserveName.isChecked()
         self.prof["preserveCreation"] = self.form.preserveCreation.isChecked()
         self.prof["preserveReviewInfo"] = self.form.preserveReviewInfo.isChecked()

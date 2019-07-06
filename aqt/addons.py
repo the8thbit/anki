@@ -932,6 +932,7 @@ incorporatedAddonsSet = {
     Addon("Add a tag to notes with missing media", 2027876532, 1560318502, "26c4f6158ce2b8811b8ac600ed8a0204f5934d0b", "Arthur-Milchior/anki-tag-missing-medias"),
     Addon("Adding note and changing note type become quicker", 802285486, gitHash = "f1b2df03f4040e7820454052a2088a7672d819b2", gitRepo = "https://github.com/Arthur-Milchior/anki-fast-note-type-editor"),
     Addon("Advanced note editor Multi-column Frozen fields", 2064123047, 1561905302, "82a27f2726598c25d06f3065d23eb988815efd25", "https://github.com/Arthur-Milchior/anki-Multi-column-edit-window"),
+    Addon("Allows empty first field during adding and import", 46741504, 1553438887, "0d5b812", "https://github.com/Arthur-Milchior/anki-empty-first-field"),
     Addon("Batch Editing", 291119185, 1560116344, "https://github.com/glutanimate/batch-editing", "41149dbec543b019a9eb01d06d2a3c5d13b8d830"),
     Addon("Change a notes type without requesting a database upload", 719871418, 1560313030, "8b97cfbea1b7d8bd7124d6ebe6553f36d1914823", "https://github.com/Arthur-Milchior/anki-change-note-type"),
     Addon("Change cards decks prefix", 1262882834, 1550534152, "f9843693dafb4aeb2248de5faf44cf5b5fdc69ec", "https://github.com/Arthur-Milchior/anki-deck-prefix-edit"),
