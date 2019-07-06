@@ -115,6 +115,11 @@ If checked, the option "Delete empty cards only if they are new" set
 back «Empty cards» to its original meaning; it'll delete even the seen
 cards.
 
+## New line in Json (112201952)
+In order to lead configurations be easier to edit, this add-on allow
+newline in json strings. It allow add newlines in the add-on
+configuration editor.
+
 ## Usable card report (25425599)
 Add more informations in the «empty card» report.
 

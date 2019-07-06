@@ -450,6 +450,28 @@ def versionWithBuild():
         build = "dev"
     return "%s (%s)" % (version, build)
 
+# JSon
+##############################################################################
+# Allow to have newline in strings in JSON
+
+def correctJson(text):
+    """Text, with new lines replaced by \n when inside quotes"""
+    if not isinstance(text,str):
+        return text
+    def correctQuotedString(match):
+        string = match[0]
+        return string.replace("\n","\\n")
+    res= re.sub(r'"(?:(?<=[^\\])(?:\\\\)*\\"|[^"])*"',correctQuotedString,text,re.M)
+    return res
+
+oldLoads=json.loads
+def newLoads(t,*args,**kwargs):
+    t_=correctJson(t)
+    res = oldLoads(t_,*args,**kwargs)
+    return res
+
+json.loads=newLoads
+
 def eltToElt(list1, list2):
     """A list associating to each element elt of list1, either an element of list 2, or None.
 
