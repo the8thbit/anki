@@ -27,11 +27,13 @@ import pathlib
 import json
 import os
 
+from anki.find import Finder
 from anki.utils import checksum, isWin, isMac
 from anki.db import DB, DBError
 from anki.consts import *
 from anki.latex import mungeQAandErr
 from anki.lang import _
+from anki.notes import Note
 
 class MediaManager:
     """
@@ -352,6 +354,7 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
         mdir = self.dir()
         # gather all media references in NFC form
         allRefs = set()
+        refsToNid = dict() # this dic is new
         for nid, mid, flds in self.col.db.execute("select id, mid, flds from notes"):
             noteRefs = self.filesInStr(mid, flds)
             # check the refs are in NFC
@@ -361,6 +364,11 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
                     self._normalizeNoteRefs(nid)
                     noteRefs = self.filesInStr(mid, flds)
                     break
+            # Compute the list of notes with missing media
+            for f in noteRefs:
+                if f not in refsToNid:
+                    refsToNid[f] = set()
+                refsToNid[f].add(nid)
             allRefs.update(noteRefs)
         # loop through media folder
         unused = []
@@ -410,6 +418,27 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
         if renamedFiles:
             return self.check(local=local)
         nohave = [x for x in allRefs if not x.startswith("_")]
+
+        # Deal with tag
+        finder = Finder(self.col)
+        alreadyMissingNids = finder.findNotes("tag:MissingMedia")
+        nidsOfMissingRefs = set()
+        for ref in allRefs:
+            nidsOfMissingRefs.update(refsToNid[ref])
+
+        # remove tags when a note has no missing media anymore
+        for nid in nidsOfMissingRefs:
+            if nid not in alreadyMissingNids:
+                note = Note(self.col, id = nid)
+                note.addTag("MissingMedia")
+                note.flush()
+
+        # Add tags to notes with missing media
+        for nid in alreadyMissingNids:
+            if nid not in nidsOfMissingRefs:
+                note = Note(self.col, id = nid)
+                note.delTag("MissingMedia")
+                note.flush()
         # make sure the media DB is valid
         try:
             self.findChanges()
@@ -419,7 +448,12 @@ create table meta (dirMod int, lastUsn int); insert into meta values (0, 0);
         if dirFound:
             warnings.append(
                 _("Anki does not support files in subfolders of the collection.media folder."))
-        return (nohave, unused, warnings)
+        from aqt import mw, dialogs #TODO Try to avoid using import here if possible.
+        if allRefs and mw.pm.profile.get("browserOnMissingMedia", True): # open browser with missing medias
+            browser = dialogs.open("Browser", mw)
+            browser.form.searchEdit.lineEdit().setText("tag:MissingMedia")
+            browser.onSearchActivated()
+        return (allRefs, unused, warnings)
 
     def _normalizeNoteRefs(self, nid):
         note = self.col.getNote(nid)
