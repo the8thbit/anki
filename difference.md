@@ -187,6 +187,10 @@ In order to lead configurations be easier to edit, this add-on allow
 newline in json strings. It allow add newlines in the add-on
 configuration editor.
 
+## Remove "Map to" in item import window for CSV (46741504)
+Because of this text, the keyboard can't be used to search a field. I
+thus remove it.
+
 ## Tag missing media (2027876532)
 If a note is supposed to have media (image or audio), it will have the
 tag "MissingMedia", when you «check media».
