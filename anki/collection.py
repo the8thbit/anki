@@ -760,7 +760,7 @@ select id from notes where id in %s and id not in (select nid from cards)""" %
                 for row in self._qaData(where)]
 
     def _renderQA(self, data, qfmt=None, afmt=None):
-        """Returns hash of id, question, answer.
+        """Returns dict with id, question, answer, and whether a field is shown in question.
 
         Keyword arguments:
         data -- [cid, nid, mid, did, ord, tags, flds] (see db
@@ -817,7 +817,8 @@ select id from notes where id in %s and id not in (select nid from cards)""" %
                 fields['FrontSide'] = stripSounds(d['q'])
                 #d['q'] is defined during loop's first iteration
             fields = runFilter("mungeFields", fields, model, data, self) # TODO check
-            html = anki.template.render(format, fields) #replace everything of the form {{ by its value TODO check
+            html, showAField = anki.template.render(format, fields) #replace everything of the form {{ by its value TODO check
+            d["showAField"] = showAField#MODIFIED
             d[type] = runFilter(
                 "mungeQA", html, type, fields, model, data, self) # TODO check
             # empty cloze?

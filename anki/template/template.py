@@ -73,15 +73,18 @@ class Template:
         self.compile_regexps()
 
     def render(self, template=None, context=None, encoding=None):
-        """Turns a Mustache template into something wonderful."""
+        """A pair with:
+        * Turns a Mustache template into something wonderful.
+        * whether a field was shown"""
         template = template or self.template
         context = context or self.context
 
+        self.showAField = False
         template = self.render_sections(template, context)
         result = self.render_tags(template, context)
         if encoding is not None:
             result = result.encode(encoding)
-        return result
+        return result, self.showAField
 
     def compile_regexps(self):
         """Compiles our section and tag regular expressions."""
@@ -139,8 +142,10 @@ class Template:
         return replacement
 
     def render_tags(self, template, context):
-        """Renders all the tags in a template for a context. Normally
-        {{# and {{^ are already removed."""
+        """A pair with:
+        * All the tags in a template for a context. Normally
+        {{# and {{^ are removed,
+        * whether a field is shown"""
         repCount = 0
         try:
             return self.tag_re.sub(lambda match: self.sub_tag(match, context),template)
@@ -165,6 +170,8 @@ class Template:
             # some field names could have colons in them
             # avoid interpreting these as field modifiers
             # better would probably be to put some restrictions on field names
+            if txt.strip():
+                self.showAField = True
             return txt
 
         # field modifiers
@@ -194,7 +201,7 @@ class Template:
             elif mod == 'type':
                 # type answer field; convert it to [[type:...]] for the gui code
                 # to process
-                return "[[%s]]" % tag_name
+                return "[[%s]]" % tag_name, False
             elif mod.startswith('cq-') or mod.startswith('ca-'):
                 # cloze deletion
                 mod, extra = mod.split("-")
@@ -205,8 +212,8 @@ class Template:
                 txt = runFilter('fmod_' + mod, txt or '', extra or '', context,
                                 tag, tag_name)
                 if txt is None:
-                    return '{unknown field %s}' % tag_name
-        return txt
+                    return '{unknown field %s}' % tag_name, False
+        return txt, True
 
     def clozeText(self, txt, ord, type):
         reg = clozeReg

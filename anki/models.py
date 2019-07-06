@@ -384,6 +384,8 @@ and notes.mid = ? and cards.ord = ?""", m['id'], ord)
         """
         return dict((f['name'], (f['ord'], f)) for f in m['flds'])
 
+
+
     def fieldNames(self, m):
         """The list of names of fields of this model."""
         return [f['name'] for f in m['flds']]
@@ -837,6 +839,39 @@ select id from notes where mid = ?)""" % " ".join(map),
 
         changedOrNewReq -- set of ords to consider
          """
+        from aqt import mw
+        if mw and mw.pm.profile.get("complexTemplates", False):
+            return self.availOrdsReal(m, flds, changedOrNewReq)
+        else:
+            return self.availOrdsOriginal(m, flds, changedOrNewReq)
+
+
+    def availOrdsReal(self, m, flds, changedOrNewReq):
+        """
+        self -- model manager
+        m -- a model object
+        """
+        available = []
+        flist = splitFields(flds)
+        fields = {} #
+        for (name, (idx, conf)) in list(self.fieldMap(m).items()):#conf is not used
+            fields[name] = flist[idx]
+        for ord in range(len(m["tmpls"])):
+            if changedOrNewReq is not None and ord not in changedOrNewReq:
+                continue
+            template = m["tmpls"][ord]
+            format = template['qfmt']
+            html, showAField = anki.template.render(format, fields) #replace everything of the form {{ by its value TODO check
+            if showAField:
+                available.append(ord)
+        return available
+
+    def availOrdsOriginal(self, m, flds, changedOrNewReq):
+        """Given a joined field string, return ordinal of card type which
+        should be generated. See
+        ../documentation/templates_generation_rules.md for the detail
+
+        """
         if m['type'] == MODEL_CLOZE:
             return self._availClozeOrds(m, flds)
         fields = {}

@@ -248,6 +248,8 @@ Not currently enabled; click the sync button in the main window to enable."""))
             self.prof.get("changeModelWithoutFullSync", False))
         self.form.compileLaTeX.setChecked(
             self.prof.get("compileLaTeX", False))
+        self.form.complexTemplates.setChecked(
+            self.prof.get("complexTemplates", False))
         self.form.exportSiblings.setChecked(
             self.prof.get("exportSiblings", False))
         self.form.EmptyNote.setChecked(
@@ -288,3 +290,4 @@ Not currently enabled; click the sync button in the main window to enable."""))
         self.prof["preserveCreation"] = self.form.preserveCreation.isChecked()
         self.prof["preserveReviewInfo"] = self.form.preserveReviewInfo.isChecked()
         self.prof["exportSiblings"] = self.form.exportSiblings.isChecked()
+        self.prof["complexTemplates"] = self.form.complexTemplates.isChecked()

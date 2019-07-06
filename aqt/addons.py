@@ -948,6 +948,7 @@ incorporatedAddonsSet = {
     Addon("Improving change note type", 513858554, 1560753393, "4ece9f1da85358bce05a75d3bbeffa91d8c17ad4", "https://github.com/Arthur-Milchior/anki-change-note-type-clozes"),
     Addon("Long term backups", 529955533, gitHash="fbcb76d75e92cd0a3e38e0ed0e8b92a1ce6eaf67", gitRepo = "https://github.com/Arthur-Milchior/anki-old-backup"),
     Addon("Postpone cards review", 1152543397, 1560126139, "27103fd69c19e0576c5df6e28b5687a8a3e3d905", "https://github.com/Arthur-Milchior/Anki-postpone-reviews"),
+    Addon("More consistent cards generation", 1713990897, 1562332573, "09567afa0fdfc03474e4c52298d2529556c2ffad", "https://github.com/Arthur-Milchior/anki-correct-card-generation"),
     Addon("Multi-column note editor", 3491767031, 1560844854, "ad7a4014f184a1ec5d5d5c43a3fc4bab8bb8f6df", "https://github.com/hssm/anki-addons/tree/master/multi_column_editor"),
     Addon("Multi-column note editor debugged", 2064123047, 1550534156, "70f92cd5f62bd4feda5422701bd01acb41ed48ce", "https://github.com/Arthur-Milchior/anki-Multi-column-edit-window"),
     Addon("Newline in strings in add-ons configurations", 112201952, 1560116341, "c02ac9bbbc68212da3d2bccb65ad5599f9f5af97", "https://github.com/Arthur-Milchior/anki-json-new-line"),
