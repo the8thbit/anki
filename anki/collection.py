@@ -24,6 +24,7 @@ from anki.tags import TagManager
 from anki.consts import *
 from anki.errors import AnkiError
 from anki.sound import stripSounds
+from aqt.utils import showWarning, tooltip, getText
 import anki.latex # sets up hook
 import anki.cards
 import anki.notes
@@ -677,6 +678,38 @@ select id from notes where id in %s and id not in (select nid from cards)""" %
             rep +="\nFields: %(f)s\n\n" % dict(f=flds.replace("\x1f", " / "))
         return rep
 
+    def addDelay(self, cids, profile):
+        (delay, delayResp) = getText("How many day to add to cards ? (negative number to substract days)")
+        try:
+            delay = int(delay)
+        except ValueError:
+            showWarning("Please enter an integral number of days")
+            return None
+        if (not delayResp) or delay == 0:
+            return None
+        from aqt import mw
+        mw.checkpoint("Adding delay")
+        mw.progress.start()
+        ivlDelay = round(delay * (profile.get("factorAddDay", 0.33) if delay >0 else profile.get("factorRemoveDay", 0.33)))
+        for cid in cids:
+            card = mw.col.getCard(cid)
+            if card.type !=2:
+                continue
+            card.ivl += ivlDelay
+            if card.odid: # Also update cards in filtered decks
+                card.odue += delay
+            else:
+                card.due += delay
+            card.flush()
+
+        mw.progress.finish()
+        mw.col.reset()
+        mw.reset()
+
+        tooltip(_("""Delay added."""))
+
+
+
     # Field checksums and sorting fields
     ##########################################################################
 
@@ -829,6 +862,11 @@ where c.nid == f.id
 
     def findDupes(self, fieldName, search=""):
         return anki.find.findDupes(self, fieldName, search)
+
+    def getReviewCards(self):
+        finder = anki.find.Finder(self)
+        cardsToReview = finder.findCards("is:review")
+        return cardsToReview
 
     # Stats
     ##########################################################################

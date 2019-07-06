@@ -252,6 +252,10 @@ Not currently enabled; click the sync button in the main window to enable."""))
             self.prof.get("keepEmptyNote", True))
         self.form.keepSeenCard.setChecked(
             self.prof.get("keepSeenCard", False))
+        self.form.factorAddDay.setValue(
+            self.prof.get("factorAddDay", 0.33))
+        self.form.factorRemoveDay.setValue(
+            self.prof.get("factorRemoveDay", 0.33))
         self.form.noteWithoutCard.setChecked(
             self.prof.get("noteWithoutCard", True))
         self.form.newLineInBatchEdit.setChecked(
@@ -271,6 +275,8 @@ Not currently enabled; click the sync button in the main window to enable."""))
         self.prof["OtherMultipleTime"] = self.form.OtherMultipleTime.isChecked()
         self.prof["changeModelWithoutFullSync"] = self.form.changeModelWithoutFullSync.isChecked()
         self.prof["compileLaTeX"] = self.form.xMLName.isChecked()
+        self.prof["factorAddDay"] = self.form.factorAddDay.value()
+        self.prof["factorRemoveDay"] = self.form.factorRemoveDay.value()
         self.prof["keepSeenCard"] = self.form.keepSeenCard.isChecked()
         self.prof["keepEmptyNote"] = self.form.keepEmptyNote.isChecked()
         self.prof["newLineInBatchEdit"] = self.form.newLineInBatchEdit.isChecked()

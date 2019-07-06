@@ -24,6 +24,7 @@ import aqt.webview
 import aqt.toolbar
 import aqt.stats
 import aqt.mediasrv
+from anki.find import Finder
 import anki.sound
 import anki.mpv
 import csv
@@ -1006,6 +1007,10 @@ QTreeWidget {
         """Open the about window"""
         aqt.dialogs.open("About", self)
 
+    def onPostpone_Reviews(self):
+        """Open the about window"""
+        self.col.addDelay(self.col.getReviewCards(), self.pm.profile)
+
     def onDonate(self):
         """Ask the OS to open the donate web page"""
         openLink(aqt.appDonate)
@@ -1065,6 +1070,7 @@ QTreeWidget {
         m.actionExport.triggered.connect(self.onExport)
         m.actionExit.triggered.connect(self.close)
         m.actionPreferences.triggered.connect(self.onPrefs)
+        m.actionPostpone_Reviews.triggered.connect(self.onPostpone_Reviews)
         m.actionAbout.triggered.connect(self.onAbout)
         m.actionUndo.triggered.connect(self.onUndo)
         if qtminor < 11:
