@@ -238,6 +238,8 @@ Not currently enabled; click the sync button in the main window to enable."""))
             self.prof.get("changeModelWithoutFullSync", False))
         self.form.compileLaTeX.setChecked(
             self.prof.get("compileLaTeX", False))
+        self.form.keepSeenCard.setChecked(
+            self.prof.get("keepSeenCard", False))
         self.form.noteWithoutCard.setChecked(
             self.prof.get("noteWithoutCard", True))
         self.form.newLineInBatchEdit.setChecked(
@@ -253,6 +255,7 @@ Not currently enabled; click the sync button in the main window to enable."""))
         """Check the preferences related to add-ons forked."""
         self.prof["changeModelWithoutFullSync"] = self.form.changeModelWithoutFullSync.isChecked()
         self.prof["compileLaTeX"] = self.form.xMLName.isChecked()
+        self.prof["keepSeenCard"] = self.form.keepSeenCard.isChecked()
         self.prof["newLineInBatchEdit"] = self.form.newLineInBatchEdit.isChecked()
         self.prof["noteWithoutCard"] = self.form.noteWithoutCard.isChecked()
         self.prof["preserveName"] = self.form.preserveName.isChecked()

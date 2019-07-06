@@ -1245,7 +1245,7 @@ will be lost. Continue?"""))
         """Method called by Tools>Empty Cards..."""
 
         self.progress.start(immediate=True)
-        cids = self.col.emptyCids()
+        cids = self.col.emptyCids(keepSeenCard = self.pm.profile.get("keepSeenCard", False))
         if not cids:
             self.progress.finish()
             tooltip(_("No empty cards."))
