@@ -150,8 +150,10 @@ class NoteImporter(Importer):
                 n.fields[c] = unicodedata.normalize("NFC", n.fields[c])
             n.tags = [unicodedata.normalize("NFC", t) for t in n.tags]
             ###########start test fld0
+            found = False#Whether a note with a similar first field was found
             from aqt import mw
-            if fld0idx and mw.profile.get("multipleNoteWithSameFirstFieldInImport", False):#Don't test for duplicate if there is no first field
+            if (mw is None
+                or (fld0idx and not mw.profile.get("multipleNoteWithSameFirstFieldInImport", False))):#Don't test for duplicate if there is no first field
                 fld0 = n.fields[fld0idx]
                 csum = fieldChecksum(fld0)
                 # first field must exist
@@ -167,7 +169,6 @@ class NoteImporter(Importer):
                     continue
                 firsts[fld0] = True
                 # already exists?
-                found = False#Whether a note with a similar first field was found
                 if csum in csums:
                     # csum is not a guarantee; have to check
                     for id in csums[csum]:
