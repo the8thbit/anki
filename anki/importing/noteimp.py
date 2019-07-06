@@ -152,7 +152,8 @@ class NoteImporter(Importer):
             ###########start test fld0
             found = False#Whether a note with a similar first field was found
             from aqt import mw
-            if fld0idx and mw.profile.get("multipleNoteWithSameFirstFieldInImport", False):#Don't test for duplicate if there is no first field
+            if (mw is None
+                or (fld0idx and not mw.profile.get("multipleNoteWithSameFirstFieldInImport", False))):#Don't test for duplicate if there is no first field
                 fld0 = n.fields[fld0idx]
                 csum = fieldChecksum(fld0)
                 # first field must exist
