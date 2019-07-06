@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 # License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
 
+import datetime
 import re
 import signal
 import zipfile
@@ -25,6 +26,7 @@ import aqt.stats
 import aqt.mediasrv
 import anki.sound
 import anki.mpv
+import csv
 from aqt.utils import saveGeom, restoreGeom, showInfo, showWarning, \
     restoreState, getOnlyText, askUser, showText, tooltip, \
     openHelp, openLink, checkInvalidFilename, getFile
@@ -1119,23 +1121,23 @@ and if the problem comes up again, please ask on the support site."""))
     # Log note deletion
     ##########################################################################
 
-    def onRemNotes(self, col, nids):
+    def onRemNotes(self, col, nids, reason=""):
         """Append (id, model id and fields) to the end of deleted.txt
 
         This is done for each id of nids.
         This method is added to the hook remNotes; and executed on note deletion.
         """
-        path = os.path.join(self.pm.profileFolder(), "deleted.txt")
+        path = os.path.join(self.pm.profileFolder(), "deleted_long.txt")
         existed = os.path.exists(path)
-        with open(path, "ab") as f:
+        with open(path, "a", newline = '') as f:
+            writer = csv.writer(f)
             if not existed:
-                f.write(b"nid\tmid\tfields\n")
+                f.write("reason\tdeletion time id\thuman deletion time\tid\tmid\tfields\t\n")#difference: more fields
             for id, mid, flds in col.db.execute(
                     "select id, mid, flds from notes where id in %s" %
                 ids2str(nids)):
                 fields = splitFields(flds)
-                f.write(("\t".join([str(id), str(mid)] + fields)).encode("utf8"))
-                f.write(b"\n")
+                writer.writerow([reason,str(intTime()),str(datetime.datetime.now()),str(id), str(mid)]+fields)
 
     # Schema modifications
     ##########################################################################

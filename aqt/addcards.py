@@ -139,7 +139,7 @@ class AddCards(QDialog):
         if not note or not note.id:
             return
         # we don't have to worry about cards; just the note
-        self.mw.col._remNotes([note.id])
+        self.mw.col._remNotes([note.id], reason="Temporary note")
 
     def addHistory(self, note):
         self.history.insert(0, note.id)

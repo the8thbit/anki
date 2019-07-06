@@ -1527,7 +1527,7 @@ where id in %s""" % ids2str(sf))
         else:
             # last selection at top; place one above topmost selection
             newRow = min(selectedRows) - 1
-        self.col.remNotes(nids)
+        self.col.remNotes(nids, reason=f"Deletion of notes {nids} requested from the browser")
         self.search()
         if len(self.model.cards):
             newRow = min(newRow, len(self.model.cards) - 1)

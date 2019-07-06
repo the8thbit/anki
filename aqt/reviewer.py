@@ -612,7 +612,7 @@ time = %(time)d;
             [_("Replay Own Voice"), "V", self.onReplayRecorded],
         ]
         return opts
-    
+
     def showContextMenu(self):
         opts = self._contextMenu()
         m = QMenu(self.mw)
@@ -686,7 +686,7 @@ time = %(time)d;
             return
         self.mw.checkpoint(_("Delete"))
         cnt = len(self.card.note().cards())
-        self.mw.col.remNotes([self.card.note().id])
+        self.mw.col.remNotes([self.card.note().id], reason=f"Deletion of note {id} requested from the reviewer.")
         self.mw.reset()
         tooltip(ngettext(
             "Note and its %d card deleted.",
