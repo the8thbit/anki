@@ -89,6 +89,10 @@ exported cards. The problem being, of course, that you may export
 cards in decks you did not select. Thus, importing those cards may
 potentially create more decks than expected.
 
+## Improve rendering (1551823299)
+Anki will generate cards's content (question, answer) faster. It will
+also improve the speed at which anki will save modification of card type.
+
 ## Keeping note which have no cards (2018640062)
 If you do «Empty cards», and a note has no more card, then you see a
 warning, and the browser open to show you what notes have this
