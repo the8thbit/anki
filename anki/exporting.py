@@ -22,6 +22,7 @@ class Exporter:
         #Currently, did is never set during initialisation.
         self.col = col
         self.did = did
+        self.cids = None
 
     def doExport(self, path):
         raise Exception("not implemented")
@@ -78,7 +79,7 @@ class Exporter:
             cids = self.col.decks.cids(self.did, children=True)
         self.count = len(cids)
         from aqt import mw
-        if mw.pm.profile.get("exportSiblings", False):
+        if mw and mw.pm.profile.get("exportSiblings", False):
             cids = siblings(cids)
         return cids
 
