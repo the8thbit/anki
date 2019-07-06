@@ -511,6 +511,13 @@
           <property name="text">
            <string>Note with no card: create card 1 instead of deleting the note</string>
           </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="compileLaTeX">
+          <property name="text">
+           <string>Compile LaTeX as soon as it is written</string>
+          </property>
           <property name="checked">
            <bool>true</bool>
           </property>
@@ -520,6 +527,13 @@
          <widget class="QCheckBox" name="changeModelWithoutFullSync">
           <property name="text">
            <string>Change model without requiring a full sync</string>
+          </property>
+         </widget>
+        </item>
+		<item>
+         <widget class="QLabel" name="label_2">
+          <property name="text">
+           <string>Adding tag LaTeXError to cards with faulty notes. </string>
           </property>
          </widget>
         </item>
