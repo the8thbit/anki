@@ -901,6 +901,7 @@ class Addon:
 
 """ Set of characteristic of Add-ons incorporated here"""
 incorporatedAddonsSet = {
+    Addon("More consistent cards generation", 1713990897, 1562332573, "09567afa0fdfc03474e4c52298d2529556c2ffad", "https://github.com/Arthur-Milchior/anki-correct-card-generation"),
 }
 
 incorporatedAddonsDict = {**{addon.name: addon for addon in incorporatedAddonsSet if addon.name},
