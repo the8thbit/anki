@@ -500,6 +500,7 @@ from the profile screen."))
 
     def cleanLongTermBackup(self):
         dir = self.pm.backupFolder()
+        currentTime = time.localtime(time.time())
         year = int(time.strftime("%Y",currentTime))
         month = int(time.strftime("%m",currentTime))
         day = int(time.strftime("%d",currentTime))
