@@ -17,6 +17,10 @@ cards. This ensure that they all belong to a same deck, while keeping
 the same deck hierarchy. `Decks > Remove prefix` allows to remove this
 common prefix and thus cancel the action `Add prefix`.
 
+## Anki quicker (802285486)
+Those modification makes anki quicker. Technical details are on the
+add-on page.
+
 ## Batch Edit (291119185)
 Allow to make the same edit to multiple cards. Either changing a
 field, or adding text after/before it.
@@ -66,6 +70,10 @@ list of every notes deleted, the reason of the deletion, and some
 other informations. It's saved as CSV, so that it can be recovered
 (with difficulty, but it theoretically can)
 
+## Multi column note editor (3491767031, 2064123047)
+Allow to have editors with multiple columns. Allow to keep some fields
+on their own line.
+
 ## Explain errors
 You obtain more detailled error message if a sync fail, and if you try
 do do a «Check database».
@@ -88,6 +96,9 @@ cards" allow you to avoid losing data, by exporting the siblings of
 exported cards. The problem being, of course, that you may export
 cards in decks you did not select. Thus, importing those cards may
 potentially create more decks than expected.
+
+## Frozen Fields (516643804)
+Add a small icon near the name of the field to make it sticky or not.
 
 ## Improve rendering (1551823299)
 Anki will generate cards's content (question, answer) faster. It will

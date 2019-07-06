@@ -60,6 +60,7 @@ class Editor:
         self.widget = widget
         self.parentWindow = parentWindow
         self.note = None
+        self.model= None
         self.addMode = addMode
         self.currentField = None
         # current card, for card layout
@@ -67,7 +68,7 @@ class Editor:
         self.setupOuter()
         self.setupWeb()
         self.setupShortcuts()
-        self.setupTags()
+        self.setupTagsLine()
 
     # Initial setup
     ############################################################
@@ -278,49 +279,57 @@ class Editor:
             # shutdown
             return
         # focus lost or key/button pressed?
-        if cmd.startswith("blur") or cmd.startswith("key"):
-            (type, ord, nid, txt) = cmd.split(":", 3)
-            ord = int(ord)
-            try:
-                nid = int(nid)
-            except ValueError:
-                nid = 0
-            if nid != self.note.id:
-                print("ignored late blur")
-                return
-            txt = urllib.parse.unquote(txt)
-            txt = unicodedata.normalize("NFC", txt)
-            txt = self.mungeHTML(txt)
-            # misbehaving apps may include a null byte in the text
-            txt = txt.replace("\x00", "")
-            # reverse the url quoting we added to get images to display
-            txt = self.mw.col.media.escapeImages(txt, unescape=True)
-            self.note.fields[ord] = txt
-            if not self.addMode:
-                self.note.flush()
-                self.mw.requireReset()
-            if type == "blur":
-                self.currentField = None
-                # run any filters
-                if runFilter(
-                    "editFocusLost", False, self.note, ord):
-                    # something updated the note; update it after a subsequent focus
-                    # event has had time to fire
-                    self.mw.progress.timer(100, self.loadNoteKeepingFocus, False)
-                else:
-                    self.checkValid()
-            else:
-                runHook("editTimer", self.note)
-                self.checkValid()
-        # focused into field?
-        elif cmd.startswith("focus"):
-            (type, num) = cmd.split(":", 1)
-            self.currentField = int(num)
-            runHook("editFocusGained", self.note, self.currentField)
-        elif cmd in self._links:
-            self._links[cmd](self)
+        args = cmd.split(":")
+        cmd = args.pop(0)
+        if cmd in self._links:
+            self._links[cmd](self, *args)
         else:
             print("uncaught cmd", cmd)
+
+    def onBlur(self, *args):
+        self.onKeyOrBlur(*args)
+        self.currentField = None
+        # run any filters
+        if runFilter(
+            "editFocusLost", False, self.note, ord):
+            # something updated the note; update it after a subsequent focus
+            # event has had time to fire
+            self.mw.progress.timer(100, self.loadNoteKeepingFocus, False)
+        else:
+            self.checkValid()
+
+    def onKey(self, *args):
+        self.onKeyOrBlur(*args)
+        runHook("editTimer", self.note)
+        self.checkValid()
+
+    def onKeyOrBlur(self, ord, nid, *args):
+        ord = int(ord)
+        txt = ":".join(args)
+        try:
+            nid = int(nid)
+        except ValueError:
+            nid = 0
+        if nid != self.note.id:
+            print("ignored late blur")
+            return
+        txt = urllib.parse.unquote(txt)
+        txt = unicodedata.normalize("NFC", txt)
+        txt = self.mungeHTML(txt)
+        # misbehaving apps may include a null byte in the text
+        txt = txt.replace("\x00", "")
+        # reverse the url quoting we added to get images to display
+        txt = self.mw.col.media.escapeImages(txt, unescape=True)
+        self.note.fields[ord] = txt
+        if not self.addMode:
+            self.note.flush()
+            self.mw.requireReset()
+
+    def onFocus(self):
+        # focused into field?
+        (type, num) = cmd.split(":", 1)
+        self.currentField = int(num)
+        runHook("editFocusGained", self.note, self.currentField)
 
     def mungeHTML(self, txt):
         if txt in ('<br>', '<div><br></div>'):
@@ -344,10 +353,12 @@ class Editor:
         focusTo -- in which field should the focus appear
         """
         self.note = note
-        self.currentField = None
         if self.note:
+            self.model = note.model()
+            self.ccSpin.setValue(self.model.get("number of columns", 1))
             self.loadNote(focusTo=focusTo)
         else:
+            self.model = None
             self.hideCompleters()
             if hide:
                 self.widget.hide()
@@ -362,9 +373,14 @@ class Editor:
         if not self.note:
             return
 
-        data = []# field name, field content modified so that it's image's url can be used locally.
-        for fld, val in list(self.note.items()):
-            data.append((fld, self.mw.col.media.escapeImages(val)))
+        # Triple, for each fields, with (field name, field
+        # content modified so that it's image's url can be
+        # used locally, and whether it is on its own line)
+        data = [(fld,
+                 self.mw.col.media.escapeImages(val),
+                 self.model["flds"][ord].get("Line alone", False),
+                 self.model["flds"][ord].get("sticky", False)
+        ) for ord, (fld, val) in enumerate(self.note.items())]
         self.widget.show()
         self.updateTags()
 
@@ -377,16 +393,18 @@ class Editor:
                 self.web.setFocus()
             runHook("loadNote", self)
 
-        self.web.evalWithCallback("setFields(%s); setFonts(%s); focusField(%s); setNoteId(%s)" % (
+        self.web.evalWithCallback("setFields(%s,%d); setFonts(%s); focusField(%s); setNoteId(%s)" % (
             json.dumps(data),
-            json.dumps(self.fonts()), json.dumps(focusTo),
-                                  json.dumps(self.note.id)),
+            self.model.get("number of columns", 1),
+            json.dumps(self.fonts()),
+            json.dumps(focusTo),
+            json.dumps(self.note.id)),
                                   oncallback)
 
     def fonts(self):
         return [(runFilter("mungeEditingFontName", f['font']),
                  f['size'], f['rtl'])
-                for f in self.note.model()['flds']]
+                for f in self.model['flds']]
 
     def saveNow(self, callback, keepFocus=False):
         "Save unsaved edits then call callback()."
@@ -414,14 +432,14 @@ class Editor:
         contents = stripHTMLMedia(self.note.fields[0])
         browser = aqt.dialogs.open("Browser", self.mw)
         browser.form.searchEdit.lineEdit().setText(
-            '"dupe:%s,%s"' % (self.note.model()['id'],
+            '"dupe:%s,%s"' % (self.model['id'],
                               contents))
         browser.onSearchActivated()
 
     def fieldsAreBlank(self):
         if not self.note:
             return True
-        m = self.note.model()
+        m = self.model
         for c, f in enumerate(self.note.fields):
             if f and not m['flds'][c]['sticky']:
                 return False
@@ -457,25 +475,63 @@ class Editor:
         self.note.flush()
         self.loadNote(focusTo=field)
 
+    def setupTagsLine(self):
+        g = QGroupBox(self.widget)
+        g.setFlat(True)
+        tabLine = QHBoxLayout()
+        tabLine.setSpacing(12)
+        tabLine.setContentsMargins(6,6,6,6)
+
+        self.setupTags(tabLine)
+        self.setupNumberColum(tabLine)
+
+        self.outerLayout.addWidget(g)
+        g.setLayout(tabLine)
+
+
+    # Column handling
+    ######################################################################
+
+    def onColumnCountChanged(self, count):
+        "Save column count to settings and re-draw with new count."
+        self.model["number of columns"] = count
+        self.mw.col.models.save(self.model, recomputeReq=False)
+        self.loadNote()
+
+    def setupNumberColum(self, tabLine):
+        label = QLabel("Columns:", self.widget)
+        tabLine.addWidget(label)
+        self.ccSpin = QSpinBox(self.widget)
+        tabLine.addWidget(self.ccSpin)
+        self.ccSpin.setMinimum(1)
+        self.ccSpin.valueChanged.connect(lambda value: self.onColumnCountChanged(value))
+
+    def onToggleLineAlone(self, fieldNumber):
+        fieldNumber = int(fieldNumber)
+        fieldObject = self.model['flds'][fieldNumber]
+        self.mw.col.models.save(self.model, recomputeReq=False)
+        fieldObject["Line alone"] = not fieldObject.get("Line alone", False)
+        self.loadNote()
+
+    def onFroze(self, fieldNumber):
+        fieldNumber = int(fieldNumber)
+        fieldObject = self.model['flds'][fieldNumber]
+        fieldObject["sticky"] = not fieldObject.get("sticky", False)
+        self.mw.col.models.save(self.model)
+        self.loadNote()
+
     # Tag handling
     ######################################################################
 
-    def setupTags(self):
+    def setupTags(self, tabLine):
         import aqt.tagedit
-        g = QGroupBox(self.widget)
-        g.setFlat(True)
-        tb = QGridLayout()
-        tb.setSpacing(12)
-        tb.setContentsMargins(6,6,6,6)
         # tags
-        l = QLabel(_("Tags"))
-        tb.addWidget(l, 1, 0)
+        tagLabel = QLabel(_("Tags"))
+        tabLine.addWidget(tagLabel)
         self.tags = aqt.tagedit.TagEdit(self.widget)
         self.tags.lostFocus.connect(self.saveTags)
         self.tags.setToolTip(shortcut(_("Jump to tags with Ctrl+Shift+T")))
-        tb.addWidget(self.tags, 1, 1)
-        g.setLayout(tb)
-        self.outerLayout.addWidget(g)
+        tabLine.addWidget(self.tags)
 
     def updateTags(self):
         if self.tags.col != self.mw.col:
@@ -498,9 +554,8 @@ class Editor:
         """During creation of new notes, save tags to the note's model"""
         if self.addMode:
             # save tags to model
-            m = self.note.model()
-            m['tags'] = self.note.tags
-            self.mw.col.models.save(m)
+            self.model['tags'] = self.note.tags
+            self.mw.col.models.save(self.model, recomputeReq=False)
 
     def hideCompleters(self):
         "Remove tags's line"
@@ -535,7 +590,7 @@ class Editor:
 
     def _onCloze(self):
         # check that the model is set up for cloze deletion
-        if not re.search('{{(.*:)*cloze:',self.note.model()['tmpls'][0]['qfmt']):
+        if not re.search('{{(.*:)*cloze:',self.model['tmpls'][0]['qfmt']):
             if self.addMode:
                 tooltip(_("Warning, cloze deletions will not work until "
                 "you switch the type at the top to Cloze."))
@@ -874,6 +929,11 @@ to a cloze type first, via Edit>Change Note Type."""))
         dupes=showDupes,
         paste=onPaste,
         cutOrCopy=onCutOrCopy,
+        key=onKey,
+        blur=onBlur,
+        toggleLineAlone=onToggleLineAlone,
+        toggleFroze=onFroze,
+        #mceTrigger=onMceTrigger,
     )
 
 # Pasting, drag & drop, and keyboard layouts

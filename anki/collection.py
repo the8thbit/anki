@@ -469,10 +469,10 @@ crt=?, mod=?, scm=?, dty=?, usn=?, ls=?, conf=?""",
                 ok.append(t)
         return ok
 
-    def genCards(self, nids, keepSeenCard = True):
+    def genCards(self, nids, keepSeenCard = True, changedOrNewReq = None):
         """Ids of cards which needs to be removed.
 
-        Generate missing cards of a note with id in nids.
+        Generate missing cards of a note with id in nids and with ord in changedOrNewReq.
         """
         # build map of (nid,ord) so we don't create dupes
         snids = ids2str(nids)
@@ -511,7 +511,7 @@ crt=?, mod=?, scm=?, dty=?, usn=?, ls=?, conf=?""",
         for nid, mid, flds in self.db.execute(
             "select id, mid, flds from notes where id in "+snids):
             model = self.models.get(mid)
-            avail = self.models.availOrds(model, flds)
+            avail = self.models.availOrds(model, flds, changedOrNewReq)
             did = dids.get(nid) or model['did']
             due = dues.get(nid)
             # add any missing cards
@@ -533,8 +533,9 @@ crt=?, mod=?, scm=?, dty=?, usn=?, ls=?, conf=?""",
             # note any cards that need removing
             if nid in have:
                 for ord, cid in list(have[nid].items()):
-                    if (ord not in avail and
-                        ((not keepSeenCard) or self.db.scalar(f"select id from cards where id = ? and type = {CARD_NEW}", cid))):
+                    if (ord not in avail
+                        and (changedOrNewReq is None or ord in changedOrNewReq)
+                        and ((not keepSeenCard) or self.db.scalar(f"select id from cards where id = ? and type = {CARD_NEW}", cid))):
                         rem.append(cid)
         # bulk update
         self.db.executemany("""
@@ -1048,7 +1049,6 @@ ooo
         ret = self.integrity()#If the database itself is broken, there is nothing else to do.
         if ret:
             return ret
-
         for f in self.listFix:#execute all methods required to fix something
             getattr(self,f)()
         # whether sqlite find a problem in its database
@@ -1101,7 +1101,7 @@ ooo
                 if t['did'] == "None":
                     t['did'] = None
                     self.problems.append(_("Fixed AnkiDroid deck override bug. (I.e. some template has did = to 'None', it is now None.)"))
-                    self.models.save(m)
+                    self.models.save(m, recomputeReq=False)
 
     def fixReq(self):
         for m in self.models.all():
@@ -1129,12 +1129,12 @@ ooo
             l = self.db.all(
                 "select id, flds from notes where mid = ?", m['id'])
             ids = []
-            for (id, flds) in l:
+            for (nid, flds) in l:
                 nbFieldNote = flds.count("\x1f") + 1
                 nbFieldModel = len(m['flds'])
                 if nbFieldNote != nbFieldModel:
-                    ids.append(id)
-                    self.problems.append(f"""Note {id} with fields «{flds}» has {nbFieldNote} fields while its model {m['name']} has {nbFieldModel} fields""")
+                    ids.append(nid)
+                    self.problems.append(f"""Note {nid} with fields «{flds}» has {nbFieldNote} fields while its model {m['name']} has {nbFieldModel} fields""")
             if ids:
                 self.remNotes([line[0]for line in lines],reason=f"It hads a wrong number of fields")
 
@@ -1193,7 +1193,7 @@ ooo
 
     def fixOdidOdue(self):
         self.template(
-            """select id, odid, did from cards where odid > 0 and did in %s""" % ids2str([id for id in self.decks.allIds() if not self.decks.isDyn(id)]),# cards with odid set when not in a dyn deck
+            """select id, odid, did from cards where odid > 0 and did in %s""" % ids2str([did for did in self.decks.allIds() if not self.decks.isDyn(did)]),# cards with odid set when not in a dyn deck
             "Card {}: Set odid and odue to 0 because odid was {} while its did was {} which is not filtered(a.k.a. not dymanic).",
             "Fixed %d card with invalid properties.",
             "Fixed %d cards with invalid properties.",
@@ -1265,14 +1265,14 @@ ooo
     def doubleCard(self):
         l = self.db.all("""select nid, ord, count(*), GROUP_CONCAT(id) from cards group by ord, nid having count(*)>1""")
         toRemove = []
-        for nid, ord, count, ids in l:
-            ids = ids.split(",")
-            ids = [int(id) for id in ids]
-            cards = [Card(self,id) for id in ids]
+        for nid, ord, count, cids in l:
+            cids = cids.split(",")
+            cids = [int(cid) for cid in cids]
+            cards = [Card(self,cid) for cid in cids]
             bestCard = max(cards, key = (lambda card: (card.ivl, card.factor, card.due)))
-            bestId = bestCard.id
-            self.problems.append(f"There are {count} card for note {nid} at ord {ord}. They are {ids}. We only keep {bestId}")
-            toRemove += [id for id in ids  if id!= bestId]
+            bestCid = bestCard.id
+            self.problems.append(f"There are {count} card for note {nid} at ord {ord}. They are {cids}. We only keep {bestCid}")
+            toRemove += [cid for cid in cids  if cid!= bestCid]
         if toRemove:
             self.remCards(toRemove)
 
