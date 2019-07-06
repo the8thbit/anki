@@ -238,6 +238,8 @@ Not currently enabled; click the sync button in the main window to enable."""))
             self.prof.get("changeModelWithoutFullSync", False))
         self.form.compileLaTeX.setChecked(
             self.prof.get("compileLaTeX", False))
+        self.form.exportSiblings.setChecked(
+            self.prof.get("exportSiblings", False))
         self.form.keepSeenCard.setChecked(
             self.prof.get("keepSeenCard", False))
         self.form.noteWithoutCard.setChecked(
@@ -261,3 +263,4 @@ Not currently enabled; click the sync button in the main window to enable."""))
         self.prof["preserveName"] = self.form.preserveName.isChecked()
         self.prof["preserveCreation"] = self.form.preserveCreation.isChecked()
         self.prof["preserveReviewInfo"] = self.form.preserveReviewInfo.isChecked()
+        self.prof["exportSiblings"] = self.form.exportSiblings.isChecked()

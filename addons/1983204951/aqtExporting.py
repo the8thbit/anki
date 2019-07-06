@@ -1,58 +1,55 @@
-# Copyright: Ankitects Pty Ltd and contributors
-# License: GNU AGPL, version 3 or later; http://www.gnu.org/licenses/agpl.html
+# -*- coding: utf-8 -*-
+# Copyright: Arthur Milchior arthur@milchior.fr
+# encoding: utf8
+# License: GNU GPL, version 3 or later; http://www.gnu.org/copyleft/gpl.html
+# Feel free to contribute to this code on https://github.com/Arthur-Milchior/anki-export-from-browser
+# Add-on number 1983204951 https://ankiweb.net/shared/info/1983204951
 
-"""
-mw -- the main window
-col -- the collection
-frm -- the formula GUIn
-exporters -- A list of pairs (description of an exporter class, the class)
-exporter -- An instance of the class choosen in the GUI
-decks -- The list of decks option used in the GUI. All Decks and decks' name
-isApkg -- Whether exporter's suffix is apkg
-isVerbatim -- Whether exporter has an attribute "verbatim" set to True. Occurs only in Collection package exporter.
-isTextNote -- Whether exporter has an attribute "includeTags" set to True. Occurs only in textNoteExporter.
-"""
-
-import os
 import re
-
-from aqt.qt import *
-import  aqt
-from aqt.utils import getSaveFile, tooltip, showWarning, \
-    checkInvalidFilename, showInfo
-from anki.exporting import exporters
-from anki.hooks import addHook, remHook
-from anki.lang import ngettext, _
+import os
 import time
+from PyQt5.QtWidgets import QAction
 
-class ExportDialog(QDialog):
+from aqt import mw
+from aqt.exporting import ExportDialog
+from aqt.qt import QKeySequence, QPushButton, QDialogButtonBox, QDialog
+from aqt.utils import tooltip, showInfo, getSaveFile, checkInvalidFilename, showWarning
 
-    def __init__(self, mw, did=None, cids=None):
+from anki import Collection
+from anki.exporting import Exporter, AnkiExporter, exporters
+from anki.hooks import addHook, remHook
+from anki.lang import ngettext
+from anki.utils import ids2str
+from anki.lang import _
+
+
+def debug(t):
+    print(t)
+    pass
+
+#Change to ExportDialog
+oldInit=ExportDialog.__init__
+def __init__(self, mw, did=None, cids=None):
+    self.cids = cids
+    oldInit(self,mw,did=did)
+ExportDialog.__init__=__init__
+
+# oldExporterChanged = ExportDialog.exportChanged
+# def exporterChanged(self, idx):
+#     oldExporterChanged(self,idx)
+# ExportDialog.exportChanged=exporterChanged
+
+
+def setup(self, did):
         """
-        cids -- the cards selected, if it's opened from the browser
-        """
-        QDialog.__init__(self, mw, Qt.Window)
-        self.mw = mw
-        self.cids = cids
-        self.col = mw.col
-        self.frm = aqt.forms.exporting.Ui_ExportDialog()
-        self.frm.setupUi(self)
-        self.exporter = None
-        self.setup(did, cids)
-        self.exec_()
-
-    def setup(self, did = None, cids = None):
-        """Set the GUI such that, by default, it exports whole collection. Or deck did. Or cards cids.
-
         keyword arguments:
-        did -- If did is not None, export this deck.
-        cids -- If cids is not None, export those cards.
-
+        did -- if None, then export whole anki. If did, export this deck. If list of cids, expots those cids.
         """
+        debug(f"Calling setup({did}), its cids is {self.cids}")
         self.exporters = exporters()
         # if a deck specified, start with .apkg type selected
         idx = 0
-        if did or cids:
+        if did or self.cids:
             for c, (k,e) in enumerate(self.exporters):
                 if e.ext == ".apkg":
                     idx = c
@@ -63,9 +60,10 @@ class ExportDialog(QDialog):
         self.exporterChanged(idx)
         # deck list
         self.decks = [_("All Decks")]
-        if cids:
+        if self.cids:
             bs=_("Browser's selection")
-            self.decks.append(bs)
+            debug(f"Adding {bs}")
+            self.decks = self.decks+[bs]
         self.decks = self.decks + sorted(self.col.decks.allNames())
         self.frm.deck.addItems(self.decks)
         # save button
@@ -76,28 +74,12 @@ class ExportDialog(QDialog):
             name = self.mw.col.decks.get(did)['name']
             index = self.frm.deck.findText(name)
             self.frm.deck.setCurrentIndex(index)
+        if self.cids:
+            self.frm.deck.setCurrentIndex(1)
+ExportDialog.setup=setup
 
-    def exporterChanged(self, idx):
-        self.exporter = self.exporters[idx][1](self.col)
-        self.isApkg = self.exporter.ext == ".apkg"
-        self.isVerbatim = getattr(self.exporter, "verbatim", False)
-        self.isTextNote = hasattr(self.exporter, "includeTags")
-        self.frm.includeSched.setVisible(
-            getattr(self.exporter, "includeSched", None) is not None)
-        self.frm.includeMedia.setVisible(
-            getattr(self.exporter, "includeMedia", None) is not None)
-        self.frm.includeTags.setVisible(
-            getattr(self.exporter, "includeTags", None) is not None)
-        html = getattr(self.exporter, "includeHTML", None)
-        if html is not None:
-            self.frm.includeHTML.setVisible(True)
-            self.frm.includeHTML.setChecked(html)
-        else:
-            self.frm.includeHTML.setVisible(False)
-        # show deck list?
-        self.frm.deck.setVisible(not self.isVerbatim)
-
-    def accept(self):
+def accept(self):
+        debug(f"Calling accept()")
         self.exporter.includeSched = (
             self.frm.includeSched.isChecked())
         self.exporter.includeMedia = (
@@ -106,7 +88,8 @@ class ExportDialog(QDialog):
             self.frm.includeTags.isChecked())
         self.exporter.includeHTML = (
             self.frm.includeHTML.isChecked())
-        if self.frm.deck.currentIndex() == 0: #position 0 means: all decks.
+### Starting change
+        if self.frm.deck.currentIndex() == 0:#position 0 means: all decks.
             self.exporter.did = None
             self.exporter.cids = None
         elif self.frm.deck.currentIndex() == 1 and self.cids is not None:#position 1 means: selected decks.
@@ -114,6 +97,7 @@ class ExportDialog(QDialog):
             self.exporter.cids = self.cids
         else:
             self.exporter.cids = None
+### ending change
             name = self.decks[self.frm.deck.currentIndex()]
             self.exporter.did = self.col.decks.id(name)
         if self.isVerbatim:
@@ -170,3 +154,4 @@ class ExportDialog(QDialog):
             finally:
                 self.mw.progress.finish()
         QDialog.accept(self)
+ExportDialog.accept = accept
