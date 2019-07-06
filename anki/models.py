@@ -861,7 +861,7 @@ select id from notes where mid = ?)""" % " ".join(map),
                 continue
             template = m["tmpls"][ord]
             format = template['qfmt']
-            html, showAField = anki.template.render(format, fields) #replace everything of the form {{ by its value TODO check
+            html, showAField = anki.template.renderAndIsFieldPresent(format, fields) #replace everything of the form {{ by its value TODO check
             if showAField:
                 available.append(ord)
         return available

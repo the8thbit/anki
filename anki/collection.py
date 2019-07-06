@@ -817,7 +817,7 @@ select id from notes where id in %s and id not in (select nid from cards)""" %
                 fields['FrontSide'] = stripSounds(d['q'])
                 #d['q'] is defined during loop's first iteration
             fields = runFilter("mungeFields", fields, model, data, self) # TODO check
-            html, showAField = anki.template.render(format, fields) #replace everything of the form {{ by its value TODO check
+            html, showAField = anki.template.renderAndIsFieldPresent(format, fields) #replace everything of the form {{ by its value TODO check
             d["showAField"] = showAField#MODIFIED
             d[type] = runFilter(
                 "mungeQA", html, type, fields, model, data, self) # TODO check
