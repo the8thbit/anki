@@ -171,7 +171,8 @@ class AddCards(QDialog):
         note.model()['did'] = self.deckChooser.selectedId()
         ret = note.dupeOrEmpty()
         if ret == 1:
-            showWarning(_(
+            tellCardEmpty = tooltip if self.mw.profile.get("allowEmptyFirstField", True) else showWarning
+            tellCardEmpty(_(
                 "The first field is empty."),
                 help="AddItems#AddError")
             return

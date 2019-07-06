@@ -234,6 +234,12 @@ Not currently enabled; click the sync button in the main window to enable."""))
 
     def setupExtra(self):
         """Set in the GUI the preferences related to add-ons forked."""
+        self.form.allowEmptyFirstField.setChecked(
+            self.prof.get("allowEmptyFirstField", True))
+        self.form.multipleNoteWithSameFirstFieldInImport.setChecked(
+            self.prof.get("multipleNoteWithSameFirstFieldInImport", False))
 
     def updateExtra(self):
         """Check the preferences related to add-ons forked."""
+        self.prof["allowEmptyFirstField"] = self.form.allowEmptyFirstField.isChecked()
+        self.prof["multipleNoteWithSameFirstFieldInImport"] = self.form.multipleNoteWithSameFirstFieldInImport.isChecked()

@@ -901,6 +901,7 @@ class Addon:
 
 """ Set of characteristic of Add-ons incorporated here"""
 incorporatedAddonsSet = {
+    Addon("Allows empty first field during adding and import", 46741504, 1553438887, "0d5b812", "https://github.com/Arthur-Milchior/anki-empty-first-field"),
 }
 
 incorporatedAddonsDict = {**{addon.name: addon for addon in incorporatedAddonsSet if addon.name},
