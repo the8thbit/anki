@@ -80,7 +80,8 @@ class Template:
         context = context or self.context
 
         template = self.render_sections(template, context)
-        result, showAField = self.render_tags(template, context)
+        self.showAField = False
+        result = self.render_tags(template, context)
         if encoding is not None:
             result = result.encode(encoding)
         return result, showAField
@@ -141,7 +142,6 @@ class Template:
         {{# and {{^ are removed,
         * whether a field is shown"""
         repCount = 0
-        showAField = False #NEW
         while 1:
             if repCount > 100:
                 print("too many replacements")
@@ -159,15 +159,11 @@ class Template:
             try:
                 func = modifiers[tag_type]
                 replacement = func(self, tag_name, context)
-                if isinstance(replacement,tuple):
-                    replacement, showAField_ = replacement
-                    if showAField_:
-                        showAField = True
                 template = template.replace(tag, replacement)
             except (SyntaxError, KeyError):
                 return "{{invalid template}}"
 
-        return template, showAField
+        return template
 
     # {{{ functions just like {{ in anki
     @modifier('{')
@@ -187,8 +183,9 @@ class Template:
             # some field names could have colons in them
             # avoid interpreting these as field modifiers
             # better would probably be to put some restrictions on field names
-            showAField = bool(txt.strip())### MODIFIED
-            return (txt,showAField)### MODIFIED
+            if bool(txt.strip()):### MODIFIED
+                self.showAField = True
+            return txt### MODIFIED
 
         # field modifiers
         parts = tag_name.split(':')
