@@ -201,7 +201,7 @@ class Template:
             elif mod == 'type':
                 # type answer field; convert it to [[type:...]] for the gui code
                 # to process
-                return "[[%s]]" % tag_name, False
+                return "[[%s]]" % tag_name
             elif mod.startswith('cq-') or mod.startswith('ca-'):
                 # cloze deletion
                 mod, extra = mod.split("-")
@@ -212,8 +212,8 @@ class Template:
                 txt = runFilter('fmod_' + mod, txt or '', extra or '', context,
                                 tag, tag_name)
                 if txt is None:
-                    return '{unknown field %s}' % tag_name, False
-        return txt, True
+                    return '{unknown field %s}' % tag_name
+        return txt
 
     def clozeText(self, txt, ord, type):
         reg = clozeReg
