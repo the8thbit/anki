@@ -98,6 +98,14 @@ their fields.
 If you want to remove this feature, and have anki's default, uncheck
 «Keep note without any card and warn» in the preferences.
 
+## Long term back-up (529955533)
+Ensure that there are both a lot of recent back-up, and one backup by
+day for the last month, one by month for the last year, and one by
+year. So that you can recover some old part of your collection.
+
+This can be deactivated from the back-up tab of the preferences
+window.
+
 ## Keep seen card.
 By default, this version of anki does not delete a card if it has
 already been seen once. Because, it should probably not be empty, and
