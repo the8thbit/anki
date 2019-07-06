@@ -115,6 +115,13 @@ If checked, the option "Delete empty cards only if they are new" set
 back «Empty cards» to its original meaning; it'll delete even the seen
 cards.
 
+## Open a window multiple time (354407385)
+Allows to open multiple copy of the same window.
+
+In the preferences, you can decide which you can open multiple time.
+
+TODO: do it better than using stacks
+
 ## New line in Json (112201952)
 In order to lead configurations be easier to edit, this add-on allow
 newline in json strings. It allow add newlines in the add-on
