@@ -495,7 +495,7 @@ from the profile screen."))
             path = os.path.join(dir, fname)
             os.unlink(path)
 
-    def cleanLonêgTermBackup(self):
+    def cleanLongTermBackup(self):
         dir = self.pm.backupFolder()
         year = int(time.strftime("%Y",currentTime))
         month = int(time.strftime("%m",currentTime))
