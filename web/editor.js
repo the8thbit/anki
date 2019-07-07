@@ -60,7 +60,6 @@ function onKey() {
 	 If no other action is done in .6 seconds, tell Python what change did occur
 	 */
 
-	console.log("js: On key: "+window.event.which)
     // esc clears focus, allowing dialog to close
     if (window.event.which === 27) {
         currentField.blur();
@@ -120,7 +119,6 @@ function onInput() {
 
 	 This is checked on every input; i.e. when the text change.*/
     // empty field?
-	console.log("js: On input. Current field is : "+currentField.innerHTML)
     if (currentField.innerHTML === "") {
         currentField.innerHTML = "<br>";
     }
@@ -183,7 +181,6 @@ function onFocus(elem) {
 	   If the change is note made by mouse, then move caret to end of field, and move the window to show the field.
 
 	*/
-	console.log("js: On focus: "+elem)
     if (currentField === elem) {
         // anki window refocused; current element unchanged
         return;
@@ -191,7 +188,6 @@ function onFocus(elem) {
     currentField = elem;
 	cmd = "focus:" + currentFieldOrdinal();
     pycmd(cmd);
-	console.log("js: focus command sent " + cmd)
     enableButtons();
     // don't adjust cursor on mouse clicks
     if (mouseDown) {
@@ -282,7 +278,6 @@ function onBlur() {
       is still active. Otherwise by blur.  If current field is not
       active, then disable buttons and state that there are no current
       fields */
-	console.log("js: onBlur. Current field is "+currentField);
 	if (!currentField) {
 		return;
     }
@@ -309,7 +304,6 @@ function saveField(type) {
     }
 	cmd = type + ":" + currentFieldOrdinal() + ":" + currentNoteId + ":" + currentField.innerHTML;
     // type is either 'blur' or 'key'
-	console.log("js: Save field: "+ cmd);
     pycmd(cmd);
 }
 
