@@ -7,7 +7,7 @@ Yeah, this description seems ridiculous. But actually, anki does not
 respect this.
 
 ## Added today (861864770)
-From the add window page, you can see the list of cardes added today
+From the add window page, you can see the list of cards added today
 in the browser.
 
 ## Add/remove deck prefix (683170394)
