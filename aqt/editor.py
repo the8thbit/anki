@@ -275,7 +275,6 @@ class Editor:
     ######################################################################
 
     def onBridgeCmd(self, cmd):
-        print(f"js tells python to «{cmd}»")
         if not self.note or not runHook:
             # shutdown
             return
@@ -509,7 +508,6 @@ class Editor:
         self.mw.col.models.save(self.model, recomputeReq=False)
         fieldObject["Line alone"] = not fieldObject.get("Line alone", False)
         self.loadNote()
-        print(f"""Changing field number {fieldNumber} to {fieldObject["Line alone"]}""")
 
     # Tag handling
     ######################################################################
